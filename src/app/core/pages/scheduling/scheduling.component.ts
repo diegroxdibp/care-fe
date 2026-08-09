@@ -202,7 +202,7 @@ export class SchedulingComponent implements OnDestroy {
       parseDate(day),
     );
     return slots
-      .filter(s => !s.isBooked || this.confirmedSlotId() === s.id)
+      .filter(s => !(s.bookedDates ?? []).includes(day) || this.confirmedSlotId() === s.id)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }
 
@@ -375,8 +375,11 @@ export class SchedulingComponent implements OnDestroy {
     this.apiService.setAppointment(this.schedulingService.getAppointmentPayload()).subscribe({
       next: () => {
         this.confirmedSlotId.set(slot.id);
+        const bookedDay = this.selectedDay;
         this.schedulingService.availability.update(list =>
-          list.map(a => a.id === slot.id ? { ...a, isBooked: true } : a),
+          list.map(a => a.id === slot.id && bookedDay
+            ? { ...a, bookedDates: [...(a.bookedDates ?? []), bookedDay] }
+            : a),
         );
         const date = this.fmtDate(this.selectedDay);
         this.showToast(

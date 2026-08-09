@@ -24,6 +24,7 @@ import {
   AvailabilityConfigurationObject,
   emptyAvailabilityConfiguration,
 } from '../models/input-configuration-objects/availability-configuration-object';
+import { occursOnDate } from '../utils/recurrence.util';
 
 /**
  * Escolha feita no passo 1 e revista no passo 2.
@@ -144,13 +145,21 @@ export class SchedulingService {
     maxDate.setHours(23, 59, 59, 999);
 
     for (const availability of availabilities) {
-      if (availability.isBooked) continue;
+      // A ocupação é por data: uma vaga quinzenal ocupada numa semana continua
+      // livre na seguinte. Saltar a série inteira escondia as semanas livres.
+      const booked = new Set(availability.bookedDates ?? []);
 
       const timeSlot = `${availability.startTime} - ${availability.endTime}`;
 
       if (availability.isRecurring && availability.dayOfWeek) {
-        let current = new Date(availability.startDate);
-        current.setHours(0, 0, 0, 0);
+        // A âncora é sempre a startDate original. Avançar o cursor para hoje
+        // (abaixo) não pode substituí-la: a paridade de uma vaga quinzenal
+        // conta-se a partir da data em que a série começou, e usar o cursor
+        // como âncora oferecia justamente a semana errada.
+        const anchor = new Date(availability.startDate);
+        anchor.setHours(0, 0, 0, 0);
+
+        let current = new Date(anchor);
 
         // Start from today or availability start date, whichever is later
         if (current < now) {
@@ -165,14 +174,22 @@ export class SchedulingService {
         while (current <= end) {
           const currentDayName = dayNumberToEnum[current.getDay()];
 
-          if (currentDayName === availability.dayOfWeek) {
+          if (
+            currentDayName === availability.dayOfWeek &&
+            // Sem isto uma vaga quinzenal/mensal era oferecida em todas as
+            // semanas com aquele dia — o cliente via semanas que a pessoa
+            // profissional nunca abriu.
+            occursOnDate(availability.recurrenceFrequency, anchor, current)
+          ) {
             const key = this.formatDateKey(current);
 
-            if (!this.timeSlots.has(key)) {
-              this.timeSlots.set(key, []);
+            if (!booked.has(key)) {
+              if (!this.timeSlots.has(key)) {
+                this.timeSlots.set(key, []);
+              }
+              this.timeSlots.get(key)!.push(timeSlot);
+              datesAdded++;
             }
-            this.timeSlots.get(key)!.push(timeSlot);
-            datesAdded++;
           }
           current.setDate(current.getDate() + 1);
         }
@@ -182,12 +199,13 @@ export class SchedulingService {
 
         if (start >= now && start <= maxDate) {
           const key = this.formatDateKey(start);
-          console.log('Adding one-time timeSlot for', key, ':', timeSlot);
 
-          if (!this.timeSlots.has(key)) {
-            this.timeSlots.set(key, []);
+          if (!booked.has(key)) {
+            if (!this.timeSlots.has(key)) {
+              this.timeSlots.set(key, []);
+            }
+            this.timeSlots.get(key)!.push(timeSlot);
           }
-          this.timeSlots.get(key)!.push(timeSlot);
         }
       }
     }

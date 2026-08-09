@@ -24,6 +24,11 @@ export interface Appointment {
   status: 'PENDING' | 'CONFIRMED';
   address?: string;
   notes?: string;
+  /**
+   * Ocorrências desta série canceladas à parte (yyyy-MM-dd). Quem expande a
+   * recorrência tem de as saltar.
+   */
+  excludedDates?: string[];
   /** Hoje sempre um elemento — a única pessoa profissional da marcação. */
   professionals?: { id: number; name: string; role?: string }[];
 }

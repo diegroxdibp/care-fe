@@ -205,8 +205,8 @@
                       <div class="b-bands">
                         @for (time of ghostSlotTimes(); track time; let gi = $index) {
                           <div class="b-band"
-                            [class.booked]="mvBlk.backendSlots[gi]?.isBooked"
-                            [class.free]="!mvBlk.backendSlots[gi]?.isBooked"
+                            [class.booked]="bookedSlotsForBlock(mvBlk)[gi]?.booked"
+                            [class.free]="!bookedSlotsForBlock(mvBlk)[gi]?.booked"
                           >
                             <div class="bd-row">
                               <span class="bd-time">{{ time }}</span>
@@ -214,7 +214,7 @@
                                 <span translate="no" class="material-symbols-outlined">{{ mvBlk.isRecurring ? 'event_repeat' : 'push_pin' }}</span>
                               </span>
                             </div>
-                            <span class="bd-name">{{ mvBlk.backendSlots[gi]?.isBooked ? 'reservado' : 'livre' }}</span>
+                            <span class="bd-name">{{ bookedSlotsForBlock(mvBlk)[gi]?.booked ? 'reservado' : 'livre' }}</span>
                           </div>
                         }
                       </div>

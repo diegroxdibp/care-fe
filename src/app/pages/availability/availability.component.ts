@@ -181,7 +181,6 @@ interface SlotInfo {
 interface BackendSlot {
   slotTime: string;
   backendId: number;
-  isBooked: boolean;
 }
 
 interface TherapistBlock {
@@ -948,15 +947,21 @@ export class AvailabilityComponent implements OnInit {
       if (newStart === block.startTime && newEnd === block.endTime && newCol === colIndex) return;
 
       const newWeekday = COL_TO_DOW[newCol];
-      // For non-recurring blocks the new date is the actual calendar date of the target column.
-      // dateForWeekday() derives that date from the current week view for both types.
-      const newDate = this.dateForWeekday(newWeekday);
+      // Uma vaga pontual muda para a data real da coluna de destino. Uma
+      // recorrente reancora dentro da semana da própria âncora - a data que
+      // for enviada passa a mandar no dia da semana da série no backend, e
+      // usar a semana em vista trocaria as semanas em que ela ocorre.
+      const newDate = block.isRecurring
+        ? this.reanchorRecurring(block, newWeekday)
+        : this.dateForWeekday(newWeekday);
       const updated: TherapistBlock = {
         ...block,
         startTime: newStart,
         endTime: newEnd,
         weekdays: block.isRecurring ? [newWeekday] : [],
-        startDate: block.isRecurring ? block.startDate : newDate,
+        // Tem de ser a mesma data que segue no payload: guardar a antiga aqui
+        // deixava o ecrã a discordar do backend até ao próximo carregamento.
+        startDate: newDate,
       };
       this.blocks.update(bs => bs.map(b => b.id === block.id ? updated : b));
       this._invalidateSchedulingCache();
@@ -1430,7 +1435,7 @@ export class AvailabilityComponent implements OnInit {
           forkJoin(createOps).subscribe({
             next: (results) => {
               const newSlots: BackendSlot[] = results.map((res, i) => ({
-                slotTime: newSlotTimes[i], backendId: res.id, isBooked: false,
+                slotTime: newSlotTimes[i], backendId: res.id,
               }));
               this.blocks.update(bs => bs.map(bl =>
                 bl.id === b.id ? { ...bl, backendSlots: [...bl.backendSlots, ...newSlots] } : bl,
@@ -1539,7 +1544,7 @@ export class AvailabilityComponent implements OnInit {
           forkJoin(createOps).subscribe({
             next: (results) => {
               const newSlots: BackendSlot[] = results.map((res, i) => ({
-                slotTime: newSlotTimes[i], backendId: res.id, isBooked: false,
+                slotTime: newSlotTimes[i], backendId: res.id,
               }));
               this.blocks.update(bs => bs.map(bl =>
                 bl.id === b.id ? { ...bl, backendSlots: [...newSlots, ...bl.backendSlots] } : bl,
@@ -1701,7 +1706,7 @@ export class AvailabilityComponent implements OnInit {
 
     const tempBlock: TherapistBlock = {
       id: tempId,
-      backendSlots: slotTimes.map(t => ({ slotTime: t, backendId: -1, isBooked: false })),
+      backendSlots: slotTimes.map(t => ({ slotTime: t, backendId: -1 })),
       services,
       modality: this.editorModality(),
       isRecurring,
@@ -1737,7 +1742,7 @@ export class AvailabilityComponent implements OnInit {
       tap({
         next: (results) => {
           const newSlots: BackendSlot[] = results.map((res, i) => ({
-            slotTime: slotTimes[i], backendId: res.id, isBooked: false,
+            slotTime: slotTimes[i], backendId: res.id,
           }));
           this.blocks.update(bs => bs.map(b =>
             b.id === tempId ? { ...b, backendSlots: newSlots } : b,
@@ -1784,6 +1789,50 @@ export class AvailabilityComponent implements OnInit {
     };
   }
 
+  /**
+   * Nova âncora de uma série recorrente que mudou de dia da semana.
+   *
+   * Mantém a semana da âncora original: trocar de dia (ou só de hora) não
+   * deve alterar em que semanas a série acontece. Se a data resultante já
+   * passou, avança períodos inteiros para preservar a paridade.
+   */
+  private reanchorRecurring(block: TherapistBlock, newWeekday: DayOfWeek): string {
+    if (!block.startDate) {
+      return this.dateForWeekday(newWeekday);
+    }
+
+    const anchor = new Date(block.startDate + 'T00:00:00');
+    if (Number.isNaN(anchor.getTime())) {
+      return this.dateForWeekday(newWeekday);
+    }
+
+    const colIdx = COL_TO_DOW.indexOf(newWeekday);
+    const d = getWeekStart(anchor);
+    d.setDate(d.getDate() + colIdx);
+
+    const freq = normalizeRecurrenceFrequency(block.recurrenceFrequency);
+    // Passo em dias que preserva a paridade. MONTHLY usa 4 semanas: mantém o
+    // dia da semana e, na esmagadora maioria dos meses, a mesma posição.
+    const stepDays = freq === RecurrenceFrequency.BIWEEKLY ? 14
+      : freq === RecurrenceFrequency.MONTHLY ? 28
+      : 7;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    while (d < today) {
+      d.setDate(d.getDate() + stepDays);
+    }
+    return toKey(d);
+  }
+
+  /**
+   * Data daquele dia da semana na semana em vista.
+   *
+   * É exatamente a célula que a pessoa profissional escolheu, e é essa data
+   * que ancora a recorrência: se ela abriu a vaga nesta semana, é nesta
+   * semana que a vaga ocorre. Não empurrar para a semana seguinte mesmo que
+   * o dia já tenha passado — isso invertia as semanas de uma vaga quinzenal.
+   */
   private dateForWeekday(wd: DayOfWeek): string {
     const colIdx = COL_TO_DOW.indexOf(wd);
     const d = new Date(this.weekStart());
@@ -1848,7 +1897,7 @@ export class AvailabilityComponent implements OnInit {
     const dow = BACKEND_DOW_MAP[first.dayOfWeek as unknown as string] ?? DayOfWeek.MONDAY;
     return {
       id: ++this._nextId,
-      backendSlots: avails.map(a => ({ slotTime: stripSec(a.startTime), backendId: a.id, isBooked: a.isBooked })),
+      backendSlots: avails.map(a => ({ slotTime: stripSec(a.startTime), backendId: a.id })),
       services: first.services,
       modality: first.modality ? normalizeModality(first.modality) : this.deriveModality(first.services),
       isRecurring: first.isRecurring,
@@ -1913,7 +1962,7 @@ export class AvailabilityComponent implements OnInit {
       forkJoin(createOps).subscribe({
         next: (results) => {
           const newSlots: BackendSlot[] = results.map((res, i) => ({
-            slotTime: toAddTimes[i], backendId: res.id, isBooked: false,
+            slotTime: toAddTimes[i], backendId: res.id,
           }));
           this.blocks.update(bs => bs.map(b => b.id === blockId
             ? { ...b, backendSlots: [...b.backendSlots.filter(s => newSlotSet.has(s.slotTime)), ...newSlots] } : b));
@@ -1942,7 +1991,7 @@ export class AvailabilityComponent implements OnInit {
         forkJoin(createOps).subscribe({
           next: (results) => {
             const newSlots: BackendSlot[] = results.map((res, i) => ({
-              slotTime: slotTimes[i], backendId: res.id, isBooked: false,
+              slotTime: slotTimes[i], backendId: res.id,
             }));
             this.blocks.update(bs => bs.map(b =>
               b.id === blockId ? { ...b, backendSlots: newSlots } : b,
@@ -1967,11 +2016,20 @@ export class AvailabilityComponent implements OnInit {
 
   // ─ Appointment / slot helpers ────────────────────────────────────────────────
 
+  /** A data concreta que este bloco representa na semana em vista. */
+  private blockDateInView(block: TherapistBlock): string | null {
+    if (!block.isRecurring) {
+      return block.startDate ?? null;
+    }
+    if (!block.weekdays[0]) {
+      return null;
+    }
+    return toKey(this.weekDays()[COL_TO_DOW.indexOf(block.weekdays[0])]);
+  }
+
   appointmentsForBlock(block: TherapistBlock): Appointment[] {
     const backendIds = new Set(block.backendSlots.filter(s => s.backendId > 0).map(s => s.backendId));
-    const candidateDate = block.isRecurring && block.weekdays[0]
-      ? this.weekDays()[COL_TO_DOW.indexOf(block.weekdays[0])]
-      : null;
+    const dateKey = this.blockDateInView(block);
 
     return this.appointments().filter(a => {
       const matches = backendIds.size > 0 && backendIds.has(a.availabilityId)
@@ -1984,28 +2042,47 @@ export class AvailabilityComponent implements OnInit {
           && a.startTime >= block.startTime && a.startTime < block.endTime
         );
       if (!matches) return false;
-      // A recurring appointment (biweekly/monthly) only counts as active for
-      // weeks it actually occurs in - otherwise it'd look booked every week.
-      if (!a.isRecurring || !a.startDate || !candidateDate) return true;
-      return occursOnDate(a.recurrenceFrequency, new Date(a.startDate + 'T00:00:00'), candidateDate);
+      if (!dateKey) return true;
+
+      // Uma ocorrência cancelada à parte deixou de existir: a vaga daquela
+      // semana volta a estar livre e tem de poder ser reutilizada.
+      if ((a.excludedDates ?? []).includes(dateKey)) return false;
+
+      // Uma marcação pontual só ocupa a sua própria data. Sem isto, uma única
+      // sessão numa vaga semanal aparecia ocupada em todas as semanas.
+      if (!a.isRecurring || !a.startDate) return a.startDate === dateKey;
+
+      return occursOnDate(
+        a.recurrenceFrequency,
+        new Date(a.startDate + 'T00:00:00'),
+        new Date(dateKey + 'T00:00:00'),
+      );
     });
   }
 
   bookedSlotsForBlock(block: TherapistBlock): SlotInfo[] {
     const slots = generateSlots(block.startTime, block.endTime, block.sessionDuration);
     // Per-slot mode: one backendSlot per generated slot
+    // appointmentsForBlock já resolve a recorrência para a data em causa, por
+    // isso uma sessão quinzenal deixa de marcar o bloco como ocupado nas
+    // semanas em que não acontece.
+    const appts = this.appointmentsForBlock(block);
     if (block.backendSlots.length === slots.length && block.backendSlots.every(s => s.backendId > 0)) {
-      return block.backendSlots.map((s, i) => {
-        const appointment = this.appointments().find(a => a.availabilityId === s.backendId);
-        return { time: s.slotTime, booked: s.isBooked || !!appointment, appointment };
+      return block.backendSlots.map((s) => {
+        const appointment = appts.find(a => a.availabilityId === s.backendId);
+        return { time: s.slotTime, booked: !!appointment, appointment };
       });
     }
     // Legacy/transition mode: match appointments by slot start time
-    const appts = this.appointmentsForBlock(block);
     return slots.map(time => {
       const appointment = appts.find(a => a.startTime === time);
       return { time, booked: !!appointment, appointment };
     });
+  }
+
+  /** Ocupação de uma vaga concreta, resolvida a partir das sessões da semana. */
+  private isSlotBooked(block: TherapistBlock, slot: BackendSlot): boolean {
+    return this.appointmentsForBlock(block).some(a => a.availabilityId === slot.backendId);
   }
 
   bookedCount(block: TherapistBlock): number {
@@ -2186,12 +2263,6 @@ export class AvailabilityComponent implements OnInit {
     this.apiService.deleteAppointment(appt.id, justification).subscribe({
       next: () => {
         this.appointments.update(list => list.filter(a => a.id !== appt.id));
-        this.blocks.update(bs => bs.map(b => ({
-          ...b,
-          backendSlots: b.backendSlots.map(s =>
-            s.backendId === appt.availabilityId ? { ...s, isBooked: false } : s,
-          ),
-        })));
         this.selectedAppointment.set(null);
         this.snackbarService.openSnackBar({ message: 'Sessão cancelada com sucesso.' });
       },
@@ -2204,7 +2275,7 @@ export class AvailabilityComponent implements OnInit {
   removeSlot(event: Event, block: TherapistBlock, slotIndex: number): void {
     event.stopPropagation();
     const slot = block.backendSlots[slotIndex];
-    if (!slot || slot.isBooked) return;
+    if (!slot || this.isSlotBooked(block, slot)) return;
 
     this.confirmDelete(() => this._doRemoveSlot(block, slotIndex, slot));
   }
@@ -2280,7 +2351,7 @@ export class AvailabilityComponent implements OnInit {
   openProposeDialog(event: Event, block: TherapistBlock, slotIndex: number): void {
     event.stopPropagation();
     const backendSlot = block.backendSlots[slotIndex];
-    if (!backendSlot || backendSlot.isBooked) return;
+    if (!backendSlot || this.isSlotBooked(block, backendSlot)) return;
 
     const professionalId = this.sessionService.user()?.id;
     if (!professionalId) return;
@@ -2318,12 +2389,6 @@ export class AvailabilityComponent implements OnInit {
     }).subscribe({
       next: (appt) => {
         this.appointments.update(list => [...list, appt]);
-        this.blocks.update(bs => bs.map(b => ({
-          ...b,
-          backendSlots: b.backendSlots.map(s =>
-            s.backendId === availabilityId ? { ...s, isBooked: true } : s,
-          ),
-        })));
         this.snackbarService.openSnackBar({ message: 'Proposta enviada com sucesso.' });
       },
       error: () => {

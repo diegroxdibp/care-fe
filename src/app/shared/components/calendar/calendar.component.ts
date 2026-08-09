@@ -99,11 +99,11 @@ export class CalendarComponent implements OnInit {
     console.log(JSON.stringify(this.availability, null, 2));
 
     for (const availability of this.availability) {
-      if (availability.isBooked) {
-        console.log('Skipping booked availability:', availability.id);
-        continue;
-      }
+      const booked = new Set(availability.bookedDates ?? []);
 
+      // Uma vaga recorrente não se salta inteira por estar ocupada nalgumas
+      // datas — o dia da semana continua disponível e a ocupação é resolvida
+      // por data mais à frente. Só a vaga pontual desaparece quando é ocupada.
       if (availability.isRecurring && availability.dayOfWeek) {
         const dayOfWeek = this.getDayNumber(availability.dayOfWeek);
         console.log(
@@ -111,8 +111,10 @@ export class CalendarComponent implements OnInit {
         );
         this.allowedRecurringDays.add(dayOfWeek);
       } else if (!availability.isRecurring && availability.startDate) {
+        if (booked.has(availability.startDate)) {
+          continue;
+        }
         // Store as YYYY-MM-DD string for easier comparison
-        console.log(`Adding specific date: ${availability.startDate}`);
         this.allowedSpecificDates.add(availability.startDate);
       }
     }

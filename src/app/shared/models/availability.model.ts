@@ -14,7 +14,13 @@ export interface AvailabilityModel {
   isRecurring: boolean;
   dayOfWeek: DayOfWeek;
   recurrenceFrequency?: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
-  isBooked: boolean;
+  /**
+   * Datas (yyyy-MM-dd) em que esta vaga já está ocupada.
+   *
+   * Substitui o antigo isBooked: uma vaga semanal pode estar ocupada numa
+   * semana e livre na seguinte, e um booleano por série escondia-a em todas.
+   */
+  bookedDates: string[];
   modality: string;
   platform?: string;
   /** Morada em texto livre para sessões presenciais. */
@@ -39,7 +45,7 @@ export const emptyAvailability: AvailabilityModel = {
   endTime: '',
   isRecurring: false,
   dayOfWeek: DayOfWeek.MONDAY,
-  isBooked: false,
+  bookedDates: [],
   modality: 'ANY',
   services: [emptyProfessionalService],
 };
