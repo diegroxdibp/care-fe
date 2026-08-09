@@ -139,8 +139,21 @@ export class ApiService {
     );
   }
 
-  deleteAppointment(id: number, justification?: string): Observable<void> {
-    const params = justification ? { justification } : undefined;
+  /**
+   * `occurrenceDate` (yyyy-MM-dd) diz qual sessão da série está a ser
+   * cancelada; sem `scope` o backend cancela só essa. THIS_AND_FOLLOWING
+   * encurta a série a partir dela.
+   */
+  deleteAppointment(
+    id: number,
+    justification?: string,
+    occurrenceDate?: string,
+    scope?: 'SINGLE' | 'THIS_AND_FOLLOWING',
+  ): Observable<void> {
+    let params: Record<string, string> = {};
+    if (justification) params['justification'] = justification;
+    if (occurrenceDate) params['occurrenceDate'] = occurrenceDate;
+    if (scope) params['scope'] = scope;
     return this.http.delete<void>(
       `${environment.apiUrl}/api/appointments/delete/${id}`,
       { withCredentials: true, params },

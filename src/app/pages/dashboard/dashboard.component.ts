@@ -17,6 +17,10 @@ import { MessageService } from '../../core/services/message.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { FeatureFlagService } from '../../shared/services/feature-flag.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import {
+  CancelSessionDialogComponent,
+  CancelSessionScope,
+} from './cancel-session-dialog.component';
 import { Appointment } from '../../shared/models/appointment.model';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { Modality } from '../../shared/enums/modality.enum';
@@ -55,6 +59,7 @@ export interface DashSession {
   platform?: string;
   price?: string;
   recurrence: string;
+  isRecurring: boolean;
   duration: string;
   payment: string;
   notes?: string;
@@ -389,31 +394,85 @@ export class DashboardPageComponent implements OnInit {
   }
 
   cancelSession(session: DashSession): void {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      width: '440px',
-      panelClass: 'care-dialog',
-      data: {
-        title: 'Cancelar sessão',
-        message: 'Deseja realmente cancelar esta sessão? Essa ação não poderá ser desfeita.',
-        confirmLabel: 'Cancelar sessão',
-        cancelLabel: 'Voltar',
-      },
-    });
-    ref.afterClosed().subscribe((confirmed) => {
-      if (!confirmed) return;
+    const occurrenceDate = DashboardPageComponent.toDateKey(session.date);
 
-      this.apiService.deleteAppointment(session.appointmentId).subscribe({
-        next: () => {
-          this.appointments.update((list) =>
-            list.filter((a) => a.id !== session.appointmentId),
-          );
-          this.snackbarService.openSnackBar({ message: 'Sessão cancelada com sucesso.' });
-        },
-        error: () => {
-          this.snackbarService.openSnackBar({ message: 'Erro ao cancelar a sessão. Tente novamente.' });
-        },
-      });
+    // Numa série recorrente há duas coisas diferentes que "cancelar" pode
+    // querer dizer, e só a pessoa sabe qual - perguntar. Numa sessão única
+    // não há ambiguidade nenhuma a resolver.
+    const ref = session.isRecurring
+      ? this.dialog.open(CancelSessionDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: { occurrenceLabel: `${session.fullDow}, ${session.day} de ${session.month}` },
+        })
+      : this.dialog.open(ConfirmDialogComponent, {
+          width: '440px',
+          panelClass: 'care-dialog',
+          data: {
+            title: 'Cancelar sessão',
+            message: 'Deseja realmente cancelar esta sessão? Essa ação não poderá ser desfeita.',
+            confirmLabel: 'Cancelar sessão',
+            cancelLabel: 'Voltar',
+          },
+        });
+
+    ref.afterClosed().subscribe((result) => {
+      if (!result) return;
+
+      const scope: CancelSessionScope = session.isRecurring
+        ? (result as CancelSessionScope)
+        : 'SINGLE';
+
+      this.apiService
+        .deleteAppointment(session.appointmentId, undefined, occurrenceDate, scope)
+        .subscribe({
+          next: () => {
+            this.applyCancellation(session, occurrenceDate, scope);
+            this.snackbarService.openSnackBar({ message: 'Sessão cancelada com sucesso.' });
+          },
+          error: () => {
+            this.snackbarService.openSnackBar({ message: 'Erro ao cancelar a sessão. Tente novamente.' });
+          },
+        });
     });
+  }
+
+  /**
+   * Reflete localmente o que o backend acabou de fazer, sem recarregar: uma
+   * ocorrência vira exceção, uma série encurta, e uma sessão única desaparece.
+   */
+  private applyCancellation(
+    session: DashSession,
+    occurrenceDate: string,
+    scope: CancelSessionScope,
+  ): void {
+    if (!session.isRecurring) {
+      this.appointments.update((list) => list.filter((a) => a.id !== session.appointmentId));
+      return;
+    }
+
+    if (scope === 'SINGLE') {
+      this.appointments.update((list) =>
+        list.map((a) =>
+          a.id === session.appointmentId
+            ? { ...a, excludedDates: [...(a.excludedDates ?? []), occurrenceDate] }
+            : a,
+        ),
+      );
+      return;
+    }
+
+    const newEnd = new Date(session.date);
+    newEnd.setDate(newEnd.getDate() - 1);
+    const newEndKey = DashboardPageComponent.toDateKey(newEnd);
+    this.appointments.update((list) =>
+      list.flatMap((a) => {
+        if (a.id !== session.appointmentId) return [a];
+        // A série deixou de ter ocorrências - sai da lista por completo.
+        if (a.startDate && newEndKey < a.startDate) return [];
+        return [{ ...a, endDate: newEndKey }];
+      }),
+    );
   }
 
   private buildSessions(appointments: Appointment[], services: ProfessionalService[]): DashSession[] {
@@ -425,9 +484,11 @@ export class DashboardPageComponent implements OnInit {
     const sessions: DashSession[] = [];
 
     for (const appt of appointments) {
-      const dates = appt.isRecurring
+      const excluded = new Set(appt.excludedDates ?? []);
+      const dates = (appt.isRecurring
         ? this.recurringDates(appt, today, limit)
-        : this.oneTimeDates(appt);
+        : this.oneTimeDates(appt)
+      ).filter(d => !excluded.has(DashboardPageComponent.toDateKey(d)));
 
       const rawServiceName = services.find(s => s.id === appt.professionalServiceId)?.name ?? '';
       const serviceName = ProfessionalSessionService[rawServiceName as keyof typeof ProfessionalSessionService] ?? rawServiceName;
@@ -472,6 +533,7 @@ export class DashboardPageComponent implements OnInit {
           platform: appt.platform,
           price,
           recurrence,
+          isRecurring: !!appt.isRecurring,
           duration,
           payment,
           notes: appt.notes,
@@ -535,6 +597,14 @@ export class DashboardPageComponent implements OnInit {
       default:
         return 'Combinado com a profissional';
     }
+  }
+
+  /** yyyy-MM-dd em hora local — as datas do backend não têm fuso. */
+  private static toDateKey(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   private recurringDates(appt: Appointment, from: Date, limit: Date): Date[] {
