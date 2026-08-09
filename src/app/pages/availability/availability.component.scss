@@ -1623,8 +1623,15 @@ input[type="number"].field-value {
 
 // Biweekly/monthly blocks on a week they don't actually occur - dimmed, with a note,
 // rather than hidden, so the professional still sees where the recurring slot lives.
+// Numa semana em que a vaga não ocorre, aquele horário está de facto livre.
+// O bloco fica à vista como lembrete da série, mas deixa de apanhar cliques:
+// o pointerdown atravessa para a .hcell por baixo, que abre um bloco novo —
+// sem isto a vaga da semana alternada era impossível de aproveitar.
 .av .block.non-occurring,
-.m-block.non-occurring { opacity: 0.38; }
+.m-block.non-occurring {
+  opacity: 0.38;
+  pointer-events: none;
+}
 .av .block .non-occurring-note,
 .m-block .non-occurring-note {
   position: absolute; inset: 0; z-index: 3;
