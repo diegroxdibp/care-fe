@@ -633,7 +633,9 @@ export class AvailabilityComponent implements OnInit {
 
     return colIndices.map(colIdx => {
       const hasConflict = this.blocksForColumn(colIdx)
-        .filter(b => b.id !== editingId)
+        // Um bloco que não ocorre nesta semana não ocupa nada nesta semana:
+        // aquele horário está livre e tem de poder receber outra vaga.
+        .filter(b => b.id !== editingId && this.isBlockOccurring(b, colIdx))
         .some(b => startMin < timeToMin(b.endTime) && timeToMin(b.startTime) < endMin);
       return { colIndex: colIdx, startTime, endTime, hasConflict, modality };
     });
@@ -648,6 +650,7 @@ export class AvailabilityComponent implements OnInit {
       const pStart = timeToMin(p.startTime);
       const pEnd = timeToMin(p.endTime);
       for (const b of this.blocksForColumn(p.colIndex)) {
+        if (!this.isBlockOccurring(b, p.colIndex)) continue;
         if (b.id !== editingId && pStart < timeToMin(b.endTime) && timeToMin(b.startTime) < pEnd) {
           ids.add(b.id);
         }
@@ -1003,6 +1006,7 @@ export class AvailabilityComponent implements OnInit {
     const endMin = timeToMin(endTime);
     return this.blocksForColumn(colIndex).some(b =>
       b.id !== excludeId &&
+      this.isBlockOccurring(b, colIndex) &&
       startMin < timeToMin(b.endTime) &&
       timeToMin(b.startTime) < endMin,
     );
