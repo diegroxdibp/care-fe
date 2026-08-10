@@ -880,6 +880,14 @@
     color: var(--color-secondary-indigo);
     flex-shrink: 0;
   }
+
+  svg.trifecta-icon {
+    width: 19px;
+    height: auto;
+    margin-top: 2px;
+    fill: var(--color-secondary-indigo);
+    flex-shrink: 0;
+  }
 }
 
 .pro-strip {

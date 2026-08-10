@@ -27,7 +27,7 @@
                 <div class="thread-time">{{ timeLabel(t.lastMessage.createdAt) }}</div>
               }
             </div>
-            <div class="thread-preview">{{ t.lastMessage?.body ?? t.contextLabel }}</div>
+            <div class="thread-preview">{{ t.lastMessage?.body ?? contextLabel(t) }}</div>
           </div>
           @if (t.unreadCount > 0) {
             <span class="dot"></span>
@@ -47,7 +47,7 @@
           <span [class]="'avatar c0'">{{ (thread.otherParticipant?.name ?? '?').charAt(0).toUpperCase() }}</span>
           <div class="conv-header-body">
             <div class="conv-name">{{ thread.otherParticipant?.name ?? 'Conversa' }}</div>
-            <div class="conv-context">{{ thread.contextLabel }}</div>
+            <div class="conv-context">{{ contextLabel(thread) }}</div>
           </div>
           @if (thread.appointmentId) {
             <button type="button" class="btn-view-session" (click)="goToSession(thread)">
@@ -92,6 +92,6 @@
   </div>
 
   <p class="disclaimer">
-    As mensagens não substituem o acompanhamento clínico. Em caso de urgência, contacte os serviços de emergência.
+    As mensagens não substituem o acompanhamento profissional.
   </p>
 </div>
