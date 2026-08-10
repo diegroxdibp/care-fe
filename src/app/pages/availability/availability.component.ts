@@ -1,4 +1,4 @@
-import { forkJoin, of, tap, type Observable } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap, throwError, type Observable } from 'rxjs';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
@@ -38,6 +38,16 @@ import { SchedulingSteps } from '../../shared/enums/scheduling-steps.enum';
 import { SchedulingFormControls } from '../../shared/enums/scheduling-form-controls.enum';
 import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
 import { StyledSelectComponent, StyledSelectOption } from '../../shared/components/styled-select/styled-select.component';
+import {
+  PRICE_MAX,
+  PRICE_MIN,
+  decimalSeparatorFor,
+  formatPriceForEditor,
+  moneyLocaleFor,
+  parsePriceInput,
+  sanitizePriceInput,
+  validatePriceInput,
+} from '../../shared/utils/price.util';
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 
@@ -54,23 +64,36 @@ const PT_DOW_PLURAL = [
   'Segundas-feiras','Terças-feiras','Quartas-feiras',
   'Quintas-feiras','Sextas-feiras','Sábados','Domingos',
 ];
-const HOURS = [
-  '08:00','09:00','10:00','11:00','12:00','13:00',
-  '14:00','15:00','16:00','17:00','18:00','19:00',
-];
-const HOURS_END = [...HOURS, '20:00'];
-const MOB_HOURS = [
-  '08:00','09:00','10:00','11:00','12:00','13:00',
-  '14:00','15:00','16:00','17:00','18:00','19:00',
-  '20:00','21:00','22:00','23:00',
-];
-const EDITOR_HOURS = [
-  '08:00','08:30','09:00','09:30','10:00','10:30',
-  '11:00','11:30','12:00','12:30','13:00','13:30',
-  '14:00','14:30','15:00','15:30','16:00','16:30',
-  '17:00','17:30','18:00','18:30','19:00','19:30',
-];
-const EDITOR_HOURS_END = [...EDITOR_HOURS, '20:00'];
+/*
+ * Limites do dia de atendimento.
+ *
+ * DAY_END_MIN é a hora a que a última sessão pode terminar, e era 20:00 repetido
+ * numa dúzia de sítios ao longo do ficheiro — mexer no horário obrigava a
+ * caçá-los todos.
+ *
+ * O dia fecha à meia-noite, escrita aqui como 24:00 para que a aritmética de
+ * minutos continue monótona (00:00 daria zero e punha o fim antes do início).
+ * Na fronteira da API troca-se por "00:00", que é o que um LocalTime aceita —
+ * ver toApiTime/fromApiTime.
+ */
+const DAY_START_MIN = 8 * 60;
+const DAY_END_MIN = 24 * 60;
+
+/** Uma linha por hora; a última começa uma hora antes do fecho. */
+const HOURS = Array.from(
+  { length: (DAY_END_MIN - DAY_START_MIN) / 60 },
+  (_, i) => minToTime(DAY_START_MIN + i * 60),
+);
+
+// O telemóvel mostra as mesmas horas — tinha uma lista própria que já ia até às
+// 23:00, mas as linhas para lá do fecho do dia não recebiam blocos nenhuns.
+const MOB_HOURS = HOURS;
+
+/** Meias-horas: a última é a que ainda deixa caber a sessão mais curta (30 min). */
+const EDITOR_HOURS = Array.from(
+  { length: (DAY_END_MIN - DAY_START_MIN) / 30 },
+  (_, i) => minToTime(DAY_START_MIN + i * 30),
+);
 const ROW_H = 52;
 const MOB_ROW_H = 80;
 const COL_TO_DOW: DayOfWeek[] = [
@@ -111,6 +134,26 @@ function minToTime(m: number): string {
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
 
+/*
+ * A meia-noite tem duas escritas e cada lado precisa da sua.
+ *
+ * Aqui dentro o fim do dia é "24:00": mantém timeToMin monótono, e é o que faz
+ * um bloco das 23:00 ter altura em vez de altura negativa. Na API é "00:00",
+ * porque endTime desserializa para LocalTime e "24:00" não é um LocalTime.
+ * A troca acontece só nestes dois pontos.
+ */
+const API_END_OF_DAY = '00:00';
+const LOCAL_END_OF_DAY = '24:00';
+
+function toApiTime(t: string): string {
+  return t === LOCAL_END_OF_DAY ? API_END_OF_DAY : t;
+}
+
+/** Só uma *hora de fim* a 00:00 é meia-noite; um início a 00:00 seria o topo do dia. */
+function fromApiEndTime(t: string): string {
+  return stripSec(t) === API_END_OF_DAY ? LOCAL_END_OF_DAY : stripSec(t);
+}
+
 function hourRowIdx(t: string): number {
   return timeToMin(t) / 60 - 8; // '08:00' → 0
 }
@@ -133,27 +176,30 @@ function toKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-// Money input's decimal separator is locale-derived (see `decimalSeparator` on the component);
-// the API always wants a plain number regardless of how it was typed.
-function parsePriceInput(raw: string, separator: string): number | undefined {
-  if (!raw) return undefined;
-  const n = Number(raw.split(separator).join('.'));
-  return Number.isFinite(n) ? n : undefined;
-}
+/** Desfecho de uma escrita dentro de um lote que não pode ser atómico. */
+type SettledWrite<T> = { ok: true; value: T } | { ok: false };
 
-function formatPriceForEditor(price: number | undefined, separator: string): string {
-  return price != null ? price.toFixed(2).replace('.', separator) : '';
-}
-
-// Sanitizes free-typed input into a valid "digits<sep>digits(0-2)" money string as the user types.
-function sanitizePriceInput(raw: string, separator: string): string {
-  let value = [...raw].filter(ch => (ch >= '0' && ch <= '9') || ch === separator).join('');
-  const firstSep = value.indexOf(separator);
-  if (firstSep !== -1) {
-    value = value.slice(0, firstSep + 1) + [...value.slice(firstSep + 1)].filter(ch => ch !== separator).join('');
-  }
-  const [intPart, decPart] = value.split(separator);
-  return decPart !== undefined ? `${intPart}${separator}${decPart.slice(0, 2)}` : value;
+/**
+ * Corre todas as escritas até ao fim e devolve o desfecho de cada uma.
+ *
+ * Um bloco é gravado como N vagas independentes — não há endpoint que as
+ * escreva em conjunto, logo não há transação. Com forkJoin, o primeiro erro
+ * aborta e cancela os pedidos irmãos ainda em voo, mas os que já responderam
+ * ficaram gravados: sobras invisíveis no servidor que o calendário não mostra
+ * e que voltam depois como "já existe uma vaga sobreposta" numa célula que
+ * aparenta estar livre. Este operador nunca falha, para que quem chama saiba
+ * exatamente o que ficou escrito e o possa limpar.
+ */
+function settleAll<T>(ops: Observable<T>[]): Observable<SettledWrite<T>[]> {
+  if (ops.length === 0) return of([]);
+  return forkJoin(
+    ops.map(op =>
+      op.pipe(
+        map((value): SettledWrite<T> => ({ ok: true, value })),
+        catchError(() => of<SettledWrite<T>>({ ok: false })),
+      ),
+    ),
+  );
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -252,10 +298,8 @@ export class AvailabilityComponent implements OnInit {
 
   // ─ Expose to template
   readonly HOURS = HOURS;
-  readonly HOURS_END = HOURS_END;
   readonly MOB_HOURS = MOB_HOURS;
   readonly EDITOR_HOURS = EDITOR_HOURS;
-  readonly EDITOR_HOURS_END = EDITOR_HOURS_END;
   readonly ROW_H = ROW_H;
   readonly MOB_ROW_H = MOB_ROW_H;
   readonly Modality = Modality;
@@ -373,72 +417,34 @@ export class AvailabilityComponent implements OnInit {
   // (not a conversion) for professionals who also charge clients in Brazil.
   private readonly CURRENCY = 'EUR';
   private readonly CURRENCY_BRL = 'BRL';
-  private readonly PRICE_MIN = 0;
-  private readonly PRICE_MAX = 10000;
-  private readonly decimalSeparator = new Intl.NumberFormat(this.locale)
-    .formatToParts(1.1)
-    .find(p => p.type === 'decimal')?.value ?? '.';
+  private readonly PRICE_MIN = PRICE_MIN;
+  private readonly PRICE_MAX = PRICE_MAX;
+  private readonly decimalSeparator = decimalSeparatorFor(this.locale);
 
-  private readonly currencyParts = new Intl.NumberFormat(this.locale, {
-    style: 'currency',
-    currency: this.CURRENCY,
-  }).formatToParts(0);
-  readonly currencySymbol = this.currencyParts.find(p => p.type === 'currency')?.value ?? this.CURRENCY;
-  readonly currencyIsPrefix =
-    this.currencyParts.findIndex(p => p.type === 'currency') <
-    this.currencyParts.findIndex(p => p.type === 'integer');
-  readonly pricePlaceholder = (0).toLocaleString(this.locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  private readonly money = moneyLocaleFor(this.locale, this.CURRENCY);
+  readonly currencySymbol = this.money.symbol;
+  readonly currencyIsPrefix = this.money.isPrefix;
+  readonly pricePlaceholder = this.money.placeholder;
 
-  private readonly currencyPartsBRL = new Intl.NumberFormat(this.locale, {
-    style: 'currency',
-    currency: this.CURRENCY_BRL,
-  }).formatToParts(0);
-  readonly currencySymbolBRL = this.currencyPartsBRL.find(p => p.type === 'currency')?.value ?? this.CURRENCY_BRL;
-  readonly currencyIsPrefixBRL =
-    this.currencyPartsBRL.findIndex(p => p.type === 'currency') <
-    this.currencyPartsBRL.findIndex(p => p.type === 'integer');
-  readonly pricePlaceholderBRL = this.pricePlaceholder;
+  private readonly moneyBRL = moneyLocaleFor(this.locale, this.CURRENCY_BRL);
+  readonly currencySymbolBRL = this.moneyBRL.symbol;
+  readonly currencyIsPrefixBRL = this.moneyBRL.isPrefix;
+  readonly pricePlaceholderBRL = this.moneyBRL.placeholder;
 
   readonly priceErrorMessage = computed<string | null>(() => {
     if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
-    const raw = this.editorPrice();
-    const value = parsePriceInput(raw, this.decimalSeparator);
-    if (raw.trim() === '' || value === undefined) return 'Indique o valor da sessão.';
-    if (value <= this.PRICE_MIN) {
-      return `O valor deve ser superior a ${this._formatCurrencyWhole(this.PRICE_MIN, this.CURRENCY)}`;
-    }
-    if (value > this.PRICE_MAX) {
-      return `O valor máximo permitido é ${this._formatCurrencyWhole(this.PRICE_MAX, this.CURRENCY)}`;
-    }
-    return null;
+    return validatePriceInput(this.editorPrice(), {
+      locale: this.locale, currency: this.CURRENCY, separator: this.decimalSeparator, required: true,
+    });
   });
 
   // BRL is optional — a professional who doesn't bill in Reais just leaves it blank.
   readonly priceBRLErrorMessage = computed<string | null>(() => {
     if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
-    const raw = this.editorPriceBRL();
-    if (raw.trim() === '') return null;
-    const value = parsePriceInput(raw, this.decimalSeparator);
-    if (value === undefined) return 'Indique um valor válido.';
-    if (value <= this.PRICE_MIN) {
-      return `O valor deve ser superior a ${this._formatCurrencyWhole(this.PRICE_MIN, this.CURRENCY_BRL)}`;
-    }
-    if (value > this.PRICE_MAX) {
-      return `O valor máximo permitido é ${this._formatCurrencyWhole(this.PRICE_MAX, this.CURRENCY_BRL)}`;
-    }
-    return null;
+    return validatePriceInput(this.editorPriceBRL(), {
+      locale: this.locale, currency: this.CURRENCY_BRL, separator: this.decimalSeparator, required: false,
+    });
   });
-
-  private _formatCurrencyWhole(n: number, currency: string): string {
-    return new Intl.NumberFormat(this.locale, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(n);
-  }
 
   // ─ Date picker calendar (editor)
   readonly edCalWeekdays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -542,14 +548,14 @@ export class AvailabilityComponent implements OnInit {
 
   readonly editorStartTimeOptions = computed<string[]>(() => {
     const dur = this.editorSessionDuration();
-    return EDITOR_HOURS.filter(h => timeToMin(h) + dur <= 20 * 60);
+    return EDITOR_HOURS.filter(h => timeToMin(h) + dur <= DAY_END_MIN);
   });
 
   readonly editorEndTimeOptions = computed<string[]>(() => {
     const startMin = timeToMin(this.editorStartTime());
     const dur = this.editorSessionDuration();
     const opts: string[] = [];
-    for (let n = 1; startMin + n * dur <= 20 * 60; n++) {
+    for (let n = 1; startMin + n * dur <= DAY_END_MIN; n++) {
       opts.push(minToTime(startMin + n * dur));
     }
     return opts;
@@ -678,7 +684,7 @@ export class AvailabilityComponent implements OnInit {
           this.appointments.set(appts.map(a => ({
             ...a,
             startTime: stripSec(a.startTime),
-            endTime: stripSec(a.endTime),
+            endTime: fromApiEndTime(a.endTime),
           })));
         },
         error: () => {},
@@ -915,9 +921,9 @@ export class AvailabilityComponent implements OnInit {
       if (e.clientX < colRects[0].left) newCol = 0;
       if (e.clientX >= colRects[colRects.length - 1].right) newCol = colRects.length - 1;
 
-      const anchoredStart = (e.clientY - colTopY) / ROW_H * 60 + 8 * 60 - grabOffsetMin;
+      const anchoredStart = (e.clientY - colTopY) / ROW_H * 60 + DAY_START_MIN - grabOffsetMin;
       const snapped = Math.round(anchoredStart / 30) * 30;
-      const clampedStart = Math.max(8 * 60, Math.min(20 * 60 - durationMin, snapped));
+      const clampedStart = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - durationMin, snapped));
 
       this.moveLiveCol.set(newCol);
       this.moveLiveStart.set(minToTime(clampedStart));
@@ -991,7 +997,9 @@ export class AvailabilityComponent implements OnInit {
               b.id === block.id ? { ...b, backendSlots: newSlots } : b,
             ));
           },
-          error: () => this.blocks.update(bs => bs.map(b => b.id === block.id ? block : b)),
+          error: () => this._resyncBlocksFromServer(
+            'Não foi possível mover a disponibilidade. Confirme a agenda.',
+          ),
         });
       }
     };
@@ -1027,7 +1035,7 @@ export class AvailabilityComponent implements OnInit {
     this.dragSelection.set({
       colIndex,
       startTime: minToTime(anchorMin),
-      endTime: minToTime(Math.min(anchorMin + 60, 20 * 60)),
+      endTime: minToTime(Math.min(anchorMin + 60, DAY_END_MIN)),
     });
 
     hcell.setPointerCapture(event.pointerId);
@@ -1035,10 +1043,10 @@ export class AvailabilityComponent implements OnInit {
     const onMove = (e: PointerEvent) => {
       const currentMin = this._yToSnappedMin(e.clientY - colRect.top, ROW_H);
       if (currentMin !== anchorMin) dragMoved = true;
-      const lo = Math.max(8 * 60, Math.min(anchorMin, currentMin));
-      const rawHi = Math.min(20 * 60, Math.max(lo + minDuration, currentMin));
+      const lo = Math.max(DAY_START_MIN, Math.min(anchorMin, currentMin));
+      const rawHi = Math.min(DAY_END_MIN, Math.max(lo + minDuration, currentMin));
       const sessions = Math.max(1, Math.round((rawHi - lo) / minDuration));
-      const hi = Math.min(20 * 60, lo + sessions * minDuration);
+      const hi = Math.min(DAY_END_MIN, lo + sessions * minDuration);
       this.dragSelection.set({ colIndex, startTime: minToTime(lo), endTime: minToTime(hi) });
     };
 
@@ -1102,7 +1110,7 @@ export class AvailabilityComponent implements OnInit {
   private _yToSnappedMin(y: number, rowH: number): number {
     const raw = (y / rowH + 8) * 60;
     const snapped = Math.round(raw / 30) * 30;
-    return Math.max(8 * 60, Math.min(20 * 60, snapped));
+    return Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, snapped));
   }
 
   resetEditor(): void {
@@ -1209,7 +1217,7 @@ export class AvailabilityComponent implements OnInit {
     const startMin = timeToMin(this.editorStartTime());
     const endMin   = timeToMin(this.editorEndTime());
     const sessions = Math.max(1, Math.floor((endMin - startMin) / dur));
-    const snappedEnd = Math.min(startMin + sessions * dur, 20 * 60);
+    const snappedEnd = Math.min(startMin + sessions * dur, DAY_END_MIN);
     if (snappedEnd !== endMin) {
       this.editorEndTime.set(minToTime(snappedEnd));
     }
@@ -1390,7 +1398,7 @@ export class AvailabilityComponent implements OnInit {
       const sessions = Math.max(1, Math.round((endMinRaw - startMin) / dur));
       const snapped = startMin + sessions * dur;
       const floorMin = this.lastBookedEndMin(this._resizeBlock) ?? (startMin + dur);
-      const clamped = Math.max(floorMin, Math.min(20 * 60, snapped));
+      const clamped = Math.max(floorMin, Math.min(DAY_END_MIN, snapped));
       const next = minToTime(clamped);
       if (next !== this.resizeLiveEndTime()) {
         this._resizeDragged = true;
@@ -1446,7 +1454,9 @@ export class AvailabilityComponent implements OnInit {
               ));
               this._invalidateSchedulingCache();
             },
-            error: () => this.blocks.update(bs => bs.map(bl => bl.id === b.id ? b : bl)),
+            error: () => this._resyncBlocksFromServer(
+              'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+            ),
           });
         } else if (newEndMin < oldEndMin) {
           const targetCount = generateSlots(b.startTime, newEnd, dur).length;
@@ -1460,7 +1470,9 @@ export class AvailabilityComponent implements OnInit {
                 ));
                 this._invalidateSchedulingCache();
               },
-              error: () => this.blocks.update(bs => bs.map(bl => bl.id === b.id ? b : bl)),
+              error: () => this._resyncBlocksFromServer(
+              'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+            ),
             });
           }
         }
@@ -1499,7 +1511,7 @@ export class AvailabilityComponent implements OnInit {
       const snapped = endMin - sessions * dur;
       const ceilMin = this.firstBookedStartMin(this._resizeTopBlock)
         ?? (timeToMin(this._resizeTopBlock.endTime) - dur);
-      const clamped = Math.max(8 * 60, Math.min(ceilMin, snapped));
+      const clamped = Math.max(DAY_START_MIN, Math.min(ceilMin, snapped));
       const next = minToTime(clamped);
       if (next !== this.resizeLiveStartTime()) {
         this._resizeTopDragged = true;
@@ -1555,7 +1567,9 @@ export class AvailabilityComponent implements OnInit {
               ));
               this._invalidateSchedulingCache();
             },
-            error: () => this.blocks.update(bs => bs.map(bl => bl.id === b.id ? b : bl)),
+            error: () => this._resyncBlocksFromServer(
+              'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+            ),
           });
         } else if (newStartMin > oldStartMin) {
           // Shrinking from top: delete leading free slots
@@ -1570,7 +1584,9 @@ export class AvailabilityComponent implements OnInit {
                 ));
                 this._invalidateSchedulingCache();
               },
-              error: () => this.blocks.update(bs => bs.map(bl => bl.id === b.id ? b : bl)),
+              error: () => this._resyncBlocksFromServer(
+              'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+            ),
             });
           }
         }
@@ -1616,9 +1632,9 @@ export class AvailabilityComponent implements OnInit {
       if (e.clientX < colRects[0].left) newCol = 0;
       if (e.clientX >= colRects[colRects.length - 1].right) newCol = colRects.length - 1;
 
-      const anchoredStart = (e.clientY - colTopY) / ROW_H * 60 + 8 * 60 - grabOffsetMin;
+      const anchoredStart = (e.clientY - colTopY) / ROW_H * 60 + DAY_START_MIN - grabOffsetMin;
       const snapped = Math.round(anchoredStart / 30) * 30;
-      const clampedStart = Math.max(8 * 60, Math.min(20 * 60 - durationMin, snapped));
+      const clampedStart = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - durationMin, snapped));
 
       this.previewMoveLiveCol.set(newCol);
       this.previewMoveLiveStart.set(minToTime(clampedStart));
@@ -1675,7 +1691,7 @@ export class AvailabilityComponent implements OnInit {
       const startMin = timeToMin(preview.startTime);
       const sessions = Math.max(1, Math.round((endMinRaw - startMin) / dur));
       const snapped = startMin + sessions * dur;
-      const clamped = Math.max(startMin + dur, Math.min(20 * 60, snapped));
+      const clamped = Math.max(startMin + dur, Math.min(DAY_END_MIN, snapped));
       const next = minToTime(clamped);
       if (next !== this.editorEndTime()) {
         dragged = true;
@@ -1742,21 +1758,31 @@ export class AvailabilityComponent implements OnInit {
       )
     );
 
-    return forkJoin(createOps).pipe(
-      tap({
-        next: (results) => {
-          const newSlots: BackendSlot[] = results.map((res, i) => ({
+    return settleAll(createOps).pipe(
+      switchMap(created => {
+        const written = created.flatMap(r => r.ok ? [r.value] : []);
+
+        if (written.length === created.length) {
+          const newSlots: BackendSlot[] = written.map((res, i) => ({
             slotTime: slotTimes[i], backendId: res.id,
           }));
           this.blocks.update(bs => bs.map(b =>
             b.id === tempId ? { ...b, backendSlots: newSlots } : b,
           ));
-        },
-        error: (e) => {
-          console.error('createAvailability error', e);
-          this.blocks.update(bs => bs.filter(b => b.id !== tempId));
-          if (this.selectedBlockId() === tempId) this.selectedBlockId.set(null);
-        },
+          return of(written);
+        }
+
+        // Um bloco meio gravado não é um bloco: as vagas que passaram ficariam
+        // no servidor sem nada no calendário a representá-las, e a tentativa
+        // seguinte na mesma célula seria recusada por sobreposição com elas.
+        this.blocks.update(bs => bs.filter(b => b.id !== tempId));
+        if (this.selectedBlockId() === tempId) this.selectedBlockId.set(null);
+
+        return settleAll(written.map(v => this.apiService.deleteAvailability(v.id))).pipe(
+          // Continuar a falhar para quem chamou: é isso que mantém o editor
+          // aberto com o que a pessoa escreveu (ver saveBlock).
+          switchMap(() => throwError(() => new Error('createAvailability: lote incompleto'))),
+        );
       }),
     );
   }
@@ -1784,7 +1810,7 @@ export class AvailabilityComponent implements OnInit {
       address: modality !== Modality.REMOTE ? address : undefined,
       price,
       priceBRL,
-      endTime: slotEnd,
+      endTime: toApiTime(slotEnd),
       isRecurring,
       recurrenceFrequency: isRecurring
         ? toBackendRecurrenceFrequency(recurrenceFrequency ?? RecurrenceFrequency.WEEKLY)
@@ -1895,7 +1921,7 @@ export class AvailabilityComponent implements OnInit {
     const first = avails[0];
     const last = avails[avails.length - 1];
     const firstStart = stripSec(first.startTime);
-    const firstEnd = stripSec(first.endTime);
+    const firstEnd = fromApiEndTime(first.endTime);
     const slotDurMin = timeToMin(firstEnd) - timeToMin(firstStart);
     const sessionDuration = (slotDurMin === 30 ? 30 : slotDurMin === 90 ? 90 : 60) as 30 | 60 | 90;
     const dow = BACKEND_DOW_MAP[first.dayOfWeek as unknown as string] ?? DayOfWeek.MONDAY;
@@ -1909,7 +1935,7 @@ export class AvailabilityComponent implements OnInit {
       weekdays: first.isRecurring ? [dow] : [],
       startDate: first.startDate,
       startTime: firstStart,
-      endTime: stripSec(last.endTime),
+      endTime: fromApiEndTime(last.endTime),
       sessionDuration,
       platform: first.platform,
       local: first.address,
@@ -1927,6 +1953,50 @@ export class AvailabilityComponent implements OnInit {
     if (a.length !== b.length) return false;
     const ids = new Set(a.map(s => s.id));
     return b.every(s => ids.has(s.id));
+  }
+
+  /**
+   * Relê a agenda do servidor e substitui por ela o estado local.
+   *
+   * Quando um lote de escritas falha a meio, o que ficou gravado deixa de ser
+   * dedutível aqui. Repor em memória o bloco anterior — o que estes caminhos
+   * de erro faziam — desenhava vagas já apagadas e escondia as que sobraram,
+   * com backendIds que já não apontavam a nada; a edição seguinte partia
+   * desse retrato falso. Depois de um erro, a única fonte fiável é o backend.
+   */
+  private _resyncBlocksFromServer(message?: string): void {
+    if (message) this.snackbarService.openSnackBar({ message });
+
+    const userId = this.sessionService.user()?.id;
+    if (!userId) return;
+
+    this.apiService.getAvailabilitiesByProfessionalId(userId).subscribe({
+      next: (avails) => {
+        this.blocks.set(this.groupAvailabilitiesIntoBlocks(avails));
+        // O reagrupamento gera ids locais novos: manter a seleção anterior
+        // deixaria o editor preso a um bloco que já não existe.
+        this.selectedBlockId.set(null);
+        this._invalidateSchedulingCache();
+      },
+      error: () => {},
+    });
+  }
+
+  /**
+   * Recria as vagas de `block` tal como estavam, uma por cada slot conhecido.
+   */
+  private _recreateSlotsOf(block: TherapistBlock, slotTimes: string[]): Observable<SettledWrite<AvailabilityModel>[]> {
+    const dur = block.sessionDuration;
+    const date = block.isRecurring && block.weekdays[0]
+      ? this.dateForWeekday(block.weekdays[0])
+      : (block.startDate ?? '');
+
+    return settleAll(slotTimes.map(t =>
+      this.apiService.createAvailability(this.buildSlotPayload(
+        block.services, block.modality, block.isRecurring, date, t, minToTime(timeToMin(t) + dur),
+        block.platform, block.local, block.price, block.priceBRL, block.recurrenceFrequency,
+      )),
+    ));
   }
 
   // Once a block has bookings, every field except Início/Fim (Intervalo de horas) is
@@ -1953,7 +2023,9 @@ export class AvailabilityComponent implements OnInit {
       forkJoin(deleteOps).subscribe({
         next: () => this.blocks.update(bs => bs.map(b => b.id === blockId
           ? { ...b, backendSlots: b.backendSlots.filter(s => newSlotSet.has(s.slotTime)) } : b)),
-        error: () => this.blocks.update(bs => bs.map(b => b.id === blockId ? existing : b)),
+        error: () => this._resyncBlocksFromServer(
+          'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+        ),
       });
     }
 
@@ -1971,11 +2043,24 @@ export class AvailabilityComponent implements OnInit {
           this.blocks.update(bs => bs.map(b => b.id === blockId
             ? { ...b, backendSlots: [...b.backendSlots.filter(s => newSlotSet.has(s.slotTime)), ...newSlots] } : b));
         },
-        error: () => this.blocks.update(bs => bs.map(b => b.id === blockId ? existing : b)),
+        error: () => this._resyncBlocksFromServer(
+          'Não foi possível ajustar a disponibilidade. Confirme a agenda.',
+        ),
       });
     }
   }
 
+  /**
+   * Substitui as vagas de um bloco: apaga as antigas e escreve a grelha nova.
+   *
+   * A ordem tem de ser esta — as vagas novas cobrem quase sempre as mesmas
+   * horas que as antigas, e criá-las primeiro esbarraria na deteção de
+   * sobreposição do backend. O que isso obriga é a tratar a janela entre as
+   * duas metades: se a criação falhar depois de as antigas já terem sido
+   * apagadas, a pessoa profissional fica sem disponibilidade nenhuma. Antes
+   * este caminho limitava-se a repor o bloco no ecrã, pelo que a perda ficava
+   * invisível até alguém recarregar a página.
+   */
   private _deleteAndRecreateBlock(existing: TherapistBlock, updated: TherapistBlock, blockId: number): void {
     const dur = updated.sessionDuration;
     const date = updated.isRecurring && updated.weekdays[0]
@@ -1984,27 +2069,53 @@ export class AvailabilityComponent implements OnInit {
     const slotTimes = generateSlots(updated.startTime, updated.endTime, dur);
 
     const deleteOps = existing.backendSlots.map(s => this.apiService.deleteAvailability(s.backendId));
-    (deleteOps.length > 0 ? forkJoin(deleteOps) : of([])).subscribe({
-      next: () => {
-        if (slotTimes.length === 0) return;
-        const createOps = slotTimes.map(t =>
-          this.apiService.createAvailability(this.buildSlotPayload(
-            updated.services, updated.modality, updated.isRecurring, date, t, minToTime(timeToMin(t) + dur), updated.platform, updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency,
-          ))
+
+    settleAll(deleteOps).subscribe(deleted => {
+      if (deleted.some(r => !r.ok)) {
+        // Sobrou pelo menos uma vaga antiga: escrever a grelha nova por cima
+        // colidiria com ela. Parar e mostrar o que está mesmo gravado.
+        this._resyncBlocksFromServer(
+          'Não foi possível substituir a disponibilidade. Confirme a agenda antes de tentar de novo.',
         );
-        forkJoin(createOps).subscribe({
-          next: (results) => {
-            const newSlots: BackendSlot[] = results.map((res, i) => ({
-              slotTime: slotTimes[i], backendId: res.id,
-            }));
-            this.blocks.update(bs => bs.map(b =>
-              b.id === blockId ? { ...b, backendSlots: newSlots } : b,
-            ));
-          },
-          error: () => this.blocks.update(bs => bs.map(b => b.id === blockId ? existing : b)),
+        return;
+      }
+
+      if (slotTimes.length === 0) return;
+
+      const createOps = slotTimes.map(t =>
+        this.apiService.createAvailability(this.buildSlotPayload(
+          updated.services, updated.modality, updated.isRecurring, date, t, minToTime(timeToMin(t) + dur),
+          updated.platform, updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency,
+        )),
+      );
+
+      settleAll(createOps).subscribe(created => {
+        const written = created.flatMap(r => r.ok ? [r.value] : []);
+
+        if (written.length === created.length) {
+          const newSlots: BackendSlot[] = written.map((res, i) => ({
+            slotTime: slotTimes[i], backendId: res.id,
+          }));
+          this.blocks.update(bs => bs.map(b =>
+            b.id === blockId ? { ...b, backendSlots: newSlots } : b,
+          ));
+          return;
+        }
+
+        // Meia grelha gravada e as vagas antigas já apagadas. Limpar primeiro
+        // o que se conseguiu escrever — senão a reposição do bloco anterior
+        // choca com as próprias sobras — e só depois repor o que lá estava.
+        settleAll(written.map(v => this.apiService.deleteAvailability(v.id))).subscribe(() => {
+          this._recreateSlotsOf(existing, existing.backendSlots.map(s => s.slotTime))
+            .subscribe(restored => {
+              this._resyncBlocksFromServer(
+                restored.some(r => !r.ok)
+                  ? 'Não foi possível guardar a alteração e parte da disponibilidade anterior não pôde ser reposta. Verifique a agenda.'
+                  : 'Não foi possível guardar a alteração. A disponibilidade anterior foi reposta.',
+              );
+            });
         });
-      },
-      error: () => this.blocks.update(bs => bs.map(b => b.id === blockId ? existing : b)),
+      });
     });
   }
 
@@ -2374,7 +2485,13 @@ export class AvailabilityComponent implements OnInit {
         slotModality: block.modality,
         dayLabel,
         timeLabel: `${backendSlot.slotTime}–${slotEnd}`,
-        recurrenceFrequencyLabel: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+        slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+        // Termos a que a vaga está anunciada: são o ponto de partida do
+        // diálogo, para que enviar sem mexer em nada proponha a vaga tal como está.
+        slotPlatform: block.platform,
+        slotAddress: block.local,
+        slotPrice: block.price,
+        slotPriceBRL: block.priceBRL,
       } as ProposeRecurringDialogData,
     });
 
@@ -2390,16 +2507,20 @@ export class AvailabilityComponent implements OnInit {
       professionalServiceId: result.professionalServiceId,
       clientId: result.clientId,
       modality: toBackendModality(result.modality),
+      recurrenceFrequency: toBackendRecurrenceFrequency(result.recurrenceFrequency),
+      platform: result.platform,
+      address: result.address,
+      price: result.price,
+      priceBRL: result.priceBRL,
     }).subscribe({
       next: (appt) => {
         this.appointments.update(list => [...list, appt]);
         this.snackbarService.openSnackBar({ message: 'Proposta enviada com sucesso.' });
       },
-      error: () => {
-        this.snackbarService.openSnackBar({
-          message: 'Não foi possível enviar a proposta. Verifique os dados e tente novamente.',
-        });
-      },
+      // O interceptor já mostra a recusa concreta do backend (valor fora dos
+      // limites, periodicidade que a vaga não sustenta); repetir aqui uma
+      // mensagem genérica só a taparia.
+      error: () => {},
     });
   }
 

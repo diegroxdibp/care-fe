@@ -31,6 +31,29 @@ const ERROR_MESSAGES: Partial<Record<number, string>> = {
   422: 'Dados inválidos. Verifique os campos e tente novamente.',
 };
 
+/**
+ * Mensagem que o backend enviou para ser lida por quem está do outro lado.
+ *
+ * As recusas de negócio chegam como {"error": "..."} (ver
+ * GlobalExceptionHandler/ValidationExceptionHandler) e dizem exatamente o que
+ * está errado — "Já existe uma vaga sobreposta", "O valor deve ser superior a
+ * 0 €". Cair no texto genérico por estado HTTP deitava isso fora e deixava a
+ * pessoa a olhar para "Pedido inválido" sem saber o que corrigir.
+ */
+const serverMessage = (err: HttpErrorResponse): string | null => {
+  const body: unknown = err.error;
+  if (typeof body === 'string') {
+    const trimmed = body.trim();
+    // Um corpo HTML (página de erro de proxy/gateway) não é mensagem nenhuma.
+    return trimmed && !trimmed.startsWith('<') ? trimmed : null;
+  }
+  if (body && typeof body === 'object') {
+    const message = (body as { error?: unknown }).error;
+    if (typeof message === 'string' && message.trim()) return message.trim();
+  }
+  return null;
+};
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const errorService = inject(ErrorService);
@@ -47,6 +70,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         router.navigate(['/error']);
       } else if (!isSelfHandled) {
         const message =
+          serverMessage(err) ??
           ERROR_MESSAGES[err.status] ??
           'Ocorreu um erro. Tente novamente mais tarde.';
         errorService.show(message);

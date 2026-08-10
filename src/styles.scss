@@ -474,3 +474,42 @@ mat-divider {
   padding: 32px !important;
   background: #fff !important;
 }
+
+// Um diálogo com muitos campos (a proposta recorrente traz todos os termos da
+// vaga) crescia até encostar ao topo e ao fundo da janela, e o que passava
+// disso ficava inalcançável.
+//
+// O teto tem de ser posto no painel do overlay — o elemento exterior, que o
+// CDK centra na janela. Limitar só a .mdc-dialog__surface não chegava: o
+// contentor à volta dela também é branco e continuava a encostar às margens,
+// pelo que a folga que se via por dentro era só o padding dele.
+// Ambos os tetos são medidos na janela, não em percentagem do pai: o painel do
+// overlay não tem altura definida, por isso um max-height: 100% aqui dentro não
+// resolvia para nada e a caixa continuava a crescer.
+$care-dialog-margin: 32px;
+$care-dialog-padding: 32px;
+
+.care-dialog .mat-mdc-dialog-container {
+  max-height: calc(100dvh - #{$care-dialog-margin * 2});
+  // Sem isto o conteúdo transbordava por cima dos cantos arredondados.
+  overflow: hidden;
+}
+
+// A folha rola por dentro da moldura branca, que fica quieta. Ao teto acima
+// tira-se o padding do contentor, que é onde a folha vive.
+.care-dialog .mdc-dialog__surface {
+  max-height: calc(100dvh - #{$care-dialog-margin * 2} - #{$care-dialog-padding * 2});
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  // Mesma barra fina do resto da app (ver textarea.field-value).
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-blue) transparent;
+
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-primary-blue);
+    border-radius: var(--radius-pill);
+  }
+}
