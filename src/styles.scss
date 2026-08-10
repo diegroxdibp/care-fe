@@ -11,6 +11,10 @@
 }
 
 html {
+  // Par do <meta name="color-scheme" content="only light"> do index.html — ver
+  // lá a explicação. Repetido aqui para que o opt-out sobreviva a qualquer
+  // contexto que sirva o CSS sem esse <head> (SSR, embeds, testes visuais).
+  color-scheme: only light;
   height: 100%;
   overflow-x: hidden;
   // Always reserve the vertical scrollbar's width, even on pages/states that

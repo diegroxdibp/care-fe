@@ -5,6 +5,14 @@
     <title>Care - Clínica Ampliada Resignificações</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- A Care só tem tema claro. Sem esta declaração, o Auto Dark Theme do
+         Chrome (Android, por omissão) e equivalentes invertem a página por
+         heurística: escurecem fundos e texto, mas deixam intactos os SVG com
+         cores fixas, as fotografias e os gradientes — o resultado é um misto
+         ilegível. "only light" desliga essa inversão. Está no <head> (e não só
+         no CSS) para valer já no primeiro paint. Se algum dia existir tema
+         escuro a sério, é isto que tem de sair primeiro. -->
+    <meta name="color-scheme" content="only light" />
     <!-- <link rel="icon" type="image/x-icon" href="favicon.ico"> -->
     <link
       rel="icon"
