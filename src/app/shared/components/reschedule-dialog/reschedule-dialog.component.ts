@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Modality } from '../../enums/modality.enum';
 
@@ -67,7 +67,7 @@ export interface RescheduleDialogResult {
           type="button"
           class="field"
           [class.open]="calOpen()"
-          (mousedown)="calOpen.set(!calOpen())"
+          (mousedown)="toggleCalendar()"
         >
           <div class="field-inner">
             <span class="field-label">Escolha uma data</span>
@@ -209,19 +209,22 @@ export interface RescheduleDialogResult {
       font-family: var(--font-sans);
       &.open { border-color: var(--color-primary-blue); }
     }
-    .field-wrap { position: relative; }
+    /*
+     * O calendário abre no fluxo, e não sobreposto.
+     *
+     * Um popover absoluto dentro de um diálogo que rola fica preso ao recorte
+     * dele: nascia por baixo do fundo visível e, como é mais alto do que o
+     * espaço que sobra, nem rolar o punha todo à vista. Em fluxo, é o diálogo
+     * que cresce e rola, e a grelha aparece sempre inteira.
+     */
     .calendar-popover {
-      position: absolute;
-      z-index: 10;
-      top: calc(100% - 10px);
-      left: 0;
-      right: 0;
       background: #fff;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       box-shadow: 0 8px 24px rgba(34, 50, 110, 0.18);
       padding: 14px;
       margin-bottom: 18px;
+      margin-top: -8px;
     }
     .cal-header {
       display: flex;
@@ -334,6 +337,7 @@ export interface RescheduleDialogResult {
 export class RescheduleDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<RescheduleDialogComponent>);
   readonly data = inject<RescheduleDialogData>(MAT_DIALOG_DATA);
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   readonly weekdays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
@@ -385,6 +389,26 @@ export class RescheduleDialogComponent {
     const d = this.calendarViewDate();
     return `${PT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   });
+
+  /**
+   * Abre o calendário e traz a grelha para dentro do que se vê.
+   *
+   * O diálogo tem altura limitada e rola por dentro; o popover é absoluto e
+   * fica preso a esse recorte, pelo que ao abrir nasce por baixo do fundo
+   * visível — os dias só apareciam a quem se lembrasse de rolar o diálogo.
+   */
+  toggleCalendar(): void {
+    const opening = !this.calOpen();
+    this.calOpen.set(opening);
+    if (!opening) return;
+
+    // O popover só existe depois de o template correr.
+    setTimeout(() => {
+      this.elementRef.nativeElement
+        .querySelector('.calendar-popover')
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
 
   /** Um dia sem vagas para este serviço não é escolhível. */
   hasSlots(dateKey: string): boolean {
