@@ -21,6 +21,12 @@ import {
   ProposeRecurringDialogData,
   ProposeRecurringDialogResult,
 } from '../../shared/components/propose-recurring-dialog/propose-recurring-dialog.component';
+import {
+  RescheduleDialogComponent,
+  RescheduleDialogData,
+  RescheduleDialogResult,
+  RescheduleSlotOption,
+} from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
 import { Modality } from '../../shared/enums/modality.enum';
 import { isModalityCompatible, normalizeModality, toBackendModality } from '../../shared/utils/modality-compatibility.util';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
@@ -2524,8 +2530,137 @@ export class AvailabilityComponent implements OnInit {
     });
   }
 
-  rescheduleAppointment(): void {
-    this.snackbarService.openSnackBar({ message: 'Funcionalidade em construção.' });
+  /**
+   * Vagas livres numa data para um serviço — o que o diálogo de reagendamento
+   * oferece como destino.
+   *
+   * Filtra pelo serviço porque uma sessão não pode mudar para uma vaga que não
+   * o ofereça: o backend recusa-a ("Este serviço não é oferecido nesta vaga").
+   */
+  private freeSlotsOn(dateKey: string, serviceId: number, excludeAppointmentId?: number): RescheduleSlotOption[] {
+    const options: RescheduleSlotOption[] = [];
+
+    for (const block of this.blocks()) {
+      if (!block.services.some(s => s.id === serviceId)) continue;
+      if (!this.blockOccursOnDate(block, dateKey)) continue;
+
+      for (const slot of block.backendSlots) {
+        if (slot.backendId <= 0) continue;
+        if (this.isSlotBookedOnDate(slot.backendId, dateKey, excludeAppointmentId)) continue;
+
+        options.push({
+          availabilityId: slot.backendId,
+          startTime: slot.slotTime,
+          endTime: minToTime(timeToMin(slot.slotTime) + block.sessionDuration),
+          modality: block.modality === Modality.ANY ? Modality.LOCAL : block.modality,
+        });
+      }
+    }
+
+    return options.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+  }
+
+  /** Se o bloco acontece nesta data, respeitando dia da semana e periodicidade. */
+  private blockOccursOnDate(block: TherapistBlock, dateKey: string): boolean {
+    if (!block.isRecurring) return block.startDate === dateKey;
+    if (!block.startDate || !block.weekdays[0]) return false;
+
+    const date = new Date(dateKey + 'T00:00:00');
+    const colIdx = (date.getDay() + 6) % 7; // 0=Segunda
+    if (COL_TO_DOW[colIdx] !== block.weekdays[0]) return false;
+
+    return occursOnDate(
+      block.recurrenceFrequency,
+      new Date(block.startDate + 'T00:00:00'),
+      date,
+    );
+  }
+
+  /**
+   * Se a vaga já está ocupada nessa data.
+   *
+   * `excludeAppointmentId` deixa de fora a própria sessão que está a ser
+   * movida: sem isso, o horário onde ela já está aparecia sempre ocupado e não
+   * dava para trocar só de dia mantendo a hora.
+   */
+  private isSlotBookedOnDate(availabilityId: number, dateKey: string, excludeAppointmentId?: number): boolean {
+    return this.appointments().some(a => {
+      if (a.availabilityId !== availabilityId) return false;
+      if (excludeAppointmentId != null && a.id === excludeAppointmentId) return false;
+      if ((a.excludedDates ?? []).includes(dateKey)) return false;
+      if (!a.isRecurring || !a.startDate) return a.startDate === dateKey;
+
+      return occursOnDate(
+        a.recurrenceFrequency,
+        new Date(a.startDate + 'T00:00:00'),
+        new Date(dateKey + 'T00:00:00'),
+      );
+    });
+  }
+
+  openRescheduleDialog(event: Event, appt: Appointment): void {
+    event.stopPropagation();
+
+    // A data que está a ser movida é a ocorrência em vista, não a âncora da
+    // série: numa sessão semanal a âncora pode ser de há meses.
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+
+    const ref = this.dialog.open(RescheduleDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: {
+        patientName: this.slotPatientName(appt),
+        serviceName: this.slotServiceName(appt),
+        currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime}–${appt.endTime}`,
+        isRecurring: !!appt.isRecurring,
+        slotsFor: (dateKey: string) =>
+          this.freeSlotsOn(dateKey, appt.professionalServiceId, appt.id),
+      } as RescheduleDialogData,
+    });
+
+    ref.afterClosed().subscribe((result: RescheduleDialogResult | null) => {
+      if (!result) return;
+      this._sendReschedule(appt, occurrenceDate, result);
+    });
+  }
+
+  private _sendReschedule(appt: Appointment, occurrenceDate: string, result: RescheduleDialogResult): void {
+    this.apiService.rescheduleAppointment(appt.id, {
+      availabilityId: result.availabilityId,
+      professionalServiceId: appt.professionalServiceId,
+      appointmentDate: result.date,
+      startTime: result.startTime,
+      endTime: toApiTime(result.endTime),
+      modality: toBackendModality(result.modality),
+      occurrenceDate,
+    }).subscribe({
+      next: () => {
+        this.snackbarService.openSnackBar({ message: 'Sessão reagendada.' });
+        this.clearSelectedAppointment();
+        // A série continua a existir e ganhou uma exceção; o estado local não
+        // consegue deduzir isso sozinho.
+        this._reloadAppointments();
+      },
+      // O interceptor já mostra a recusa concreta do backend.
+      error: () => {},
+    });
+  }
+
+  private _reloadAppointments(): void {
+    const userId = this.sessionService.user()?.id;
+    if (!userId) return;
+
+    this.apiService.getProfessionalAppointments(userId).subscribe({
+      next: (appts) => {
+        this.appointments.set(appts.map(a => ({
+          ...a,
+          startTime: stripSec(a.startTime),
+          endTime: fromApiEndTime(a.endTime),
+        })));
+      },
+      error: () => {},
+    });
   }
 
   private validateHonorsBookings(updated: TherapistBlock): boolean {

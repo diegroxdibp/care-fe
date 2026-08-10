@@ -89,7 +89,6 @@
                       [class.conflicted]="conflictedBlockIds().has(block.id)"
                       [class.pinned]="hasBookings(block)"
                       [class.full-booked]="bookedCount(block) > 0 && bookedCount(block) === blockSlotCount(block)"
-                      [class.has-pending]="hasPendingProposal(block)"
                       [class.non-occurring]="!isBlockOccurring(block, di)"
                       [class.dense]="blockIsDense(block)"
                       [style.top.px]="resizingTopBlockId() === block.id
@@ -115,6 +114,7 @@
                             [class.booked]="slot.booked"
                             [class.free]="!slot.booked"
                             [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
+                            [class.pending]="slot.appointment?.status === 'PENDING'"
                             [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                             [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
                             (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
@@ -324,7 +324,7 @@
             <div class="be-actions">
               <div class="ad-actions">
                 @if (appt.status !== 'PENDING') {
-                  <button class="btn-resched" (click)="rescheduleAppointment()">
+                  <button class="btn-resched" (click)="openRescheduleDialog($event, appt)">
                     <span translate="no" class="material-symbols-outlined">edit_calendar</span>
                     Reagendar sessão
                   </button>
@@ -614,7 +614,14 @@
               }
             </div>
             @if (slot.booked && slot.appointment) {
-              <span class="s-chev"><span translate="no" class="material-symbols-outlined">chevron_right</span></span>
+              <div class="s-free-actions">
+                @if (slot.appointment.status !== 'PENDING') {
+                  <button class="s-propose" (click)="openRescheduleDialog($event, slot.appointment!)" title="Reagendar sessão">
+                    <span translate="no" class="material-symbols-outlined">edit_calendar</span>
+                  </button>
+                }
+                <span class="s-chev"><span translate="no" class="material-symbols-outlined">chevron_right</span></span>
+              </div>
             } @else {
               <div class="s-free-actions">
                 @if (selectedBlock()!.isRecurring) {

@@ -1618,8 +1618,13 @@ input[type="number"].field-value {
 
 .av .block.full-booked { box-shadow: 0 1px 4px rgba(0,0,0,0.14), inset 0 0 0 1.5px rgba(255,255,255,0.5); }
 
-.av .block.has-pending { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #f0a500; }
-.av .block.has-pending.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-primary-blue), 0 0 0 6.5px #f0a500; }
+// Uma proposta por aceitar é de uma sessão, não do bloco: o anel amarelo
+// contorna a faixa daquele horário. Contornar o bloco inteiro dava a entender
+// que as outras sessões dentro dele também estavam por responder.
+.av .block .b-band.pending {
+  box-shadow: inset 0 0 0 2px #f0a500;
+  border-radius: 4px;
+}
 
 // Biweekly/monthly blocks on a week they don't actually occur - dimmed, with a note,
 // rather than hidden, so the professional still sees where the recurring slot lives.

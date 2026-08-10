@@ -32,6 +32,7 @@ import { Appointment } from '../../shared/models/appointment.model';
 import { ContactPayload } from '../../shared/models/contact-payload';
 import { PatientSummary } from '../../shared/models/patient.model';
 import { RecurringProposalPayload } from '../../shared/models/recurring-proposal-payload.model';
+import { ReschedulePayload } from '../../shared/models/reschedule-payload.model';
 
 @Injectable({
   providedIn: 'root',
@@ -177,6 +178,21 @@ export class ApiService {
   proposeRecurringAppointment(payload: RecurringProposalPayload): Observable<Appointment> {
     return this.http.post<Appointment>(
       `${environment.apiUrl}/api/appointments/propose-recurring`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Move uma sessão para outra vaga.
+   *
+   * `occurrenceDate` é a data que está a ser movida: numa sessão recorrente é
+   * ela que fica livre, ficando a série de pé. Numa de data única a marcação
+   * muda por inteiro e o campo é ignorado.
+   */
+  rescheduleAppointment(id: number, payload: ReschedulePayload): Observable<Appointment> {
+    return this.http.put<Appointment>(
+      `${environment.apiUrl}/api/appointments/${id}/reschedule`,
       payload,
       { withCredentials: true },
     );
