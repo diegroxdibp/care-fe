@@ -22,6 +22,9 @@ export class DashboardNotificationsComponent {
       case 'APPOINTMENT_PROPOSAL_ACCEPTED':  return 'check_circle';
       case 'APPOINTMENT_PROPOSAL_DECLINED':  return 'cancel';
       case 'APPOINTMENT_PROPOSAL_CANCELLED': return 'cancel';
+      case 'RESCHEDULE_REQUEST_RECEIVED':    return 'event_repeat';
+      case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'check_circle';
+      case 'RESCHEDULE_REQUEST_DECLINED':    return 'cancel';
       default:                        return 'notifications';
     }
   }
@@ -35,6 +38,9 @@ export class DashboardNotificationsComponent {
       case 'APPOINTMENT_PROPOSAL_ACCEPTED':  return 'type-booked';
       case 'APPOINTMENT_PROPOSAL_DECLINED':  return 'type-cancelled';
       case 'APPOINTMENT_PROPOSAL_CANCELLED': return 'type-cancelled';
+      case 'RESCHEDULE_REQUEST_RECEIVED':    return 'type-proposal';
+      case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'type-rescheduled';
+      case 'RESCHEDULE_REQUEST_DECLINED':    return 'type-cancelled';
       default:                         return 'type-general';
     }
   }

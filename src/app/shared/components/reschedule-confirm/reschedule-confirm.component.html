@@ -1,0 +1,67 @@
+<div class="panel">
+  <div class="panel-header">
+    <h2>Pedido de reagendamento</h2>
+  </div>
+
+  <div class="body">
+    @if (loading()) {
+      <div class="state">
+        <p>A carregar pedido...</p>
+      </div>
+    } @else if (loadError()) {
+      <div class="state error">
+        <span translate="no" class="material-symbols-outlined">error</span>
+        <p>{{ loadError() }}</p>
+      </div>
+    } @else if (request(); as r) {
+      <div class="card">
+        <p class="lead">
+          <strong>{{ r.professionalName }}</strong> pediu para mudar esta sessão de dia.
+          @if (r.appointmentIsRecurring) {
+            Só esta sessão muda — a recorrência continua como está.
+          }
+        </p>
+
+        <div class="rows">
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">medical_services</span>
+            <div><div class="k">Serviço</div><div class="v">{{ serviceName() }}</div></div>
+          </div>
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">event_busy</span>
+            <div><div class="k">Está marcada para</div><div class="v">{{ currentLabel() }}</div></div>
+          </div>
+          <div class="row highlight">
+            <span translate="no" class="material-symbols-outlined">event_available</span>
+            <div><div class="k">Passaria a ser</div><div class="v">{{ proposedLabel() }}</div></div>
+          </div>
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">location_on</span>
+            <div><div class="k">Modalidade</div><div class="v">{{ modalityLabel() }}</div></div>
+          </div>
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">chat_bubble</span>
+            <div><div class="k">Motivo</div><div class="v reason">{{ r.reason }}</div></div>
+          </div>
+        </div>
+
+        @if (alreadyResolved()) {
+          <p class="already">{{ resolvedMessage() }}</p>
+        } @else {
+          @if (respondError()) {
+            <p class="already">{{ respondError() }}</p>
+          }
+          <p class="note">
+            Enquanto não responder, a sessão mantém-se no dia e hora em que está.
+          </p>
+          <div class="actions">
+            <button class="btn-decline" [disabled]="responding()" (click)="decline()">Recusar</button>
+            <button class="btn-accept" [disabled]="responding()" (click)="accept()">
+              {{ responding() ? 'A processar...' : 'Aceitar' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

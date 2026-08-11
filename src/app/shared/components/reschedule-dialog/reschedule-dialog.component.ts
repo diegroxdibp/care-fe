@@ -1,6 +1,7 @@
 import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Modality } from '../../enums/modality.enum';
+import { FreeSlot } from '../../utils/free-slots.util';
 
 const PT_MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -15,15 +16,11 @@ function toKey(d: Date): string {
 }
 
 /** Uma vaga livre onde a sessão pode passar a acontecer. */
-export interface RescheduleSlotOption {
-  availabilityId: number;
-  startTime: string;
-  endTime: string;
-  modality: Modality;
-}
+export type RescheduleSlotOption = FreeSlot;
 
 export interface RescheduleDialogData {
-  patientName: string;
+  /** A outra pessoa da sessão — a cliente para quem reagenda, a profissional para quem pede. */
+  counterpartName: string;
   serviceName: string;
   /** Onde a sessão está hoje, para quem reagenda se situar. */
   currentLabel: string;
@@ -33,10 +30,15 @@ export interface RescheduleDialogData {
    * Vagas livres numa data, resolvidas por quem abriu o diálogo.
    *
    * A ocupação de uma vaga depende da recorrência das sessões que já lá estão e
-   * das ocorrências canceladas à parte — isso já está resolvido no calendário,
-   * e uma segunda implementação aqui dentro divergiria da primeira.
+   * das ocorrências canceladas à parte — isso está resolvido em freeSlotsOn, e
+   * uma segunda implementação aqui dentro divergiria da primeira.
    */
   slotsFor: (dateKey: string) => RescheduleSlotOption[];
+  /**
+   * Quem reagenda é a pessoa profissional: a mudança não acontece já, vai como
+   * pedido à pessoa cliente e leva o motivo escrito por quem o faz.
+   */
+  asRequest?: boolean;
 }
 
 export interface RescheduleDialogResult {
@@ -45,6 +47,8 @@ export interface RescheduleDialogResult {
   startTime: string;
   endTime: string;
   modality: Modality;
+  /** Preenchido apenas quando o diálogo abriu em modo pedido. */
+  reason?: string;
 }
 
 @Component({
@@ -52,12 +56,15 @@ export interface RescheduleDialogResult {
   imports: [MatDialogModule],
   template: `
     <div class="dialog">
-      <h3>Reagendar sessão</h3>
-      <p class="sub">{{ data.patientName }} · {{ data.serviceName }}</p>
+      <h3>{{ data.asRequest ? 'Pedir reagendamento' : 'Reagendar sessão' }}</h3>
+      <p class="sub">{{ data.counterpartName }} · {{ data.serviceName }}</p>
       <p class="note">
         Atualmente: {{ data.currentLabel }}.
         @if (data.isRecurring) {
           Só esta sessão muda de dia — a recorrência continua como está.
+        }
+        @if (data.asRequest) {
+          A sessão só muda depois de a pessoa cliente aceitar.
         }
       </p>
 
@@ -138,10 +145,23 @@ export interface RescheduleDialogResult {
         }
       }
 
+      @if (data.asRequest) {
+        <label class="field-label" for="reschedule-reason">Motivo</label>
+        <textarea
+          id="reschedule-reason"
+          class="reason"
+          rows="3"
+          maxlength="700"
+          placeholder="Explique porque precisa de mudar esta sessão."
+          [value]="reason()"
+          (input)="reason.set($any($event.target).value)"
+        ></textarea>
+      }
+
       <div class="btns">
         <button class="btn-ghost" (click)="cancel()">Cancelar</button>
-        <button class="btn-primary" [disabled]="!chosen()" (click)="submit()">
-          Reagendar
+        <button class="btn-primary" [disabled]="!canSubmit()" (click)="submit()">
+          {{ data.asRequest ? 'Enviar pedido' : 'Reagendar' }}
         </button>
       </div>
     </div>
@@ -302,6 +322,23 @@ export interface RescheduleDialogResult {
       }
     }
     .hint { font-size: 13px; color: var(--color-muted); margin: 0 0 18px; }
+    .reason {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--color-surface-tint);
+      border: 1px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      margin-bottom: 18px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--color-primary-blue);
+      resize: vertical;
+
+      &::placeholder { color: var(--color-muted); }
+      &:hover { border-color: var(--color-border); }
+      &:focus { outline: none; border-color: var(--color-primary-blue); }
+    }
     .btns { display: flex; gap: 10px; justify-content: flex-end; }
     .btn-ghost {
       padding: 12px 22px;
@@ -345,6 +382,12 @@ export class RescheduleDialogComponent {
   readonly chosen = signal<RescheduleSlotOption | null>(null);
   readonly calOpen = signal<boolean>(false);
   readonly calendarViewDate = signal<Date>(new Date());
+  readonly reason = signal<string>('');
+
+  /** Um pedido sem motivo não diz nada a quem o recebe — o backend recusa-o na mesma. */
+  readonly canSubmit = computed(() =>
+    this.chosen() !== null && (!this.data.asRequest || this.reason().trim().length > 0),
+  );
 
   readonly slots = computed<RescheduleSlotOption[]>(() => {
     const date = this.selectedDate();
@@ -463,7 +506,7 @@ export class RescheduleDialogComponent {
   submit(): void {
     const slot = this.chosen();
     const date = this.selectedDate();
-    if (!slot || !date) return;
+    if (!slot || !date || !this.canSubmit()) return;
 
     this.dialogRef.close({
       availabilityId: slot.availabilityId,
@@ -471,6 +514,7 @@ export class RescheduleDialogComponent {
       startTime: slot.startTime,
       endTime: slot.endTime,
       modality: slot.modality,
+      reason: this.data.asRequest ? this.reason().trim() : undefined,
     } satisfies RescheduleDialogResult);
   }
 }

@@ -21,6 +21,11 @@ import {
   CancelSessionDialogComponent,
   CancelSessionScope,
 } from './cancel-session-dialog.component';
+import {
+  RescheduleDialogComponent,
+  RescheduleDialogData,
+  RescheduleDialogResult,
+} from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
 import { Appointment } from '../../shared/models/appointment.model';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { Modality } from '../../shared/enums/modality.enum';
@@ -30,7 +35,9 @@ import { ProfessionalSessionService } from '../../shared/enums/professional-sess
 import { RecurrenceFrequency } from '../../shared/enums/recurrence-frequency.enum';
 import { Currency, formatPrice } from '../../shared/enums/currency.enum';
 import { generateOccurrences } from '../../shared/utils/recurrence.util';
-import { normalizeModality } from '../../shared/utils/modality-compatibility.util';
+import { freeSlotsOn } from '../../shared/utils/free-slots.util';
+import { toApiTime } from '../../shared/utils/session-time.util';
+import { normalizeModality, toBackendModality } from '../../shared/utils/modality-compatibility.util';
 import { filter } from 'rxjs';
 
 /** 'A combinar' cobre ANY e qualquer modalidade não resolvível — nunca um palpite. */
@@ -45,6 +52,20 @@ export interface DashSessionProfessional {
 
 export interface DashSession {
   appointmentId: number;
+  /**
+   * Identidade da linha: a marcação e a ocorrência.
+   *
+   * Uma série recorrente é uma marcação só e várias linhas, pelo que o id
+   * sozinho repete-se — e o @for que o usava como chave queixava-se de chaves
+   * duplicadas e reaproveitava linhas erradas ao reordenar.
+   */
+  key: string;
+  /** Quem atende — a agenda de onde saem as vagas para onde a sessão pode mudar. */
+  professionalId: number;
+  /** A sessão só pode mudar para uma vaga que ofereça este mesmo serviço. */
+  professionalServiceId: number;
+  /** A vaga onde a sessão está hoje. */
+  availabilityId: number;
   date: Date;
   dow: string;
   fullDow: string;
@@ -55,6 +76,8 @@ export interface DashSession {
   startTime: string;
   endTime: string;
   mode: SessionMode;
+  /** A modalidade crua — `mode` já é rótulo e não serve para voltar à API. */
+  modality: Modality;
   address?: string;
   platform?: string;
   price?: string;
@@ -380,8 +403,85 @@ export class DashboardPageComponent implements OnInit {
     this.authService.logout();
   }
 
-  rescheduleSession(): void {
-    this.snackbarService.openSnackBar({ message: 'Funcionalidade em construção.' });
+  /**
+   * Move uma sessão para outra vaga da mesma pessoa profissional.
+   *
+   * As vagas não vêm com o painel: este constrói-se só a partir das marcações.
+   * São pedidas aqui, ao abrir, para que as datas já ocupadas sejam as do
+   * momento e não as de quando a página carregou.
+   */
+  rescheduleSession(session: DashSession): void {
+    // A ocorrência a mover é a desta linha, não a âncora da série: numa sessão
+    // semanal a âncora pode ser de há meses, e mandá-la libertaria a semana errada.
+    const occurrenceDate = DashboardPageComponent.toDateKey(session.date);
+
+    this.apiService.getAvailabilitiesByProfessionalId(session.professionalId).subscribe({
+      next: (avails) => {
+        const ref = this.dialog.open(RescheduleDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            counterpartName: session.who,
+            serviceName: session.service,
+            currentLabel: `${session.fullDow}, ${session.day} de ${session.month} · ${session.startTime}–${session.endTime}`,
+            isRecurring: session.isRecurring,
+            slotsFor: (dateKey: string) => freeSlotsOn(
+              avails,
+              dateKey,
+              session.professionalServiceId,
+              {
+                moving: { availabilityId: session.availabilityId, date: occurrenceDate },
+                preferredModality: session.modality,
+              },
+            ),
+          } satisfies RescheduleDialogData,
+        });
+
+        ref.afterClosed().subscribe((result: RescheduleDialogResult | null) => {
+          if (!result) return;
+          this.sendReschedule(session, occurrenceDate, result);
+        });
+      },
+      error: () => {
+        this.snackbarService.openSnackBar({
+          message: 'Não foi possível carregar os horários disponíveis. Tente novamente.',
+        });
+      },
+    });
+  }
+
+  private sendReschedule(
+    session: DashSession,
+    occurrenceDate: string,
+    result: RescheduleDialogResult,
+  ): void {
+    this.apiService.rescheduleAppointment(session.appointmentId, {
+      availabilityId: result.availabilityId,
+      professionalServiceId: session.professionalServiceId,
+      appointmentDate: result.date,
+      startTime: result.startTime,
+      endTime: toApiTime(result.endTime),
+      modality: toBackendModality(result.modality),
+      occurrenceDate,
+    }).subscribe({
+      next: () => {
+        this.snackbarService.openSnackBar({ message: 'Sessão reagendada.' });
+        // A série ganhou uma exceção e nasceu uma marcação nova; o estado
+        // local não consegue deduzir isso sozinho.
+        this.reloadAppointments();
+      },
+      // O interceptor já mostra a recusa concreta do backend.
+      error: () => {},
+    });
+  }
+
+  private reloadAppointments(): void {
+    const email = this.sessionService.user()?.email;
+    if (!email) return;
+    this.apiService.getUserAppointments(email).subscribe({
+      next: (appts) => this.appointments.set(appts),
+      error: () => {},
+    });
   }
 
   openThread(session: DashSession): void {
@@ -519,6 +619,10 @@ export class DashboardPageComponent implements OnInit {
       for (const date of dates) {
         sessions.push({
           appointmentId: appt.id,
+          key: `${appt.id}@${DashboardPageComponent.toDateKey(date)}`,
+          professionalId: appt.professionalId,
+          professionalServiceId: appt.professionalServiceId,
+          availabilityId: appt.availabilityId,
           date,
           dow: DashboardPageComponent.DOW_ABR[appt.dayOfWeek] ?? '?',
           fullDow: DashboardPageComponent.DOW_FULL[appt.dayOfWeek] ?? '?',
@@ -529,6 +633,7 @@ export class DashboardPageComponent implements OnInit {
           startTime: appt.startTime?.slice(0, 5) ?? '',
           endTime: appt.endTime?.slice(0, 5) ?? '',
           mode,
+          modality: normalized,
           address: appt.address,
           platform: appt.platform,
           price,

@@ -188,6 +188,14 @@ export const routes: Routes = [
           },
 
           {
+            path: 'reschedules/:id',
+            loadComponent: () =>
+              import(
+                './shared/components/reschedule-confirm/reschedule-confirm.component'
+              ).then((m) => m.RescheduleConfirmComponent),
+          },
+
+          {
             path: 'messages',
             loadComponent: () =>
               import(

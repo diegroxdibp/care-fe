@@ -14,4 +14,11 @@ export interface ReschedulePayload {
    * preservar e a marcação muda por inteiro.
    */
   occurrenceDate: string;
+  /**
+   * Motivo do pedido, escrito pela pessoa profissional.
+   *
+   * Só é lido no caminho do pedido (requestReschedule); a mudança imediata
+   * ignora-o.
+   */
+  reason?: string;
 }

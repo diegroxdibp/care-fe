@@ -152,7 +152,7 @@
               <!-- Actions -->
               <div class="actions">
                 <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
-                  <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession()">
+                  <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession(s)">
                     <span translate="no" class="material-symbols-outlined">event_repeat</span>
                     Reagendar
                   </button>
@@ -238,7 +238,7 @@
                       >
                         <div class="week-dow">{{ dowAbr(day) }}</div>
                         <div class="week-daynum" [class.today]="isToday(day)">{{ day.getDate() }}</div>
-                        @for (s of sessionsForDay(dateKey(day)); track s.appointmentId) {
+                        @for (s of sessionsForDay(dateKey(day)); track s.key) {
                           <div class="day-session" [class.remoto]="s.mode === 'Remoto'">
                             <div class="s-time">{{ s.startTime }}</div>
                             <div class="s-service">{{ s.service }}</div>
@@ -260,7 +260,7 @@
 
             <div class="upcoming-card">
               <div class="up-list">
-                @for (s of upcomingSessions(); track s.appointmentId) {
+                @for (s of upcomingSessions(); track s.key) {
                   <div class="row-wrap">
                     <div
                       class="row"
@@ -371,7 +371,7 @@
                             }
                           </span>
                           <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
-                            <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession()">
+                            <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession(s)">
                               <span translate="no" class="material-symbols-outlined">event_repeat</span>
                               Reagendar
                             </button>

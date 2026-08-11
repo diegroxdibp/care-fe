@@ -33,6 +33,7 @@ import { ContactPayload } from '../../shared/models/contact-payload';
 import { PatientSummary } from '../../shared/models/patient.model';
 import { RecurringProposalPayload } from '../../shared/models/recurring-proposal-payload.model';
 import { ReschedulePayload } from '../../shared/models/reschedule-payload.model';
+import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
 
 @Injectable({
   providedIn: 'root',
@@ -194,6 +195,36 @@ export class ApiService {
     return this.http.put<Appointment>(
       `${environment.apiUrl}/api/appointments/${id}/reschedule`,
       payload,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Pede à pessoa cliente para mudar a sessão de dia.
+   *
+   * A sessão não se mexe aqui: fica confirmada onde está e o destino proposto
+   * espera resposta. É o caminho da pessoa profissional — a mudança imediata
+   * (rescheduleAppointment) recusa-lhe.
+   */
+  requestReschedule(id: number, payload: ReschedulePayload): Observable<RescheduleRequest> {
+    return this.http.post<RescheduleRequest>(
+      `${environment.apiUrl}/api/appointments/${id}/reschedule-requests`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  getRescheduleRequest(requestId: number): Observable<RescheduleRequest> {
+    return this.http.get<RescheduleRequest>(
+      `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}`,
+      { withCredentials: true },
+    );
+  }
+
+  respondToRescheduleRequest(requestId: number, accept: boolean): Observable<RescheduleRequest> {
+    return this.http.patch<RescheduleRequest>(
+      `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}/respond`,
+      { accept },
       { withCredentials: true },
     );
   }

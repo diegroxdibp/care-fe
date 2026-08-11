@@ -25,8 +25,15 @@ import {
   RescheduleDialogComponent,
   RescheduleDialogData,
   RescheduleDialogResult,
-  RescheduleSlotOption,
 } from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
+import { freeSlotsOn } from '../../shared/utils/free-slots.util';
+import {
+  fromApiEndTime,
+  minToTime,
+  stripSec,
+  timeToMin,
+  toApiTime,
+} from '../../shared/utils/session-time.util';
 import { Modality } from '../../shared/enums/modality.enum';
 import { isModalityCompatible, normalizeModality, toBackendModality } from '../../shared/utils/modality-compatibility.util';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
@@ -123,41 +130,6 @@ function getWeekStart(d: Date): Date {
   day.setDate(day.getDate() + diff);
   day.setHours(0, 0, 0, 0);
   return day;
-}
-
-function stripSec(t: string): string {
-  return t && t.length > 5 ? t.slice(0, 5) : t;
-}
-
-function timeToMin(t: string): number {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function minToTime(m: number): string {
-  const h = Math.floor(m / 60);
-  const min = m % 60;
-  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-}
-
-/*
- * A meia-noite tem duas escritas e cada lado precisa da sua.
- *
- * Aqui dentro o fim do dia é "24:00": mantém timeToMin monótono, e é o que faz
- * um bloco das 23:00 ter altura em vez de altura negativa. Na API é "00:00",
- * porque endTime desserializa para LocalTime e "24:00" não é um LocalTime.
- * A troca acontece só nestes dois pontos.
- */
-const API_END_OF_DAY = '00:00';
-const LOCAL_END_OF_DAY = '24:00';
-
-function toApiTime(t: string): string {
-  return t === LOCAL_END_OF_DAY ? API_END_OF_DAY : t;
-}
-
-/** Só uma *hora de fim* a 00:00 é meia-noite; um início a 00:00 seria o topo do dia. */
-function fromApiEndTime(t: string): string {
-  return stripSec(t) === API_END_OF_DAY ? LOCAL_END_OF_DAY : stripSec(t);
 }
 
 function hourRowIdx(t: string): number {
@@ -2530,74 +2502,6 @@ export class AvailabilityComponent implements OnInit {
     });
   }
 
-  /**
-   * Vagas livres numa data para um serviço — o que o diálogo de reagendamento
-   * oferece como destino.
-   *
-   * Filtra pelo serviço porque uma sessão não pode mudar para uma vaga que não
-   * o ofereça: o backend recusa-a ("Este serviço não é oferecido nesta vaga").
-   */
-  private freeSlotsOn(dateKey: string, serviceId: number, excludeAppointmentId?: number): RescheduleSlotOption[] {
-    const options: RescheduleSlotOption[] = [];
-
-    for (const block of this.blocks()) {
-      if (!block.services.some(s => s.id === serviceId)) continue;
-      if (!this.blockOccursOnDate(block, dateKey)) continue;
-
-      for (const slot of block.backendSlots) {
-        if (slot.backendId <= 0) continue;
-        if (this.isSlotBookedOnDate(slot.backendId, dateKey, excludeAppointmentId)) continue;
-
-        options.push({
-          availabilityId: slot.backendId,
-          startTime: slot.slotTime,
-          endTime: minToTime(timeToMin(slot.slotTime) + block.sessionDuration),
-          modality: block.modality === Modality.ANY ? Modality.LOCAL : block.modality,
-        });
-      }
-    }
-
-    return options.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
-  }
-
-  /** Se o bloco acontece nesta data, respeitando dia da semana e periodicidade. */
-  private blockOccursOnDate(block: TherapistBlock, dateKey: string): boolean {
-    if (!block.isRecurring) return block.startDate === dateKey;
-    if (!block.startDate || !block.weekdays[0]) return false;
-
-    const date = new Date(dateKey + 'T00:00:00');
-    const colIdx = (date.getDay() + 6) % 7; // 0=Segunda
-    if (COL_TO_DOW[colIdx] !== block.weekdays[0]) return false;
-
-    return occursOnDate(
-      block.recurrenceFrequency,
-      new Date(block.startDate + 'T00:00:00'),
-      date,
-    );
-  }
-
-  /**
-   * Se a vaga já está ocupada nessa data.
-   *
-   * `excludeAppointmentId` deixa de fora a própria sessão que está a ser
-   * movida: sem isso, o horário onde ela já está aparecia sempre ocupado e não
-   * dava para trocar só de dia mantendo a hora.
-   */
-  private isSlotBookedOnDate(availabilityId: number, dateKey: string, excludeAppointmentId?: number): boolean {
-    return this.appointments().some(a => {
-      if (a.availabilityId !== availabilityId) return false;
-      if (excludeAppointmentId != null && a.id === excludeAppointmentId) return false;
-      if ((a.excludedDates ?? []).includes(dateKey)) return false;
-      if (!a.isRecurring || !a.startDate) return a.startDate === dateKey;
-
-      return occursOnDate(
-        a.recurrenceFrequency,
-        new Date(a.startDate + 'T00:00:00'),
-        new Date(dateKey + 'T00:00:00'),
-      );
-    });
-  }
-
   openRescheduleDialog(event: Event, appt: Appointment): void {
     event.stopPropagation();
 
@@ -2606,27 +2510,56 @@ export class AvailabilityComponent implements OnInit {
     const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
     const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
 
-    const ref = this.dialog.open(RescheduleDialogComponent, {
-      width: '460px',
-      panelClass: 'care-dialog',
-      data: {
-        patientName: this.slotPatientName(appt),
-        serviceName: this.slotServiceName(appt),
-        currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime}–${appt.endTime}`,
-        isRecurring: !!appt.isRecurring,
-        slotsFor: (dateKey: string) =>
-          this.freeSlotsOn(dateKey, appt.professionalServiceId, appt.id),
-      } as RescheduleDialogData,
-    });
+    // As vagas vêm do servidor no momento de abrir, e não dos blocos em
+    // memória: estes são editados localmente entre gravações e não trazem as
+    // datas já ocupadas, que é o que decide o que se pode oferecer.
+    const professionalId = this.sessionService.user()?.id;
+    if (!professionalId) return;
 
-    ref.afterClosed().subscribe((result: RescheduleDialogResult | null) => {
-      if (!result) return;
-      this._sendReschedule(appt, occurrenceDate, result);
+    this.apiService.getAvailabilitiesByProfessionalId(professionalId).subscribe({
+      next: (avails) => {
+        const ref = this.dialog.open(RescheduleDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            counterpartName: this.slotPatientName(appt),
+            serviceName: this.slotServiceName(appt),
+            currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime}–${appt.endTime}`,
+            isRecurring: !!appt.isRecurring,
+            slotsFor: (dateKey: string) => freeSlotsOn(
+              avails,
+              dateKey,
+              appt.professionalServiceId,
+              {
+                moving: { availabilityId: appt.availabilityId, date: occurrenceDate },
+                preferredModality: normalizeModality(String(appt.modality)),
+              },
+            ),
+            // Do lado de quem atende, mudar o dia de uma sessão combinada não é
+            // uma decisão só sua: sai daqui como pedido, com motivo.
+            asRequest: true,
+          } as RescheduleDialogData,
+        });
+
+        ref.afterClosed().subscribe((result: RescheduleDialogResult | null) => {
+          if (!result) return;
+          this._sendRescheduleRequest(appt, occurrenceDate, result);
+        });
+      },
+      error: () => {},
     });
   }
 
-  private _sendReschedule(appt: Appointment, occurrenceDate: string, result: RescheduleDialogResult): void {
-    this.apiService.rescheduleAppointment(appt.id, {
+  /**
+   * Envia o pedido. A agenda não muda nada — a sessão continua onde está até a
+   * pessoa cliente responder, e por isso não há aqui nada para recarregar.
+   */
+  private _sendRescheduleRequest(
+    appt: Appointment,
+    occurrenceDate: string,
+    result: RescheduleDialogResult,
+  ): void {
+    this.apiService.requestReschedule(appt.id, {
       availabilityId: result.availabilityId,
       professionalServiceId: appt.professionalServiceId,
       appointmentDate: result.date,
@@ -2634,31 +2567,15 @@ export class AvailabilityComponent implements OnInit {
       endTime: toApiTime(result.endTime),
       modality: toBackendModality(result.modality),
       occurrenceDate,
+      reason: result.reason,
     }).subscribe({
       next: () => {
-        this.snackbarService.openSnackBar({ message: 'Sessão reagendada.' });
+        this.snackbarService.openSnackBar({
+          message: 'Pedido enviado. A sessão só muda depois de a pessoa cliente aceitar.',
+        });
         this.clearSelectedAppointment();
-        // A série continua a existir e ganhou uma exceção; o estado local não
-        // consegue deduzir isso sozinho.
-        this._reloadAppointments();
       },
       // O interceptor já mostra a recusa concreta do backend.
-      error: () => {},
-    });
-  }
-
-  private _reloadAppointments(): void {
-    const userId = this.sessionService.user()?.id;
-    if (!userId) return;
-
-    this.apiService.getProfessionalAppointments(userId).subscribe({
-      next: (appts) => {
-        this.appointments.set(appts.map(a => ({
-          ...a,
-          startTime: stripSec(a.startTime),
-          endTime: fromApiEndTime(a.endTime),
-        })));
-      },
       error: () => {},
     });
   }
