@@ -468,11 +468,38 @@ mat-divider {
 
 
 // ── Delete confirmation dialog ───────────────────────────────
+//
+// .mat-mdc-dialog-container (o painel do overlay) e .mdc-dialog__surface (a
+// folha branca lá dentro) são dois níveis encaixados; dar padding aos dois
+// empilha-o em vez de o partilhar. No desktop, dentro de um diálogo de
+// 440px, passa despercebido. No telemóvel a largura do painel já encolhe
+// para caber no ecrã (o maxWidth por omissão do Material é 80vw) e os 64px
+// de recuo somados (32 + 32, de cada lado) comiam a maior parte do que
+// sobrava, esmagando o conteúdo numa faixa estreita ao centro.
 .care-dialog .mat-mdc-dialog-container,
 .care-dialog .mdc-dialog__surface {
   border-radius: 16px !important;
   padding: 32px !important;
   background: #fff !important;
+}
+
+@media (max-width: breakpoint.$breakpoint-sm - 1) {
+  // O painel deixa de reservar 20% da largura da janela para folgas nas
+  // bordas (o 80vw por omissão) e passa a ocupar quase tudo o que há.
+  .care-dialog.cdk-overlay-pane {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  // Um só nível fica com o recuo real; o outro passa a ser só a moldura.
+  .care-dialog .mat-mdc-dialog-container {
+    padding: 0 !important;
+  }
+
+  .care-dialog .mdc-dialog__surface {
+    padding: 16px !important;
+    border-radius: 14px !important;
+  }
 }
 
 // Um diálogo com muitos campos (a proposta recorrente traz todos os termos da
@@ -488,11 +515,17 @@ mat-divider {
 // resolvia para nada e a caixa continuava a crescer.
 $care-dialog-margin: 32px;
 $care-dialog-padding: 32px;
+$care-dialog-margin-mobile: 12px;
+$care-dialog-padding-mobile: 16px;
 
 .care-dialog .mat-mdc-dialog-container {
   max-height: calc(100dvh - #{$care-dialog-margin * 2});
   // Sem isto o conteúdo transbordava por cima dos cantos arredondados.
   overflow: hidden;
+
+  @media (max-width: breakpoint.$breakpoint-sm - 1) {
+    max-height: calc(100dvh - #{$care-dialog-margin-mobile * 2});
+  }
 }
 
 // A folha rola por dentro da moldura branca, que fica quieta. Ao teto acima
@@ -511,5 +544,9 @@ $care-dialog-padding: 32px;
   &::-webkit-scrollbar-thumb {
     background: var(--color-primary-blue);
     border-radius: var(--radius-pill);
+  }
+
+  @media (max-width: breakpoint.$breakpoint-sm - 1) {
+    max-height: calc(100dvh - #{$care-dialog-margin-mobile * 2} - #{$care-dialog-padding-mobile * 2});
   }
 }

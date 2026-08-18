@@ -4,10 +4,10 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
-  Input,
   Output,
   ViewChild,
   computed,
+  input,
   signal,
 } from '@angular/core';
 
@@ -28,11 +28,11 @@ export interface StyledSelectOption {
   styleUrl: './styled-select.component.scss',
 })
 export class StyledSelectComponent implements AfterViewChecked {
-  @Input({ required: true }) options: StyledSelectOption[] = [];
-  @Input() value: string | null = null;
-  @Input() placeholder = 'Selecione';
-  @Input() inputId = '';
-  @Input() searchPlaceholder = 'Pesquisar...';
+  readonly options = input.required<StyledSelectOption[]>();
+  readonly value = input<string | null>(null);
+  readonly placeholder = input('Selecione');
+  readonly inputId = input('');
+  readonly searchPlaceholder = input('Pesquisar...');
 
   @Output() readonly valueChange = new EventEmitter<string>();
 
@@ -41,10 +41,17 @@ export class StyledSelectComponent implements AfterViewChecked {
   readonly dropdownOpen = signal(false);
   readonly search = signal('');
 
+  // options() has to be read here (not just `this.options`) so this computed
+  // actually depends on it - a plain field read is invisible to computed()'s
+  // dependency tracking, and the dropdown's list would freeze at whatever it
+  // was the first time it opened, forever after, even though the closed
+  // trigger (selectedOption below, a getter Angular re-runs every check)
+  // kept showing the right value the whole time.
   readonly filteredOptions = computed(() => {
     const q = this.search().trim().toLowerCase();
-    if (!q) return this.options;
-    return this.options.filter(
+    const opts = this.options();
+    if (!q) return opts;
+    return opts.filter(
       o => o.label.toLowerCase().includes(q) || (o.meta ?? '').toLowerCase().includes(q),
     );
   });
@@ -54,7 +61,7 @@ export class StyledSelectComponent implements AfterViewChecked {
   constructor(private readonly elementRef: ElementRef<HTMLElement>) {}
 
   get selectedOption(): StyledSelectOption | undefined {
-    return this.options.find(o => o.value === this.value);
+    return this.options().find(o => o.value === this.value());
   }
 
   ngAfterViewChecked(): void {
@@ -94,7 +101,6 @@ export class StyledSelectComponent implements AfterViewChecked {
   }
 
   select(option: StyledSelectOption): void {
-    this.value = option.value;
     this.valueChange.emit(option.value);
     this.dropdownOpen.set(false);
   }

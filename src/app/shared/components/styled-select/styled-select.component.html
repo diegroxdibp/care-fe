@@ -3,12 +3,12 @@
     type="button"
     class="select-trigger"
     [class.open]="dropdownOpen()"
-    [id]="inputId"
+    [id]="inputId()"
     [attr.aria-expanded]="dropdownOpen()"
     aria-haspopup="listbox"
     (click)="toggleDropdown()"
   >
-    <span class="trigger-label" [class.placeholder]="!selectedOption">{{ selectedOption?.label ?? placeholder }}</span>
+    <span class="trigger-label" [class.placeholder]="!selectedOption">{{ selectedOption?.label ?? placeholder() }}</span>
     <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <polyline points="6 9 12 15 18 9"/>
     </svg>
@@ -20,7 +20,7 @@
         #searchInput
         type="text"
         class="dropdown-search"
-        [placeholder]="searchPlaceholder"
+        [placeholder]="searchPlaceholder()"
         [value]="search()"
         (input)="search.set($any($event.target).value)"
       />
@@ -30,8 +30,8 @@
             type="button"
             class="select-option"
             role="option"
-            [class.selected]="o.value === value"
-            [attr.aria-selected]="o.value === value"
+            [class.selected]="o.value === value()"
+            [attr.aria-selected]="o.value === value()"
             (click)="select(o)"
           >
             <span class="option-name">{{ o.label }}</span>

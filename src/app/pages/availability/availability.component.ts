@@ -842,6 +842,9 @@ export class AvailabilityComponent implements OnInit {
     this.selectedAppointment.set(null);
     this.attemptedSave.set(false);
     this.loadBlockIntoEditor(block);
+    // No desktop this abre-se sempre no mesmo sítio (a coluna à direita);
+    // no telemóvel esse conteúdo só existe dentro da folha inferior.
+    this.sheetOpen.set(true);
   }
 
   loadBlockIntoEditor(block: TherapistBlock): void {
@@ -2309,6 +2312,7 @@ export class AvailabilityComponent implements OnInit {
     event.stopPropagation();
     this.selectedAppointment.set(appt);
     this.notesDraft.set(appt.notes ?? '');
+    this.sheetOpen.set(true);
   }
 
   clearSelectedAppointment(): void {
@@ -2599,6 +2603,17 @@ export class AvailabilityComponent implements OnInit {
     const dow = COL_TO_DOW[this.selectedDayIndex()];
     this.selectedWeekdays.set(new Set([dow]));
     this.sheetOpen.set(true);
+  }
+
+  /**
+   * Igual ao FAB, mas a tocar numa hora vazia da agenda — abre já com essa
+   * hora como início. setEditorStartTime trata do fim: sem um par (endMin >
+   * startMin) explícito, o cálculo em _snapTimeRange cai no mínimo de uma
+   * sessão a partir do início escolhido.
+   */
+  openSheetAtHour(hour: string): void {
+    this.openSheet();
+    this.setEditorStartTime(hour);
   }
 
   closeSheet(): void {

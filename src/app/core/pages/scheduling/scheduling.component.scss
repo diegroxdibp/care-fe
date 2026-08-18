@@ -529,6 +529,15 @@
   cursor: pointer;
   padding: 0;
   text-align: left;
+
+  // Preço sai da linha fechada; hora e seta ficam a linha 1 (encostada às
+  // pontas), modalidade cai para a linha de baixo em vez de se espremer ao
+  // lado delas - com as duas modalidades era a combinação que menos cabia.
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    justify-content: space-between;
+  }
 }
 
 .slot-time {
@@ -869,7 +878,11 @@
     order: 3;
     flex-basis: 100%;
     font-size: 13px;
-    margin-top: 6px;
+    // Sozinha na sua própria linha (ver .slot-header), esta pode quebrar
+    // internamente sem arrastar a hora ou a seta com ela - as duas
+    // modalidades cabem em duas linhas em vez de se espremerem numa só.
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 }
 
@@ -900,7 +913,9 @@
   color: var(--color-primary-blue);
   flex: none;
 
-  @media (max-width: 640px) { font-size: 16px; }
+  // O valor já repete no rodapé (.slot-value) quando o cartão abre; na linha
+  // fechada do telemóvel só sobrava espaço para a hora e a modalidade.
+  @media (max-width: 640px) { display: none; }
 }
 
 /* Preço ou morada por combinar: continua visível, nunca vira '0 €'. */

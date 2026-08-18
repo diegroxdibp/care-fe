@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Modality } from '../../enums/modality.enum';
 import { FreeSlot } from '../../utils/free-slots.util';
@@ -432,6 +432,18 @@ export class RescheduleDialogComponent {
     const d = this.calendarViewDate();
     return `${PT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   });
+
+  /**
+   * Fecha o calendário ao clicar fora dele.
+   *
+   * O botão do campo e o próprio popover já param a propagação do seu
+   * mousedown (ver .field-wrap no template) — este listener só vê os
+   * cliques que escaparam a essa área, ou seja, genuinamente de fora.
+   */
+  @HostListener('document:mousedown')
+  onDocMousedown(): void {
+    this.calOpen.set(false);
+  }
 
   /**
    * Abre o calendário e traz a grelha para dentro do que se vê.

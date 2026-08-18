@@ -1300,9 +1300,13 @@ input[type="number"].field-value {
     height: 80px;
     border-top: 1px solid var(--color-border-soft);
     position: relative;
+    cursor: pointer;
+    transition: background 0.12s;
 
     &:first-child,
     &.first { border-top: none; }
+
+    &:active { background: rgba(142,127,174,0.08); }
 
     .lbl {
       position: absolute;
@@ -1536,6 +1540,37 @@ input[type="number"].field-value {
       border-top: 1px solid var(--color-border-soft);
       background: var(--color-surface-tint);
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      // Same look as .block-editor .be-actions .btn-remove — duplicated here since
+      // the mobile sheet footer isn't nested under .block-editor.
+      .btn-remove {
+        background: #fff;
+        color: var(--color-primary-purple);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: 11px;
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-family: var(--font-sans);
+        width: 100%;
+        transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care);
+
+        &:hover {
+          background: rgba(142,127,174,0.09);
+          border-color: var(--color-primary-purple);
+        }
+
+        .material-symbols-outlined { font-size: 16px; }
+      }
     }
   }
 }
@@ -1796,19 +1831,51 @@ input[type="number"].field-value {
 .av .m-block.any .mb-band.booked.appt-presencial,
 .av .m-block.any .mb-band.booked.appt-remoto { color: #fff; border-top-color: rgba(255,255,255,0.30); }
 
-.av .appt-detail .be-head .be-back {
+// The desktop .be-title only exists nested under .block-editor .be-head; the mobile
+// appt-detail sheet shows the title in .sh-body instead (sh-head is taken up by the
+// back/close buttons), so it needs its own copy of that look.
+.av .appt-detail .sh-body .be-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--color-primary-blue);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.av .appt-detail .sh-body .be-pending-badge {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #b25e00;
+  background: #fff3e0;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+}
+
+.av .appt-detail .be-head .be-back,
+.av .appt-detail .sh-head .be-back {
   display: inline-flex; align-items: center; gap: 4px;
   background: none; border: none; color: var(--color-primary-purple);
   font-size: 12px; font-weight: 700; padding: 4px 8px 4px 4px; margin-bottom: 8px; cursor: pointer;
   border-radius: var(--radius-sm);
   transition: background 0.18s var(--ease-care), gap 0.18s var(--ease-care), color 0.18s var(--ease-care);
 }
-.av .appt-detail .be-head .be-back:hover {
+.av .appt-detail .be-head .be-back:hover,
+.av .appt-detail .sh-head .be-back:hover {
   background: rgba(142,127,174,0.12);
   gap: 6px;
 }
 .av .appt-detail .be-back .material-symbols-outlined { font-size: 16px; transition: transform 0.18s var(--ease-care); }
-.av .appt-detail .be-head .be-back:hover .material-symbols-outlined { transform: translateX(-2px); }
+.av .appt-detail .be-head .be-back:hover .material-symbols-outlined,
+.av .appt-detail .sh-head .be-back:hover .material-symbols-outlined { transform: translateX(-2px); }
+// sh-head is a flex row (title ↔ close button); the mobile appt-detail sheet reuses
+// it for back ↔ close instead, so the block-layout be-back margin would misalign it.
+.av .appt-detail .sh-head .be-back { margin-bottom: 0; }
 .av .appt-detail .ad-patient {
   display: flex; align-items: center; gap: 12px;
   padding: 4px 0 18px; border-bottom: 1px solid var(--color-border-soft); margin-bottom: 18px;

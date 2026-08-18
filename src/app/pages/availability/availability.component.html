@@ -247,93 +247,10 @@
               </div>
             </div>
             <div class="be-body">
-              <div class="ad-patient">
-                <span [class]="'ad-av ' + patientAvatarClass(appt.clientId % 3)">{{ slotPatientInitials(appt) }}</span>
-                <div>
-                  <div class="pt-name">{{ slotPatientName(appt) }}</div>
-                  <div class="pt-sub">Paciente</div>
-                </div>
-              </div>
-              <div class="ad-rows">
-                <div class="ad-row">
-                  <span translate="no" class="material-symbols-outlined">medical_services</span>
-                  <div><div class="ad-k">Serviço</div><div class="ad-v">{{ slotServiceName(appt) }}</div></div>
-                </div>
-                <div class="ad-row">
-                  <span translate="no" class="material-symbols-outlined">schedule</span>
-                  <div><div class="ad-k">Horário</div><div class="ad-v">{{ apptDateLabel(appt) }} · {{ appt.startTime }}–{{ appt.endTime }}</div></div>
-                </div>
-                <div class="ad-row">
-                  <span translate="no" class="material-symbols-outlined">{{ appt.isRecurring ? 'event_repeat' : 'push_pin' }}</span>
-                  <div><div class="ad-k">Recorrência</div><div class="ad-v">{{ recurrenceLabel(appt.isRecurring, appt.recurrenceFrequency) }}</div></div>
-                </div>
-                <div class="ad-row">
-                  <span translate="no" class="material-symbols-outlined">location_on</span>
-                  <div><div class="ad-k">Modalidade</div><div class="ad-v">
-                    @if (apptModalityLabel(appt)) {
-                      <span [class]="'ad-pill ' + apptModalityLabel(appt)">{{ apptModalityDisplay(appt) }}</span>
-                    } @else {
-                      <span>{{ apptModalityDisplay(appt) }}</span>
-                    }
-                  </div></div>
-                </div>
-                @if (appt.platform) {
-                  <div class="ad-row">
-                    <span translate="no" class="material-symbols-outlined">videocam</span>
-                    <div><div class="ad-k">Plataforma</div><div class="ad-v">{{ appt.platform }}</div></div>
-                  </div>
-                }
-                @if (appt.price != null) {
-                  <div class="ad-row">
-                    <span translate="no" class="material-symbols-outlined">payments</span>
-                    <div><div class="ad-k">Valor</div><div class="ad-v">{{ apptPriceDisplay(appt) }}</div></div>
-                  </div>
-                }
-                @if (appt.priceBRL != null) {
-                  <div class="ad-row">
-                    <span translate="no" class="material-symbols-outlined">payments</span>
-                    <div><div class="ad-k">Valor em Reais</div><div class="ad-v">{{ apptPriceBRLDisplay(appt) }}</div></div>
-                  </div>
-                }
-                @if (appt.clientEmail) {
-                  <div class="ad-row">
-                    <span translate="no" class="material-symbols-outlined">mail</span>
-                    <div><div class="ad-k">Contacto</div><div class="ad-v">{{ appt.clientEmail }}</div></div>
-                  </div>
-                }
-              </div>
-
-              <div class="ad-notes">
-                <label class="ad-notes-label" for="ad-notes-input">Notas para a pessoa cliente</label>
-                <textarea
-                  id="ad-notes-input"
-                  class="ad-notes-input"
-                  rows="4"
-                  maxlength="2000"
-                  [value]="notesDraft()"
-                  (input)="notesDraft.set($any($event.target).value)"
-                  placeholder="Ex.: traga roupa confortável, chegue 10 minutos antes..."
-                ></textarea>
-                <div class="ad-notes-actions">
-                  <button class="btn-save-notes" [disabled]="notesSaving()" (click)="saveNotes(appt)">
-                    {{ notesSaving() ? 'A guardar…' : 'Guardar notas' }}
-                  </button>
-                </div>
-              </div>
+              <ng-container [ngTemplateOutlet]="apptDetailBody" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
             </div>
             <div class="be-actions">
-              <div class="ad-actions">
-                @if (appt.status !== 'PENDING') {
-                  <button class="btn-resched" (click)="openRescheduleDialog($event, appt)">
-                    <span translate="no" class="material-symbols-outlined">edit_calendar</span>
-                    Reagendar sessão
-                  </button>
-                }
-                <button class="btn-cancel" (click)="cancelAppointment(appt)">
-                  <span translate="no" class="material-symbols-outlined">close</span>
-                  {{ appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
-                </button>
-              </div>
+              <ng-container [ngTemplateOutlet]="apptDetailActions" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
             </div>
           </aside>
         } @else {
@@ -442,7 +359,7 @@
         <div class="m-daylabel">{{ mobileDayLabel() }}</div>
         <div class="m-tl">
           @for (h of MOB_HOURS; track h; let first = $first) {
-            <div class="m-hour" [class.first]="first">
+            <div class="m-hour" [class.first]="first" (click)="openSheetAtHour(h)">
               <span class="lbl">{{ h }}</span>
             </div>
           }
@@ -485,7 +402,15 @@
             >
               <div class="mb-bands">
                 @for (slot of bookedSlotsForBlock(block); track slot.time) {
-                  <div class="mb-band" [class.booked]="slot.booked" [class.free]="!slot.booked" [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id" [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false" [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false">
+                  <div
+                    class="mb-band"
+                    [class.booked]="slot.booked"
+                    [class.free]="!slot.booked"
+                    [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
+                    [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
+                    [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
+                    (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
+                  >
                     <div class="bd-row">
                       <span class="bd-time">{{ slot.time }}</span>
                       <span class="bd-rec" [class.unica]="slot.appointment ? !slot.appointment.isRecurring : !block.isRecurring">
@@ -521,33 +446,66 @@
 
       <!-- Bottom sheet -->
       @if (sheetOpen()) {
-        <div class="m-scrim" (click)="closeSheet()"></div>
-        <div class="m-sheet">
-          <div class="handle"></div>
-          <div class="sh-head">
-            <h3>Nova disponibilidade</h3>
-            <button class="sh-close" (click)="closeSheet()">
-              <span translate="no" class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div class="sh-body">
-            <ng-container [ngTemplateOutlet]="formSections"></ng-container>
-          </div>
-          <div class="sh-foot">
-            @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
-              <div class="remove-guard" style="margin-bottom:10px">
-                <span translate="no" class="material-symbols-outlined">event_busy</span>
-                <div class="rg-text">
-                  <strong>Não pode ser removido</strong> enquanto tiver sessões reservadas.
-                </div>
+        <div class="m-scrim" (click)="closeSheet(); resetEditor()"></div>
+        @if (selectedAppointment(); as appt) {
+          <div class="m-sheet appt-detail">
+            <div class="handle"></div>
+            <div class="sh-head">
+              <button class="be-back" (click)="clearSelectedAppointment()">
+                <span translate="no" class="material-symbols-outlined">arrow_back</span>
+                Voltar ao bloco
+              </button>
+              <button class="sh-close" (click)="closeSheet(); resetEditor()">
+                <span translate="no" class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="sh-body">
+              <div class="be-title" style="margin-bottom:14px">
+                Sessão reservada
+                @if (appt.status === 'PENDING') {
+                  <span class="be-pending-badge">Pendente</span>
+                }
               </div>
-            }
-            <button class="btn-add" (click)="saveBlock()">
-              <span translate="no" class="material-symbols-outlined">check</span>
-              Guardar disponibilidade
-            </button>
+              <ng-container [ngTemplateOutlet]="apptDetailBody" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
+            </div>
+            <div class="sh-foot">
+              <ng-container [ngTemplateOutlet]="apptDetailActions" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
+            </div>
           </div>
-        </div>
+        } @else {
+          <div class="m-sheet">
+            <div class="handle"></div>
+            <div class="sh-head">
+              <h3>{{ selectedBlockId() !== null ? editorTitle() : 'Nova disponibilidade' }}</h3>
+              <button class="sh-close" (click)="closeSheet(); resetEditor()">
+                <span translate="no" class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="sh-body">
+              <ng-container [ngTemplateOutlet]="formSections"></ng-container>
+            </div>
+            <div class="sh-foot">
+              @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
+                <div class="remove-guard" style="margin-bottom:10px">
+                  <span translate="no" class="material-symbols-outlined">event_busy</span>
+                  <div class="rg-text">
+                    <strong>Não pode ser removido</strong> enquanto tiver sessões reservadas.
+                  </div>
+                </div>
+              }
+              <button class="btn-add" (click)="saveBlock()">
+                <span translate="no" class="material-symbols-outlined">check</span>
+                Guardar disponibilidade
+              </button>
+              @if (selectedBlockId() !== null && selectedBlock() && !hasBookings(selectedBlock()!)) {
+                <button class="btn-remove" (click)="removeBlock()">
+                  <span translate="no" class="material-symbols-outlined">delete</span>
+                  Remover bloco
+                </button>
+              }
+            </div>
+          </div>
+        }
       }
     </div>
   }
@@ -1010,4 +968,96 @@
     }
   </div>
 
+</ng-template>
+
+<!-- ─── Shared appointment-detail templates (desktop aside + mobile sheet) ─── -->
+<ng-template #apptDetailBody let-appt>
+  <div class="ad-patient">
+    <span [class]="'ad-av ' + patientAvatarClass(appt.clientId % 3)">{{ slotPatientInitials(appt) }}</span>
+    <div>
+      <div class="pt-name">{{ slotPatientName(appt) }}</div>
+      <div class="pt-sub">Paciente</div>
+    </div>
+  </div>
+  <div class="ad-rows">
+    <div class="ad-row">
+      <span translate="no" class="material-symbols-outlined">medical_services</span>
+      <div><div class="ad-k">Serviço</div><div class="ad-v">{{ slotServiceName(appt) }}</div></div>
+    </div>
+    <div class="ad-row">
+      <span translate="no" class="material-symbols-outlined">schedule</span>
+      <div><div class="ad-k">Horário</div><div class="ad-v">{{ apptDateLabel(appt) }} · {{ appt.startTime }}–{{ appt.endTime }}</div></div>
+    </div>
+    <div class="ad-row">
+      <span translate="no" class="material-symbols-outlined">{{ appt.isRecurring ? 'event_repeat' : 'push_pin' }}</span>
+      <div><div class="ad-k">Recorrência</div><div class="ad-v">{{ recurrenceLabel(appt.isRecurring, appt.recurrenceFrequency) }}</div></div>
+    </div>
+    <div class="ad-row">
+      <span translate="no" class="material-symbols-outlined">location_on</span>
+      <div><div class="ad-k">Modalidade</div><div class="ad-v">
+        @if (apptModalityLabel(appt)) {
+          <span [class]="'ad-pill ' + apptModalityLabel(appt)">{{ apptModalityDisplay(appt) }}</span>
+        } @else {
+          <span>{{ apptModalityDisplay(appt) }}</span>
+        }
+      </div></div>
+    </div>
+    @if (appt.platform) {
+      <div class="ad-row">
+        <span translate="no" class="material-symbols-outlined">videocam</span>
+        <div><div class="ad-k">Plataforma</div><div class="ad-v">{{ appt.platform }}</div></div>
+      </div>
+    }
+    @if (appt.price != null) {
+      <div class="ad-row">
+        <span translate="no" class="material-symbols-outlined">payments</span>
+        <div><div class="ad-k">Valor</div><div class="ad-v">{{ apptPriceDisplay(appt) }}</div></div>
+      </div>
+    }
+    @if (appt.priceBRL != null) {
+      <div class="ad-row">
+        <span translate="no" class="material-symbols-outlined">payments</span>
+        <div><div class="ad-k">Valor em Reais</div><div class="ad-v">{{ apptPriceBRLDisplay(appt) }}</div></div>
+      </div>
+    }
+    @if (appt.clientEmail) {
+      <div class="ad-row">
+        <span translate="no" class="material-symbols-outlined">mail</span>
+        <div><div class="ad-k">Contacto</div><div class="ad-v">{{ appt.clientEmail }}</div></div>
+      </div>
+    }
+  </div>
+
+  <div class="ad-notes">
+    <label class="ad-notes-label" for="ad-notes-input">Notas para a pessoa cliente</label>
+    <textarea
+      id="ad-notes-input"
+      class="ad-notes-input"
+      rows="4"
+      maxlength="2000"
+      [value]="notesDraft()"
+      (input)="notesDraft.set($any($event.target).value)"
+      placeholder="Ex.: traga roupa confortável, chegue 10 minutos antes..."
+    ></textarea>
+    <div class="ad-notes-actions">
+      <button class="btn-save-notes" [disabled]="notesSaving()" (click)="saveNotes(appt)">
+        {{ notesSaving() ? 'A guardar…' : 'Guardar notas' }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #apptDetailActions let-appt>
+  <div class="ad-actions">
+    @if (appt.status !== 'PENDING') {
+      <button class="btn-resched" (click)="openRescheduleDialog($event, appt)">
+        <span translate="no" class="material-symbols-outlined">edit_calendar</span>
+        Reagendar sessão
+      </button>
+    }
+    <button class="btn-cancel" (click)="cancelAppointment(appt)">
+      <span translate="no" class="material-symbols-outlined">close</span>
+      {{ appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
+    </button>
+  </div>
 </ng-template>
