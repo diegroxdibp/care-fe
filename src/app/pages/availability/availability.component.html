@@ -357,7 +357,7 @@
       <!-- Day agenda -->
       <div class="m-agenda">
         <div class="m-daylabel">{{ mobileDayLabel() }}</div>
-        <div class="m-tl">
+        <div class="m-tl" #mobTl>
           @for (h of MOB_HOURS; track h; let first = $first) {
             <div class="m-hour" [class.first]="first" (click)="openSheetAtHour(h)">
               <span class="lbl">{{ h }}</span>
@@ -439,8 +439,16 @@
         </div>
       </div>
 
-      <!-- FAB -->
-      <button class="m-fab" aria-label="Nova disponibilidade" (click)="openSheet()">
+      <!-- FAB: tracks the window scroll by hand (updateFabPosition), clamped
+           between the top and bottom of #mobTl - the app scrolls the whole
+           window rather than .m-agenda internally, so position:sticky has
+           nothing to hang off here. -->
+      <button
+        class="m-fab"
+        aria-label="Nova disponibilidade"
+        [style.top.px]="fabTop()"
+        (click)="openSheet()"
+      >
         <span translate="no" class="material-symbols-outlined">add</span>
       </button>
 

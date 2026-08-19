@@ -1,10 +1,13 @@
 import { catchError, forkJoin, map, of, switchMap, throwError, type Observable } from 'rxjs';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
+  ElementRef,
   HostListener,
   LOCALE_ID,
   OnInit,
+  ViewChild,
   computed,
   inject,
   signal,
@@ -264,7 +267,7 @@ const BACKEND_DOW_MAP: Record<string, DayOfWeek> = {
     ]),
   ],
 })
-export class AvailabilityComponent implements OnInit {
+export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ─ Services
   private readonly apiService = inject(ApiService);
   private readonly snackbarService = inject(SnackbarService);
@@ -459,6 +462,37 @@ export class AvailabilityComponent implements OnInit {
   selectedDayIndex = signal<number>(this._todayColumnIndex());
   sheetOpen = signal<boolean>(false);
   mobileWeekNavOpen = signal<boolean>(false);
+
+  // ─ Mobile FAB (floating "+" over the day grid)
+  //
+  // position:sticky can't do this here: it needs an ancestor that actually
+  // scrolls internally, but this app scrolls the whole window (see
+  // header-scroll.directive.ts, which listens to window:scroll the same
+  // way) - .m-agenda's overflow-y:auto never gets a bounded height from its
+  // ancestors to make that overflow real, so nothing ever sticks. This
+  // reimplements the same "clamped to the grid, tracks the viewport
+  // otherwise" behaviour by hand, against the scroll that's actually
+  // happening.
+  @ViewChild('mobTl') private readonly mobTlRef?: ElementRef<HTMLElement>;
+  private readonly FAB_SIZE = 58;
+  private readonly FAB_MARGIN = 16;
+  fabTop = signal<number>(0);
+
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  updateFabPosition(): void {
+    const grid = this.mobTlRef?.nativeElement;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const natural = window.innerHeight - this.FAB_SIZE - this.FAB_MARGIN;
+    // A mesma margem do "chão" viewport também se aplica ao chão da grelha -
+    // sem isto o botão, ao assentar, ficava com a base encostada mesmo ao
+    // fim de .m-tl em vez de guardar a mesma folga que tem em qualquer
+    // outro ponto do scroll.
+    const floor = rect.bottom - this.FAB_SIZE - this.FAB_MARGIN;
+    const clamped = Math.min(Math.max(natural, rect.top), floor);
+    this.fabTop.set(clamped);
+  }
 
   // ─ Drag-select
   dragSelection = signal<DragSelection | null>(null);
@@ -668,6 +702,12 @@ export class AvailabilityComponent implements OnInit {
         error: () => {},
       });
     }
+  }
+
+  ngAfterViewInit(): void {
+    // #mobTl only exists once the mobile branch has actually rendered -
+    // harmless no-op (see the guard in updateFabPosition) on desktop.
+    this.updateFabPosition();
   }
 
   // ─ Week navigation ──────────────────────────────────────────────────────────

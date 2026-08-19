@@ -151,20 +151,14 @@
 
               <!-- Actions -->
               <div class="actions">
-                <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
+                <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                   <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession(s)">
                     <span translate="no" class="material-symbols-outlined">event_repeat</span>
                     Reagendar
                   </button>
-                  @if (!canModifySession(s)) {
-                    <span class="tt-bubble" role="tooltip">Só é possível cancelar ou reagendar até 24 h antes da sessão.</span>
-                  }
                 </span>
-                <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
+                <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                   <button class="btn-cancel" [disabled]="!canModifySession(s)" (click)="cancelSession(s)">Cancelar sessão</button>
-                  @if (!canModifySession(s)) {
-                    <span class="tt-bubble" role="tooltip">Só é possível cancelar ou reagendar até 24 h antes da sessão.</span>
-                  }
                 </span>
               </div>
             </div>
@@ -364,20 +358,14 @@
                         }
 
                         <div class="panel-actions">
-                          <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
+                          <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                             <button class="btn-cancel" [disabled]="!canModifySession(s)" (click)="cancelSession(s)">Cancelar sessão</button>
-                            @if (!canModifySession(s)) {
-                              <span class="tt-bubble" role="tooltip">Só é possível cancelar ou reagendar até 24 h antes da sessão.</span>
-                            }
                           </span>
-                          <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null">
+                          <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                             <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession(s)">
                               <span translate="no" class="material-symbols-outlined">event_repeat</span>
                               Reagendar
                             </button>
-                            @if (!canModifySession(s)) {
-                              <span class="tt-bubble" role="tooltip">Só é possível cancelar ou reagendar até 24 h antes da sessão.</span>
-                            }
                           </span>
                         </div>
                       </div>
@@ -447,5 +435,10 @@
       <span>Perfil</span>
     </a>
   </nav>
+
+  <!-- Tooltip partilhado dos botões "Reagendar"/"Cancelar" desativados -
+       fica fora de .body de propósito, ver o comentário em onTooltipReveal(). -->
+  <span class="tt-bubble" role="tooltip" #ttBubble></span>
+  <span class="tt-arrow" #ttArrow></span>
 
 </div>

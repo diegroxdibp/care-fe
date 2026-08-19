@@ -1293,7 +1293,10 @@ input[type="number"].field-value {
 
   .m-tl {
     position: relative;
-    padding: 0 14px 110px 60px;
+    // O FAB era fixo por cima da grelha e este espaço existia só para a
+    // última hora não ficar tapada por ele; agora que segue o scroll a
+    // conta (updateFabPosition) já não precisa dele - fica só uma folga.
+    padding: 0 14px 24px 60px;
   }
 
   .m-hour {
@@ -1438,10 +1441,22 @@ input[type="number"].field-value {
   }
 
   // FAB
+  //
+  // position:sticky can't clamp this to the grid the way it looks like it
+  // should: it needs an ancestor that's actually the scrolling box, but
+  // .m-agenda's overflow-y:auto never gets a bounded height from its
+  // ancestors (the whole page scrolls instead - same window:scroll this app
+  // already relies on in header-scroll.directive.ts), so nothing ever sticks
+  // to it. updateFabPosition() (see the component) recomputes fabTop on
+  // every scroll/resize instead: viewport-bottom-anchored in the middle,
+  // clamped to #mobTl's own top/bottom at the ends. This button is
+  // fixed-positioned so that math (all in viewport coordinates) can drive it
+  // directly via [style.top.px].
   .m-fab {
-    position: absolute;
-    right: 18px;
-    bottom: 24px;
+    position: fixed;
+    // A mesma folga do FAB_MARGIN em updateFabPosition() - direita e chão
+    // ficam com a mesma distância.
+    right: 16px;
     width: 58px;
     height: 58px;
     border-radius: 19px;

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
 import {
   NavigationEnd,
   Router,
@@ -353,6 +353,83 @@ export class DashboardPageComponent implements OnInit {
     return this.sessionDateTime(s).getTime() - Date.now() >= 24 * 60 * 60 * 1000;
   }
 
+  /**
+   * Uma única bolha/seta partilhada por todos os botões desativados, montada
+   * uma vez junto da raiz de .dash (ver o HTML) em vez de uma por cada .tt.
+   *
+   * Porquê: um cartão (.hero-card, .row, .panel...) usa `filter:
+   * var(--shadow-card)` para a sombra, e `filter` num antepassado cria um
+   * novo containing block para os descendentes `position:fixed` - a bolha
+   * deixava de facto de ser posicionada contra o viewport e passava a ser
+   * contra esse cartão, continuando presa ao `overflow:hidden` dele. Ao
+   * viver fora de qualquer cartão (sem filter/transform entre ela e
+   * <html>), o fixed volta a ser mesmo contra o viewport.
+   */
+  @ViewChild('ttBubble') private readonly ttBubbleRef?: ElementRef<HTMLElement>;
+  @ViewChild('ttArrow') private readonly ttArrowRef?: ElementRef<HTMLElement>;
+
+  private static readonly TT_MARGIN = 8;
+  private static readonly TT_GAP = 9;
+  private static readonly TT_ARROW = 5;
+
+  onTooltipReveal(event: Event, message: string): void {
+    const wrapper = event.currentTarget as HTMLElement;
+    const trigger = wrapper.querySelector<HTMLElement>('button');
+    const bubble = this.ttBubbleRef?.nativeElement;
+    const arrow = this.ttArrowRef?.nativeElement;
+    if (!trigger || !bubble || !arrow) return;
+
+    const { TT_MARGIN: margin, TT_GAP: gap, TT_ARROW: arrowSize } = DashboardPageComponent;
+
+    bubble.textContent = message;
+    bubble.classList.add('visible');
+    arrow.classList.add('visible');
+
+    const btnRect = trigger.getBoundingClientRect();
+    const bubbleRect = bubble.getBoundingClientRect();
+
+    let left = btnRect.right - bubbleRect.width;
+    left = Math.min(Math.max(left, margin), window.innerWidth - margin - bubbleRect.width);
+
+    // Por omissão a bolha fica acima do botão; se não houver espaço para a
+    // conter inteira aí, cai para baixo - nunca fica encostada/cortada no
+    // topo do ecrã.
+    const spaceAbove = btnRect.top - gap - margin;
+    const below = spaceAbove < bubbleRect.height;
+    const rawTop = below ? btnRect.bottom + gap : btnRect.top - gap - bubbleRect.height;
+    const top = Math.min(Math.max(rawTop, margin), window.innerHeight - margin - bubbleRect.height);
+
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+    bubble.classList.toggle('below', below);
+
+    const btnCenter = btnRect.left + btnRect.width / 2;
+    const arrowLeft = Math.min(
+      Math.max(btnCenter, left + 12),
+      left + bubbleRect.width - 12,
+    );
+    arrow.style.left = `${arrowLeft - arrowSize}px`;
+    arrow.style.top = below
+      ? `${btnRect.bottom + gap - arrowSize * 2}px`
+      : `${btnRect.top - gap}px`;
+    arrow.classList.toggle('below', below);
+  }
+
+  onTooltipHide(): void {
+    this.ttBubbleRef?.nativeElement.classList.remove('visible');
+    this.ttArrowRef?.nativeElement.classList.remove('visible');
+  }
+
+  // A bolha é fixed contra o viewport, não contra o botão - ao rolar a
+  // página o botão foge por baixo dela e ficava "presa" no sítio antigo até
+  // o rato se mexer. Mais simples fechar logo ao rolar do que reposicionar
+  // a acompanhar o scroll.
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  private onWindowScrollOrResize(): void {
+    this.onTooltipHide();
+  }
+
   toggleSession(id: number): void {
     this.openSessionId.update((cur) => (cur === id ? null : id));
   }
@@ -679,7 +756,11 @@ export class DashboardPageComponent implements OnInit {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
     };
-    const minutes = toMinutes(endTime) - toMinutes(startTime);
+    // Uma sessão pode atravessar a meia-noite (ex.: 23:00–00:00) - nesse
+    // caso o fim "parece" mais cedo que o início em minutos do dia, daí
+    // envolver para o dia seguinte em vez de dar uma duração negativa.
+    let minutes = toMinutes(endTime) - toMinutes(startTime);
+    if (minutes <= 0) minutes += 24 * 60;
     return `${minutes} minutos`;
   }
 

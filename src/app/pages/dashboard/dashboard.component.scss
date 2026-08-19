@@ -576,59 +576,61 @@
   position: relative;
   display: inline-flex;
   outline: none;
+}
 
-  // Ancorada à direita (em vez de centrada) porque os botões vivem em
-  // colunas encostadas ao lado direito de cartões com overflow:hidden
-  // (arredondam os cantos) — crescer para a esquerda fica sempre dentro
-  // do cartão; crescer a partir do centro cortava o balão nesse limite.
-  .tt-bubble {
-    position: absolute;
-    bottom: calc(100% + 9px);
-    right: 0;
-    transform: translateY(4px);
-    width: max-content;
-    max-width: 220px;
-    background: var(--color-primary-blue);
-    color: var(--color-white);
-    font-size: 12px;
-    font-weight: var(--fw-medium);
-    line-height: 1.4;
-    text-align: center;
-    padding: 7px 11px;
-    border-radius: var(--radius-sm);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--dur-fast) var(--ease-care), transform var(--dur-fast) var(--ease-care);
-    z-index: 20;
+// Bolha/seta ÚNICAS, partilhadas por todos os .tt (ver onTooltipReveal() no
+// componente) — vivem fora de .body para nunca ganharem um antepassado com
+// `filter` (as sombras dos cartões usam filter, que cria um novo containing
+// block para position:fixed) nem ficarem presas ao overflow:hidden de um
+// cartão. Visibilidade e posição vêm inteiramente do JS via classe
+// .visible/.below, não de :hover/:focus — já não há CSS a decidir isso
+// porque a bolha deixou de estar dentro do .tt que a desperta.
+.tt-bubble {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translateY(4px);
+  width: max-content;
+  max-width: 220px;
+  background: var(--color-primary-blue);
+  color: var(--color-white);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+  text-align: center;
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-care), transform var(--dur-fast) var(--ease-care);
+  z-index: 20;
 
-    &::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      right: 14px;
-      border: 5px solid transparent;
-      border-top-color: var(--color-primary-blue);
-    }
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  // Rato/trackpad: só hover. Um clique também focava o botão e o balão
-  // ficava preso a abrir/fechar por clique — isso não deve acontecer aqui,
-  // só em touch (bloco abaixo).
-  @media (hover: hover) and (pointer: fine) {
-    &.tt-disabled:hover .tt-bubble {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+// Elemento à parte da bolha (não ::after) para poder ficar a apontar ao
+// botão mesmo quando a bolha se desvia para caber no ecrã - ver o
+// comentário em onTooltipReveal(). .below inverte a ponta quando a bolha
+// caiu para debaixo do botão por falta de espaço por cima.
+.tt-arrow {
+  position: fixed;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: var(--color-primary-blue);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-care);
+  z-index: 20;
 
-  // Touch: não há hover, por isso o toque foca o botão — o balão
-  // aparece/desaparece ao tocar (abre, toca outra vez ou fora para fechar).
-  @media (hover: none), (pointer: coarse) {
-    &.tt-disabled:focus .tt-bubble,
-    &.tt-disabled:focus-within .tt-bubble {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  &.visible { opacity: 1; }
+
+  &.below {
+    border-top-color: transparent;
+    border-bottom-color: var(--color-primary-blue);
   }
 }
 
