@@ -16,4 +16,6 @@ export interface RecurringProposalPayload {
   address?: string;
   price?: number;
   priceBRL?: number;
+  /** yyyy-MM-dd. Omitida, o backend usa a próxima ocorrência livre da vaga. */
+  startDate?: string;
 }

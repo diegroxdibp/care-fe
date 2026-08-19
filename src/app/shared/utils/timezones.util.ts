@@ -106,6 +106,30 @@ export function zonedWallTimeToInstant(
   return new Date(guess - zoneOffsetMs(timeZone, new Date(firstPass)));
 }
 
+/**
+ * Verdadeiro quando esta hora de parede (numa data e, se souber, fuso) já
+ * passou em relação a `now`.
+ *
+ * Sem fuso, cai na hora local de quem está a ver — só acontece para vagas
+ * antigas gravadas sem timeZone. É pior do que converter, mas ainda assim
+ * distingue hoje-já-passou de hoje-ainda-vem, que é o que falta sem isto: uma
+ * vaga de hoje às 09:00 continuava a aparecer disponível às 15:00.
+ */
+export function isWallTimePast(
+  dateKey: string,
+  time: string,
+  timeZone?: string,
+  now: Date = new Date(),
+): boolean {
+  const instant = timeZone ? zonedWallTimeToInstant(dateKey, time, timeZone) : null;
+  if (instant) return instant.getTime() < now.getTime();
+
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  if ([y, m, d, hh, mm].some((n) => Number.isNaN(n))) return false;
+  return new Date(y, m - 1, d, hh, mm).getTime() < now.getTime();
+}
+
 /** Lista completa: fixos primeiro, depois todos os fusos suportados pelo runtime. */
 export function allTimezones(): TimezoneOption[] {
   const supported: string[] =

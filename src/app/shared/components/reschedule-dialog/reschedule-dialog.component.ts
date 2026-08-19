@@ -285,11 +285,14 @@ export interface RescheduleDialogResult {
       color: var(--color-primary-blue);
       cursor: pointer;
 
-      &:hover:not(:disabled) { background: var(--color-surface-tint); }
+      &:hover:not(:disabled):not(.selected) { background: var(--color-surface-tint); }
       &.other-month { color: var(--color-muted); opacity: 0.5; }
       &.today { font-weight: 700; text-decoration: underline; }
-      // Um dia com vagas para este serviço destaca-se do resto do mês.
-      &.available:not(:disabled) { background: var(--color-border-soft); font-weight: 600; }
+      // Um dia com vagas para este serviço destaca-se do resto do mês — mas
+      // não por cima do estado selecionado (ver a mesma nota em
+      // propose-recurring-dialog.component.ts: sem o ":not(.selected)" aqui,
+      // o dia escolhido ficava sempre cinzento em vez de azul).
+      &.available:not(.selected):not(:disabled) { background: var(--color-border-soft); font-weight: 600; }
       &.selected {
         background: var(--color-primary-blue);
         color: #fff;

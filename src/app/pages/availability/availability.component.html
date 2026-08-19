@@ -1057,13 +1057,19 @@
 
 <ng-template #apptDetailActions let-appt>
   <div class="ad-actions">
+    @if (canInviteRecurring(appt)) {
+      <button class="btn-invite-recurring" (click)="openInviteRecurringDialog($event, appt)">
+        <span translate="no" class="material-symbols-outlined">event_repeat</span>
+        Convidar para regime periódico
+      </button>
+    }
     @if (appt.status !== 'PENDING') {
-      <button class="btn-resched" (click)="openRescheduleDialog($event, appt)">
+      <button class="btn-resched" [disabled]="isApptPast(appt)" (click)="openRescheduleDialog($event, appt)">
         <span translate="no" class="material-symbols-outlined">edit_calendar</span>
         Reagendar sessão
       </button>
     }
-    <button class="btn-cancel" (click)="cancelAppointment(appt)">
+    <button class="btn-cancel" [disabled]="isApptPast(appt)" (click)="cancelAppointment(appt)">
       <span translate="no" class="material-symbols-outlined">close</span>
       {{ appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
     </button>

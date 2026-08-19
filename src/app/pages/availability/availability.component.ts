@@ -2498,28 +2498,40 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const dayLabel = dayLabelRaw.charAt(0).toUpperCase() + dayLabelRaw.slice(1);
     const slotEnd = minToTime(timeToMin(backendSlot.slotTime) + block.sessionDuration);
 
-    const ref = this.dialog.open(ProposeRecurringDialogComponent, {
-      width: '460px',
-      panelClass: 'care-dialog',
-      data: {
-        professionalId,
-        services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
-        slotModality: block.modality,
-        dayLabel,
-        timeLabel: `${backendSlot.slotTime}–${slotEnd}`,
-        slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
-        // Termos a que a vaga está anunciada: são o ponto de partida do
-        // diálogo, para que enviar sem mexer em nada proponha a vaga tal como está.
-        slotPlatform: block.platform,
-        slotAddress: block.local,
-        slotPrice: block.price,
-        slotPriceBRL: block.priceBRL,
-      } as ProposeRecurringDialogData,
-    });
+    // As datas já ocupadas desta vaga vêm do servidor no momento de abrir — os
+    // blocos em memória não as trazem, e é isso que decide o que o calendário
+    // do diálogo consegue oferecer como início da série.
+    this.apiService.getAvailabilitiesByProfessionalId(professionalId).subscribe({
+      next: (avails) => {
+        const slotAvailability = avails.find(a => a.id === backendSlot.backendId);
+        if (!slotAvailability) return;
 
-    ref.afterClosed().subscribe((result: ProposeRecurringDialogResult | null) => {
-      if (!result) return;
-      this._sendRecurringProposal(backendSlot.backendId, result);
+        const ref = this.dialog.open(ProposeRecurringDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            professionalId,
+            services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
+            slotModality: block.modality,
+            dayLabel,
+            timeLabel: `${backendSlot.slotTime}–${slotEnd}`,
+            slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+            // Termos a que a vaga está anunciada: são o ponto de partida do
+            // diálogo, para que enviar sem mexer em nada proponha a vaga tal como está.
+            slotPlatform: block.platform,
+            slotAddress: block.local,
+            slotPrice: block.price,
+            slotPriceBRL: block.priceBRL,
+            slotAvailability,
+          } as ProposeRecurringDialogData,
+        });
+
+        ref.afterClosed().subscribe((result: ProposeRecurringDialogResult | null) => {
+          if (!result) return;
+          this._sendRecurringProposal(backendSlot.backendId, result);
+        });
+      },
+      error: () => {},
     });
   }
 
@@ -2534,6 +2546,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       address: result.address,
       price: result.price,
       priceBRL: result.priceBRL,
+      startDate: result.startDate,
     }).subscribe({
       next: (appt) => {
         this.appointments.update(list => [...list, appt]);
@@ -2542,6 +2555,79 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       // O interceptor já mostra a recusa concreta do backend (valor fora dos
       // limites, periodicidade que a vaga não sustenta); repetir aqui uma
       // mensagem genérica só a taparia.
+      error: () => {},
+    });
+  }
+
+  /**
+   * Verdadeiro quando a vaga por trás desta sessão é uma vaga periódica e a
+   * sessão em si ainda não é recorrente — o caso de convidar para um regime
+   * periódico depois da primeira sessão avulsa.
+   */
+  canInviteRecurring(appt: Appointment): boolean {
+    if (appt.isRecurring) return false;
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    return !!block?.isRecurring;
+  }
+
+  /**
+   * Verdadeiro quando a ocorrência em vista já aconteceu. Reagendar/Cancelar
+   * deixam de fazer sentido para o passado, mas convidar para o regime
+   * periódico continua a valer — a próxima ocorrência ainda está para vir.
+   */
+  isApptPast(appt: Appointment): boolean {
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    if (!occurrenceDate) return false;
+
+    const dt = new Date(occurrenceDate + 'T00:00:00');
+    const [h, m] = appt.startTime.split(':').map(Number);
+    dt.setHours(h || 0, m || 0, 0, 0);
+    return dt.getTime() < Date.now();
+  }
+
+  openInviteRecurringDialog(event: Event, appt: Appointment): void {
+    event.stopPropagation();
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    if (!block) return;
+
+    const professionalId = this.sessionService.user()?.id;
+    if (!professionalId) return;
+
+    const dowIdx = COL_TO_DOW.indexOf(block.weekdays[0]);
+    const dayLabelRaw = dowIdx >= 0 ? PT_DOW_LONG[dowIdx] : '';
+    const dayLabel = dayLabelRaw.charAt(0).toUpperCase() + dayLabelRaw.slice(1);
+
+    this.apiService.getAvailabilitiesByProfessionalId(professionalId).subscribe({
+      next: (avails) => {
+        const slotAvailability = avails.find(a => a.id === appt.availabilityId);
+        if (!slotAvailability) return;
+
+        const ref = this.dialog.open(ProposeRecurringDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            professionalId,
+            services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
+            slotModality: block.modality,
+            dayLabel,
+            timeLabel: `${appt.startTime}–${appt.endTime}`,
+            slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+            slotPlatform: appt.platform ?? block.platform,
+            slotAddress: appt.address ?? block.local,
+            slotPrice: appt.price ?? block.price,
+            slotPriceBRL: appt.priceBRL ?? block.priceBRL,
+            slotAvailability,
+            preselectedClientId: appt.clientId,
+            preselectedClientName: this.slotPatientName(appt),
+          } as ProposeRecurringDialogData,
+        });
+
+        ref.afterClosed().subscribe((result: ProposeRecurringDialogResult | null) => {
+          if (!result) return;
+          this._sendRecurringProposal(appt.availabilityId, result);
+        });
+      },
       error: () => {},
     });
   }

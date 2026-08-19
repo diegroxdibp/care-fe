@@ -21,7 +21,7 @@ import { Professional } from '../../../shared/models/get-professional-by-service
 import { ProfessionalService } from '../../../shared/models/professional-service.model';
 import { emptyAvailabilityConfiguration } from '../../../shared/models/input-configuration-objects/availability-configuration-object';
 import { parseDate, formatTime } from '../../../shared/utils/date-helper.util';
-import { detectBrowserTimezone, zonedWallTimeToInstant } from '../../../shared/utils/timezones.util';
+import { detectBrowserTimezone, isWallTimePast, zonedWallTimeToInstant } from '../../../shared/utils/timezones.util';
 import { SessionService } from '../../../shared/services/session.service';
 import { Router } from '@angular/router';
 import { Currency, formatPrice } from '../../../shared/enums/currency.enum';
@@ -203,6 +203,9 @@ export class SchedulingComponent implements OnDestroy {
     );
     return slots
       .filter(s => !(s.bookedDates ?? []).includes(day) || this.confirmedSlotId() === s.id)
+      // Um horário de hoje cuja hora já passou não é mais uma opção — só a
+      // data já era filtrada, e "hoje" ficava com manhãs oferecidas à tarde.
+      .filter(s => this.confirmedSlotId() === s.id || !isWallTimePast(day, s.startTime, s.timeZone))
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }
 

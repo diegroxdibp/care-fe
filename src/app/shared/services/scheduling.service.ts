@@ -25,6 +25,7 @@ import {
   emptyAvailabilityConfiguration,
 } from '../models/input-configuration-objects/availability-configuration-object';
 import { occursOnDate } from '../utils/recurrence.util';
+import { isWallTimePast } from '../utils/timezones.util';
 
 /**
  * Escolha feita no passo 1 e revista no passo 2.
@@ -139,6 +140,10 @@ export class SchedulingService {
     this.availability.set(availabilities);
     this.timeSlots.clear(); // Clear existing timeSlots
 
+    // Comparação por instante real (para não oferecer um horário de hoje que
+    // já passou), separada de `now` abaixo, truncada à meia-noite para
+    // comparação por dia.
+    const nowInstant = new Date();
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const maxDate = new Date(new Date().setMonth(new Date().getMonth() + 2)); // Calendar limit
@@ -183,7 +188,10 @@ export class SchedulingService {
           ) {
             const key = this.formatDateKey(current);
 
-            if (!booked.has(key)) {
+            if (
+              !booked.has(key) &&
+              !isWallTimePast(key, availability.startTime, availability.timeZone, nowInstant)
+            ) {
               if (!this.timeSlots.has(key)) {
                 this.timeSlots.set(key, []);
               }
@@ -200,7 +208,10 @@ export class SchedulingService {
         if (start >= now && start <= maxDate) {
           const key = this.formatDateKey(start);
 
-          if (!booked.has(key)) {
+          if (
+            !booked.has(key) &&
+            !isWallTimePast(key, availability.startTime, availability.timeZone, nowInstant)
+          ) {
             if (!this.timeSlots.has(key)) {
               this.timeSlots.set(key, []);
             }
