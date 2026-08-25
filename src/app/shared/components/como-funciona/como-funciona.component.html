@@ -1,0 +1,44 @@
+<section class="como-funciona">
+  <div class="cf-inner">
+    <span class="eyebrow">Como funciona</span>
+    <h2 class="title">Três passos até a primeira sessão</h2>
+
+    <div class="login-note">
+      <div class="login-note-text">
+        <p class="login-note-label">
+          <span translate="no" class="material-symbols-outlined login-note-icon">lock_open_right</span>
+          Antes de começar
+        </p>
+        <p class="login-note-body">
+          Para ver a agenda e confirmar um horário é necessário ter sessão iniciada. Criar conta é gratuito e não há custo para a manter.
+        </p>
+      </div>
+      @if (!isAuthenticated()) {
+        <button class="btn-create-account" (click)="navigateToSignUp()">Criar conta</button>
+      } @else {
+        <span class="login-note-done">
+          <span translate="no" class="material-symbols-outlined">check_circle</span>
+          Sessão iniciada
+        </span>
+      }
+    </div>
+
+    <div class="steps-grid">
+      @for (step of steps; track step.n) {
+        <div class="step-card" [style.border-top-color]="step.accentColor">
+          <div class="step-card-head">
+            <span class="step-num">{{ step.n }}</span>
+            @if (step.needsLogin) {
+              <span class="step-tag">
+                <span translate="no" class="material-symbols-outlined">lock</span>
+                Requer sessão
+              </span>
+            }
+          </div>
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-description">{{ step.description }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>

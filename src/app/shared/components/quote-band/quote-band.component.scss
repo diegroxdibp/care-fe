@@ -1,0 +1,68 @@
+@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.quote-band {
+  max-width: none;
+  width: 100%;
+  padding: 48px 24px;
+  background: var(--color-secondary-cyan);
+  text-align: center;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 60px 32px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    padding: 80px 56px;
+  }
+}
+
+.quote-inner {
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.quote-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 1.38;
+  color: var(--color-primary-blue);
+  text-align: center;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 31px;
+    line-height: 1.36;
+  }
+}
+
+.quote-attribution {
+  margin: 16px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--color-primary-blue);
+  text-align: center;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-top: 20px;
+    font-size: 13px;
+    letter-spacing: 1.8px;
+  }
+}
+
+.attribution-full { display: none; }
+.attribution-short { display: inline; }
+
+@media (min-width: breakpoint.$breakpoint-lg) {
+  .attribution-full { display: inline; }
+  .attribution-short { display: none; }
+}

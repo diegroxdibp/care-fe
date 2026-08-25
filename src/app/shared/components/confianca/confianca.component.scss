@@ -1,0 +1,145 @@
+@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.confianca {
+  max-width: none;
+  width: 100%;
+  padding: 44px 24px;
+  background: var(--color-surface-tint);
+  border-top: 1px solid var(--color-border);
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 64px 32px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    padding: 80px 56px;
+  }
+}
+
+.confianca-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: 1140px;
+    gap: 0;
+  }
+}
+
+.confianca-head {
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-bottom: 44px;
+  }
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--color-primary-purple);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 12.5px;
+    letter-spacing: 2.6px;
+  }
+}
+
+.title {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 29px;
+  line-height: 1.16;
+  letter-spacing: -0.5px;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-top: 16px;
+    font-size: 40px;
+    line-height: 1.14;
+    letter-spacing: -0.7px;
+    //max-width: 26ch;
+  }
+}
+
+.trust-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+  }
+}
+
+.trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.trust-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  flex: none;
+  overflow: hidden;
+  line-height: 1;
+
+  .material-symbols-outlined { font-size: 20px; }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    .material-symbols-outlined { font-size: 22px; }
+  }
+}
+
+.trust-text {
+  min-width: 0;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-top: 4px;
+  }
+}
+
+.trust-label {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-primary-blue);
+}
+
+.trust-description {
+  margin: 6px 0 0;
+  font-size: 15.5px;
+  line-height: 1.56;
+  color: var(--color-secondary-indigo);
+  text-align: left;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 14.5px;
+    line-height: 1.55;
+    max-width: 30ch;
+  }
+}

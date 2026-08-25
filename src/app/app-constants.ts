@@ -61,6 +61,7 @@ export const AppConstants = {
             'A análise corporal reichiana reintegra a terapia verbal à análise do corpo e tem como objetivo flexibilizar os bloqueios somáticos, considerando o ser humano como uma unidade psicossomática, na qual corpo e mente formam um sistema indissociável.',
           knowMorePage: Pages.ANALISE_REICHANA,
           sessionService: 'REICHIAN_BODY_ANALYSIS',
+          meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
 
         {
@@ -69,6 +70,7 @@ export const AppConstants = {
             'A prática em Mindfulness fomenta a regulação atencional e emocional por meio de propostas com o body scan, a respiração consciente, a meditação em movimento e a atenção plena nas atividades cotidianas.',
           knowMorePage: Pages.MINDFULLNESS,
           sessionService: 'MINDFULNESS',
+          meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
 
         {
@@ -77,6 +79,7 @@ export const AppConstants = {
             'A Somatic Experiencing® (SE) é uma prática centrada na regulação do sistema nervoso e na elaboração de experiências traumáticas através do corpo. Por meio de intervenções seguras e graduais, a SE possibilita a renegociação das respostas traumáticas, reduzindo sintomas de diversas naturezas e fortalecendo a capacidade natural de autorregulação do organismo.',
           knowMorePage: Pages.SOMATIC_EXPERIENCE,
           sessionService: 'SOMATIC_EXPERIENCE',
+          meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
       ],
       available: true,
@@ -90,6 +93,7 @@ export const AppConstants = {
         {
           name: 'Autorregulação para Profissionais',
           description: 'Estamos chegando com um novo jeito de cuidar. Em breve, mais informações.',
+          meta: 'Remoto · Adultos',
         },
       ],
       available: false,
@@ -105,6 +109,7 @@ export const AppConstants = {
             'A supervisão na abordagem da Análise Corporal Reichiana ocorre individual e em grupos pequenos, com ênfase no atendimento individual de adultos. São encontros semanais, quinzenais ou mensais no formato presencial (em Lisboa) ou remoto.',
           knowMorePage: Pages.SUPERVISION,
           sessionService: 'SUPERVISION',
+          meta: 'Individual ou grupal · Presencial (Lisboa) e Remoto',
         },
       ],
       available: true,

@@ -1,0 +1,26 @@
+<section class="confianca">
+  <div class="confianca-inner">
+    <div class="confianca-head">
+      <span class="eyebrow">Confiança e segurança</span>
+      <h2 class="title">O cuidado também está no que não se vê</h2>
+    </div>
+
+    <div class="trust-grid">
+      @for (item of items; track item.label) {
+        <div class="trust-item">
+          <span
+            class="trust-chip"
+            [style.background]="item.chipBackground"
+            [style.color]="item.chipForeground"
+          >
+            <span translate="no" class="material-symbols-outlined">{{ item.icon }}</span>
+          </span>
+          <div class="trust-text">
+            <h4 class="trust-label">{{ item.label }}</h4>
+            <p class="trust-description">{{ item.description }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</section>

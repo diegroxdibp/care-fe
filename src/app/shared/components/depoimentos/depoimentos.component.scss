@@ -1,0 +1,167 @@
+@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.depoimentos {
+  max-width: none;
+  width: 100%;
+  padding: 52px 0 52px 24px;
+  background: var(--color-secondary-pink);
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 72px 32px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    padding: 100px 56px;
+  }
+}
+
+.depo-inner {
+  max-width: 860px;
+  margin: 0 auto;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding-right: 0;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: 1140px;
+  }
+}
+
+.title {
+  margin: 0 24px 22px 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 29px;
+  line-height: 1.16;
+  letter-spacing: -0.5px;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin: 0 0 44px;
+    font-size: 40px;
+    line-height: 1.14;
+    letter-spacing: -0.7px;
+    max-width: 26ch;
+  }
+}
+
+.depo-track {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 24px 12px 0;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+}
+
+.depo-card {
+  flex: none;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 24px 22px 20px;
+  transition: transform 0.22s ease;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    width: auto;
+    gap: 20px;
+    padding: 32px 28px 26px;
+
+    &:hover { transform: translateY(-4px); }
+  }
+}
+
+.depo-mark {
+  font-family: var(--font-serif);
+  font-size: 44px;
+  line-height: 0.6;
+  color: var(--color-secondary-pink);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 50px;
+  }
+}
+
+.depo-quote {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.46;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 21px;
+    line-height: 1.48;
+  }
+}
+
+.depo-caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-soft);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    gap: 12px;
+    padding-top: 20px;
+  }
+}
+
+.depo-initials {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--color-secondary-indigo);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    width: 36px;
+    height: 36px;
+    font-size: 12.5px;
+    letter-spacing: 0.6px;
+  }
+}
+
+.depo-who {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-secondary-indigo);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 14.5px;
+  }
+}

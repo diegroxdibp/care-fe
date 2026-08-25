@@ -1,71 +1,10 @@
-@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
 @use "../../../../assets/styles/palette.scss" as palette;
-@use "../src/assets/styles/variables.scss" as variables;
 
 :host {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background-color: palette.$supportingColorWhite;
-    width: 100%;
-    align-items: center;
-
-    .introduction {
-        margin: 3em 0;
-
-        .care-introduction {
-            .pillars {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                margin: 1em 0;
-            }
-        }
-    }
-
-    .services {
-        display: flex;
-        flex-direction: column;
-        padding: 4em 0;
-        max-width: 100%;
-        gap: 3em;
-        background: palette.$secondaryColorPurple;
-    }
-
-    .faq {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      gap: 4em;
-      padding-top: 4em;
-      padding-bottom: 4em;
-
-      h2 {
-      }
-    }
-
-    @media (min-width: breakpoint.$breakpoint-lg) {
-        .introduction {
-            margin: 5em 0;
-
-            .care-introduction {
-                .pillars {
-                    margin: 4em 0;
-                }
-            }
-        }
-
-      .faq {
-        padding-top: 6em;
-        padding-bottom: 6em;
-
-        h2 {
-          font-size: 46px;
-        }
-      }
-    }
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: palette.$supportingColorWhite;
+  width: 100%;
+  align-items: center;
 }
-

@@ -1,11 +1,11 @@
-import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { HeroComponent } from '../../../shared/components/hero/hero.component';
-import { MarqueeTrackComponent } from '../../../shared/components/marquee-track/marquee-track.component';
-import { ScrollAnimateDirective } from '../../../shared/directives/scroll-animate.directive';
+import { PilaresComponent } from '../../../shared/components/pilares/pilares.component';
+import { QuoteBandComponent } from '../../../shared/components/quote-band/quote-band.component';
+import { ComoFuncionaComponent } from '../../../shared/components/como-funciona/como-funciona.component';
+import { ConfiancaComponent } from '../../../shared/components/confianca/confianca.component';
 import { Pages } from '../../../shared/enums/pages.enum';
 import { AppConstants } from '../../../app-constants';
 import { NavigationService } from '../../../shared/services/navigation.service';
@@ -19,11 +19,11 @@ const FIXED_HEADER_HEIGHT = 70;
   selector: 'app-home',
   imports: [
     HeroComponent,
-    CommonModule,
-    MatExpansionModule,
-    ScrollAnimateDirective,
-    MarqueeTrackComponent,
+    PilaresComponent,
+    QuoteBandComponent,
+    ComoFuncionaComponent,
     ServicesListComponent,
+    ConfiancaComponent,
     FaqComponent
   ],
   templateUrl: './home.component.html',

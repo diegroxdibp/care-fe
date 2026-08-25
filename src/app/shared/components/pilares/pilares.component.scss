@@ -1,0 +1,133 @@
+@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.pilares {
+  max-width: none;
+  padding: 52px 24px;
+  width: 100%;
+  background: var(--color-white);
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 72px 32px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    padding: 104px 56px;
+  }
+}
+
+.pilares-inner {
+  max-width: 860px;
+  margin: 0 auto;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: 1140px;
+  }
+}
+
+.pilares-head {
+  margin-bottom: 24px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-bottom: 48px;
+  }
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--color-primary-purple);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 12.5px;
+    letter-spacing: 2.6px;
+  }
+}
+
+.title {
+  margin: 14px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 31px;
+  line-height: 1.14;
+  letter-spacing: -0.5px;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-top: 16px;
+    font-size: 44px;
+    line-height: 1.12;
+    letter-spacing: -0.8px;
+    max-width: 24ch;
+  }
+}
+
+.pilares-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.pilar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: var(--radius-xl);
+  padding: 22px 20px;
+  background: var(--color-white);
+  border: 2px solid;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    gap: 16px;
+    padding: 28px 24px 26px;
+  }
+}
+
+.pilar-icon {
+  width: 34px;
+  height: 34px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+.pilar-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.26;
+  color: var(--color-primary-blue);
+}
+
+.pilar-description {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.56;
+  color: var(--color-secondary-indigo);
+  text-align: left;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 15.5px;
+    line-height: 1.58;
+  }
+}

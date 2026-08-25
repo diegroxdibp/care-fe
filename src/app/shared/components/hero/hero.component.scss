@@ -1,5 +1,4 @@
 @use "../../../../assets/styles/breakpoints.scss" as breakpoint;
-@use "../../../../assets/styles/palette.scss" as palette;
 
 :host {
   display: block;
@@ -7,94 +6,76 @@
   font-family: var(--font-sans);
 }
 
-// ─── Hero — Layout A: Full-bleed ─────────────────────────────────────────────
-
 .hero {
   // Reset global section rule (max-width, padding, flex-direction)
   max-width: none;
   padding: 0;
+  width: 100%;
+}
 
+.hero-inner {
   position: relative;
   width: 100%;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  background: linear-gradient(180deg, #f5f4f9 0%, #ecebf3 100%);
-
-  flex-direction: column;
-  justify-content: space-between;
-  height: auto;
-  min-height: unset;
+  background: var(--color-surface-tint);
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    flex-direction: row;
-    justify-content: normal;
-    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 770px;
+    max-height: 100vh;
   }
 }
 
-// ─── Portrait (right 64%, cut-out stands on the wall) ────────────────────────
+// ─── Pink panel behind the portrait ───────────────────────────────────────
+
+.pink-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: var(--color-secondary-pink);
+  z-index: 0;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    left: auto;
+    right: 0;
+    bottom: 0;
+    width: 52%;
+    height: auto;
+  }
+}
+
+// ─── Portrait ──────────────────────────────────────────────────────────────
 
 .portrait {
   position: relative;
-  top: unset;
-  right: unset;
-  bottom: unset;
-  width: 100%;
-  height: 56vh;
-  min-height: 320px;
-  max-height: 440px;
+  z-index: 2;
+  height: 300px;
   overflow: hidden;
   pointer-events: none;
 
-  img {
-    bottom: unset;
-  }
-
   @media (min-width: breakpoint.$breakpoint-sm) {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 64%;
-    height: auto;
-    min-height: unset;
-    max-height: unset;
-    overflow: visible;
-
-    img {
-      bottom: -7%;
-    }
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    width: 100%;
+    height: 672px;
   }
-}
-
-.portrait-halo {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    58% 56% at 64% 40%,
-    rgba(255, 255, 255, 0.85) 0%,
-    rgba(255, 255, 255, 0.45) 38%,
-    rgba(255, 255, 255, 0) 70%
-  );
 }
 
 .hero-photo {
   display: block;
   position: absolute;
-  height: 118%;
-  top: 0;
-  bottom: auto;
-  left: auto;
-  right: 0;
-  transform: none;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 330px;
   width: auto;
   max-width: none;
   object-fit: contain;
-  object-position: bottom right;
-  z-index: 1;
+  object-position: bottom center;
   filter: drop-shadow(16px 22px 30px rgba(34, 50, 110, 0.18));
   opacity: 0;
   transition: opacity 200ms ease-in-out;
@@ -102,100 +83,117 @@
   &.loaded { opacity: 1; }
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    height: 119%;
-    top: auto;
-    bottom: -7%;
-    right: 6%;
+    left: auto;
+    right: 0;
+    transform: none;
+    height: 100%;
+    object-position: bottom right;
   }
 }
 
-// ─── Content (flex child, left side) ─────────────────────────────────────────
+// ─── Content ───────────────────────────────────────────────────────────────
 
 .h-content {
   position: relative;
   z-index: 3;
   width: 100%;
-  max-width: 1340px;
-  margin: 0 auto;
-  padding: 26px 22px;
+  padding: 26px 24px 44px;
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    padding: 0 clamp(24px, 5vw, 64px);
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 150px 0 96px 56px;
   }
 }
 
-.h-stack {
-  max-width: 100%;
+.h-eyebrow {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--color-secondary-indigo);
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    max-width: 480px;
+    font-size: 12.5px;
+    letter-spacing: 2.6px;
   }
 }
 
-// ─── Headline ─────────────────────────────────────────────────────────────────
+// ─── Headline ─────────────────────────────────────────────────────────────
 
 .h-title {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  margin: 0;
-  line-height: 1.02;
+  margin: 18px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.06;
+  letter-spacing: -1px;
   color: var(--color-primary-blue);
-  font-weight: 700;
-  font-size: clamp(34px, 11vw, 46px);
-  letter-spacing: 0.5px;
   max-width: 100%;
   user-select: none;
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    font-size: clamp(38px, 5vw, 66px);
-    max-width: 12ch;
+    margin-top: 26px;
+    font-size: 72px;
+    letter-spacing: -1.4px;
   }
 }
 
 .h-word {
-  color: palette.$primaryColorPurple;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.1em;
+  white-space: nowrap;
+  font-style: italic;
+  color: var(--color-primary-purple);
+  font-size: 38px;
 
-  &.typed {
-    display: inline-flex;
-    align-items: baseline;
-    min-height: 1.04em;
-    white-space: nowrap;
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    font-size: 72px;
   }
 }
 
 .h-cursor {
   display: inline-block;
-  width: 3px;
-  height: 0.78em;
+  width: 2px;
+  height: 0.68em;
   margin-left: 6px;
-  align-self: center;
-  background: palette.$primaryColorPurple;
-  transform: translateY(0.04em);
-  animation: ccblink 0.8s steps(1) infinite;
+  background: var(--color-primary-purple);
+  animation: careBlink 0.85s steps(1) infinite;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    width: 3px;
+    margin-left: 8px;
+  }
 }
 
-@keyframes ccblink {
+@keyframes careBlink {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+  50%      { opacity: 0; }
 }
 
-// ─── Sub & CTA ────────────────────────────────────────────────────────────────
+// ─── Sub, CTA & closing line ────────────────────────────────────────────────
 
 .h-sub {
-  max-width: 100%;
-  margin: 22px 0 0;
+  margin: 20px 0 0;
   text-align: left;
   font-size: 17px;
   line-height: 1.6;
-  color: var(--color-primary-blue);
+  color: var(--color-secondary-indigo);
   font-weight: 400;
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    max-width: 30ch;
-    font-size: clamp(17px, 1.35vw, 21px);
+    margin-top: 28px;
+    max-width: 34ch;
+    font-size: 19.5px;
+    line-height: 1.62;
   }
 }
 
@@ -203,48 +201,84 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
-  margin-top: 24px;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
 
   @media (min-width: breakpoint.$breakpoint-xs) {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
   }
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    gap: 22px;
-    margin-top: 30px;
+    gap: 14px;
+    margin-top: 38px;
   }
 }
 
-.btn-primary {
+.btn-primary,
+.btn-secondary {
   border: none;
-  background: var(--color-primary-blue);
-  color: #fff;
   font-family: var(--font-sans);
   font-size: 17px;
   font-weight: 600;
-  padding: 14px 30px;
+  height: 52px;
+  padding: 0 28px;
   border-radius: var(--radius-lg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: transform var(--dur-fast) ease, background var(--dur-fast) ease;
+  transition: transform 0.2s ease, background 0.2s ease, filter 0.2s ease;
   width: 100%;
 
   @media (min-width: breakpoint.$breakpoint-sm) {
-    justify-content: normal;
     width: auto;
+    height: auto;
+    padding: 16px 28px;
+    font-size: 16.5px;
   }
 
   .material-symbols-outlined { font-size: 20px; }
+}
+
+.btn-primary {
+  background: var(--color-primary-blue);
+  color: #fff;
 
   &:hover {
     transform: translateY(-2px);
     background: var(--color-secondary-indigo);
+  }
+}
+
+.btn-secondary {
+  background: var(--color-secondary-cyan);
+  color: var(--color-primary-blue);
+
+  &:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+  }
+}
+
+.h-closing {
+  margin: 26px 0 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--color-secondary-green);
+  text-align: left;
+  font-size: 16px;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--color-secondary-indigo);
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    margin-top: 52px;
+    padding-left: 20px;
+    max-width: 36ch;
+    font-size: 17.5px;
   }
 }
 

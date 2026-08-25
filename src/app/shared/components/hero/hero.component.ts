@@ -9,7 +9,7 @@ import { Pages } from '../../enums/pages.enum';
   styleUrl: './hero.component.scss',
 })
 export class HeroComponent implements OnInit, OnDestroy {
-  private readonly PHRASES = ['Ressignificação', 'Saúde Relacional', 'Cuidado', 'Transformação'];
+  private readonly PHRASES = ['Ressignificação', 'Cuidado', 'Saúde Relacional'];
 
   readonly typedText = signal('');
 
@@ -34,15 +34,19 @@ export class HeroComponent implements OnInit, OnDestroy {
     this.nav.navigateTo(Pages.SCHEDULING);
   }
 
+  navigateToAbout(): void {
+    this.nav.navigateTo(Pages.ABOUT);
+  }
+
   private tick(): void {
     const phrase = this.PHRASES[this.wi];
     this.typedText.set(phrase.slice(0, this.ci));
 
     let delay: number;
-    if (!this.deleting && this.ci < phrase.length)        { this.ci++;                                               delay = 95;   }
-    else if (!this.deleting && this.ci === phrase.length) { this.deleting = true;                                   delay = 1900; }
-    else if (this.deleting && this.ci > 0)                { this.ci--;                                               delay = 45;   }
-    else                                                  { this.deleting = false; this.wi = (this.wi + 1) % this.PHRASES.length; delay = 320; }
+    if (!this.deleting && this.ci < phrase.length)        { this.ci++;                                               delay = 92;   }
+    else if (!this.deleting && this.ci === phrase.length) { this.deleting = true;                                   delay = 2000; }
+    else if (this.deleting && this.ci > 0)                { this.ci--;                                               delay = 42;   }
+    else                                                  { this.deleting = false; this.wi = (this.wi + 1) % this.PHRASES.length; delay = 300; }
 
     this.timer = setTimeout(() => this.tick(), delay);
   }

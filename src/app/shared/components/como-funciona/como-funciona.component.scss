@@ -1,0 +1,276 @@
+@use "../../../../assets/styles/breakpoints.scss" as breakpoint;
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.como-funciona {
+  max-width: none;
+  width: 100%;
+  padding: 52px 24px;
+  background: var(--color-white);
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 72px 32px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    padding: 96px 56px;
+  }
+}
+
+.cf-inner {
+  max-width: 860px;
+  margin: 0 auto;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: 1140px;
+  }
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--color-primary-purple);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 12.5px;
+    letter-spacing: 2.6px;
+  }
+}
+
+.title {
+  margin: 14px 0 22px;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 31px;
+  line-height: 1.14;
+  letter-spacing: -0.5px;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin: 16px 0 30px;
+    font-size: 44px;
+    line-height: 1.12;
+    letter-spacing: -0.8px;
+    max-width: 24ch;
+  }
+}
+
+.login-note {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-surface-tint);
+  border-left: 4px solid var(--color-primary-purple);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    margin-bottom: 34px;
+  }
+}
+
+.login-note-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    gap: 5px;
+  }
+}
+
+.login-note-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--color-primary-purple);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 12.5px;
+    letter-spacing: 1.8px;
+  }
+}
+
+.login-note-icon {
+  font-size: 20px;
+  color: var(--color-primary-purple);
+  flex: none;
+}
+
+.login-note-body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--color-secondary-indigo);
+  text-align: left;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    margin-top: 5px;
+    font-size: 16.5px;
+    max-width: 78ch;
+  }
+}
+
+.btn-create-account {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: var(--color-primary-blue);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    height: auto;
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  &:hover { background: var(--color-secondary-indigo); }
+}
+
+.login-note-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-secondary-indigo);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 15px;
+  }
+
+  .material-symbols-outlined {
+    font-size: 19px;
+    color: var(--color-secondary-green);
+  }
+}
+
+.steps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--color-surface-tint);
+  border-top: 4px solid;
+  border-radius: var(--radius-xl);
+  padding: 22px 20px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    gap: 14px;
+    padding: 30px 28px 32px;
+  }
+}
+
+.step-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.step-num {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--color-primary-purple);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 34px;
+  }
+}
+
+.step-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--color-primary-blue);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    gap: 6px;
+    font-size: 11.5px;
+    letter-spacing: 1.2px;
+    padding: 6px 10px;
+  }
+
+  .material-symbols-outlined { font-size: 14px; }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    .material-symbols-outlined { font-size: 15px; }
+  }
+}
+
+.step-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.28;
+  color: var(--color-primary-blue);
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 19.5px;
+  }
+}
+
+.step-description {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.58;
+  color: var(--color-secondary-indigo);
+  text-align: left;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+}

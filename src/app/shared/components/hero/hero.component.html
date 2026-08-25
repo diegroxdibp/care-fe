@@ -1,21 +1,21 @@
 <section class="hero">
+  <div class="hero-inner">
 
-  <!-- Portrait: transparent cut-out anchored right -->
-  <div class="portrait">
-    <div class="portrait-halo" aria-hidden="true"></div>
-    <img
-      class="hero-photo reveal"
-      [class.loaded]="heroImageLoaded"
-      (load)="heroImageLoaded = true"
-      src="assets/images/care-hero-cut.webp"
-      alt="Pessoa em um momento de acolhimento"
-      fetchpriority="high"
-    />
-  </div>
+    <div class="pink-panel" aria-hidden="true"></div>
 
-  <!-- Content: absolutely positioned overlay, matching original placement -->
-  <div class="h-content">
-    <div class="h-stack">
+    <div class="portrait">
+      <img
+        class="hero-photo reveal"
+        [class.loaded]="heroImageLoaded"
+        (load)="heroImageLoaded = true"
+        src="assets/images/care-hero-cut.webp"
+        alt="Pessoa em um momento de acolhimento"
+        fetchpriority="high"
+      />
+    </div>
+
+    <div class="h-content">
+<!--      <span class="h-eyebrow reveal">Clínica Ampliada Ressignificações</span>-->
 
       <h1 class="h-title reveal d1">
         <span>Care é</span>
@@ -29,11 +29,13 @@
       <div class="h-cta reveal d3">
         <button class="btn-primary" (click)="navigateToScheduling()">
           Agendar um atendimento
-          <span translate="no" class="material-symbols-outlined">arrow_forward</span>
         </button>
       </div>
 
+      <p class="h-closing reveal d3">
+        Comprometida com a ressignificação das perspectivas e práticas em saúde.
+      </p>
     </div>
-  </div>
 
+  </div>
 </section>

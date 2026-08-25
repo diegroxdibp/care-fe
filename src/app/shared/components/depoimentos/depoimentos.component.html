@@ -1,0 +1,18 @@
+<section class="depoimentos">
+  <div class="depo-inner">
+    <h2 class="title">Quem passou por aqui</h2>
+
+    <div class="depo-track">
+      @for (testimonial of testimonials; track testimonial.who) {
+        <figure class="depo-card">
+          <span class="depo-mark" aria-hidden="true">&ldquo;</span>
+          <blockquote class="depo-quote">{{ testimonial.quote }}</blockquote>
+          <figcaption class="depo-caption">
+            <span class="depo-initials">{{ testimonial.initials }}</span>
+            <span class="depo-who">{{ testimonial.who }}</span>
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </div>
+</section>
