@@ -327,9 +327,10 @@ export class DashboardPageComponent implements OnInit {
 
   private readStoredHidePast(): boolean {
     try {
-      return localStorage.getItem(HIDE_PAST_STORAGE_KEY) === 'true';
+      const stored = localStorage.getItem(HIDE_PAST_STORAGE_KEY);
+      return stored === null ? true : stored === 'true';
     } catch {
-      return false;
+      return true;
     }
   }
 
