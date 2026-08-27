@@ -209,7 +209,8 @@
 
   input[type="text"],
   input[type="email"],
-  input[type="tel"] {
+  input[type="tel"],
+  textarea {
     font-family: typography.$sourceSans;
     font-size: 16px;
     font-weight: 400;
@@ -225,6 +226,19 @@
 
     &:focus { border-color: palette.$primaryColorBlue; }
     &::placeholder { color: var(--color-muted); }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.5;
+  }
+
+  .hint {
+    align-self: flex-end;
+    font-family: typography.$sourceSans;
+    font-size: 12px;
+    color: var(--color-muted);
   }
 }
 

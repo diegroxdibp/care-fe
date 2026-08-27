@@ -15,6 +15,7 @@ import { RequestAccountClosureDialogComponent } from './request-account-closure-
 import { User } from '../../../auth/user.model';
 import {getEnumKeyByValue} from '../../utils/getEnumKeyByValue';
 import { getBrowserCountry } from '../../utils/browser-country.util';
+import { Roles } from '../../enums/roles.enum';
 import { CountryPhoneFieldComponent } from '../country-phone-field/country-phone-field.component';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 import { BirthdateCalendarComponent } from '../birthdate-calendar/birthdate-calendar.component';
@@ -33,6 +34,13 @@ const SAMPLE_PRICE: Record<Currency, number> = {
   [Currency.EUR]: 60,
   [Currency.BRL]: 320,
 };
+
+// Quem atende pessoas clientes tem uma bio pública; conta de paciente não.
+const BIO_ALLOWED_ROLES: string[] = [
+  Roles.THERAPIST,
+  Roles.PROFESSIONAL,
+  Roles.ADMIN,
+];
 
 @Component({
   selector: 'app-dashboard-profile',
@@ -94,6 +102,15 @@ export class DashboardProfileComponent implements OnInit {
   get phoneCtrl(): FormControl {
     return this.formService.profileForm.get(FormControlsNames.PHONE_PROFILE) as FormControl;
   }
+
+  get bioCtrl(): FormControl {
+    return this.formService.profileForm.get(FormControlsNames.BIO_PROFILE) as FormControl;
+  }
+
+  /** Só profissionais, terapeutas e admins têm uma bio a mostrar às pessoas clientes. */
+  readonly showBio = computed(() =>
+    (this.user()?.roles ?? []).some((role) => BIO_ALLOWED_ROLES.includes(role)),
+  );
 
   get phonePrefixCountry(): CountryModel {
     const v = this.formService.profileForm.get(FormControlsNames.PHONE_PREFIX_PROFILE)?.value;

@@ -95,7 +95,9 @@ export class FormService {
         this.fb.control<CountryModel>(getBrowserCountry()),
       [FormControlsNames.PHONE_PROFILE]: this.fb.control(''),
       [FormControlsNames.GENDER_PROFILE]: this.fb.control(''),
-      [FormControlsNames.BIO_PROFILE]: this.fb.control(''),
+      [FormControlsNames.BIO_PROFILE]: this.fb.control('', [
+        Validators.maxLength(700),
+      ]),
       [FormControlsNames.CURRENCY_PROFILE]: this.fb.control<Currency>(
         Currency.EUR,
         [Validators.required],

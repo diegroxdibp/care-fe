@@ -44,6 +44,20 @@
       <input id="pf-email" type="email" [formControl]="emailCtrl" />
     </div>
 
+    @if (showBio()) {
+      <div class="field span-full">
+        <label for="pf-bio">Bio:</label>
+        <textarea
+          id="pf-bio"
+          rows="4"
+          maxlength="700"
+          [formControl]="bioCtrl"
+          placeholder="Um resumo sobre você para as pessoas clientes conhecerem antes de agendar."
+        ></textarea>
+        <span class="hint">{{ bioCtrl.value?.length ?? 0 }}/700</span>
+      </div>
+    }
+
     <div class="field">
       <label id="pf-birth-label">Data de nascimento:</label>
       <app-birthdate-calendar [dateControl]="birthdateCtrl" labelId="pf-birth-label" />
