@@ -20,8 +20,8 @@
       [attr.aria-label]="'Foto de perfil'"
       (click)="triggerPictureInput()"
     >
-      @if (user()?.picture) {
-        <img [src]="user()!.picture" alt="Foto de perfil" class="avatar-img" referrerpolicy="no-referrer" />
+      @if (displayPicture(); as picture) {
+        <img [src]="picture" alt="Foto de perfil" class="avatar-img" referrerpolicy="no-referrer" />
       } @else {
         <span class="avatar-initials">{{ userInitials() }}</span>
       }
@@ -39,7 +39,7 @@
         <span translate="no" class="material-symbols-outlined">file_upload</span>
         Alterar foto
       </button>
-      @if (user()?.picture) {
+      @if (displayPicture()) {
         <button type="button" class="btn-outline-sm" [disabled]="pictureUploading()" (click)="removePicture()">Remover</button>
       }
       <span class="hint">JPG ou PNG, até 5 MB.</span>

@@ -92,6 +92,17 @@ export class DashboardProfileComponent implements OnInit {
   readonly pictureUploading = signal(false);
   pictureError: string | null = null;
 
+  // Foto fica só "pendente" até Salvar alterações — mesmo padrão do resto do
+  // formulário, e evita gastar upload/transformação do Cloudinary com fotos
+  // que a pessoa acaba nem guardando.
+  private readonly pendingPictureFile = signal<File | null>(null);
+  private readonly pendingPictureRemoved = signal(false);
+  private readonly picturePreviewUrl = signal<string | null>(null);
+
+  readonly displayPicture = computed(() =>
+    this.pendingPictureRemoved() ? null : this.picturePreviewUrl() ?? this.user()?.picture ?? null,
+  );
+
   get nameCtrl(): FormControl {
     return this.formService.profileForm.get(FormControlsNames.NAME_PROFILE) as FormControl;
   }
@@ -238,6 +249,44 @@ export class DashboardProfileComponent implements OnInit {
 
   save(): void {
     this.saveError = null;
+    this.pictureError = null;
+
+    if (this.pendingPictureFile()) {
+      this.pictureUploading.set(true);
+      this.userService.updateProfilePicture(this.pendingPictureFile()!).subscribe({
+        next: () => {
+          this.pictureUploading.set(false);
+          this.clearPendingPicture();
+          this.saveProfileFields();
+        },
+        error: (err) => {
+          this.pictureUploading.set(false);
+          this.pictureError = err.error?.error ?? 'Não foi possível enviar a imagem. Tente novamente.';
+        },
+      });
+      return;
+    }
+
+    if (this.pendingPictureRemoved()) {
+      this.pictureUploading.set(true);
+      this.userService.removeProfilePicture().subscribe({
+        next: () => {
+          this.pictureUploading.set(false);
+          this.clearPendingPicture();
+          this.saveProfileFields();
+        },
+        error: (err) => {
+          this.pictureUploading.set(false);
+          this.pictureError = err.error?.error ?? 'Não foi possível remover a imagem. Tente novamente.';
+        },
+      });
+      return;
+    }
+
+    this.saveProfileFields();
+  }
+
+  private saveProfileFields(): void {
     const country = this.phonePrefixCountry;
     const rawPhone = (this.phoneCtrl.value ?? '').replace(/\D/g, '');
     const phone = rawPhone ? `+${country.InternationalAreaCode}${rawPhone}` : '';
@@ -265,6 +314,8 @@ export class DashboardProfileComponent implements OnInit {
   }
 
   cancel(): void {
+    this.pictureError = null;
+    this.clearPendingPicture();
     const user = this.user();
     if (user) this.patchForm(user);
   }
@@ -292,26 +343,32 @@ export class DashboardProfileComponent implements OnInit {
       return;
     }
 
-    this.pictureUploading.set(true);
-    this.userService.updateProfilePicture(file).subscribe({
-      next: () => this.pictureUploading.set(false),
-      error: (err) => {
-        this.pictureUploading.set(false);
-        this.pictureError = err.error?.error ?? 'Não foi possível enviar a imagem. Tente novamente.';
-      },
-    });
+    this.revokePreview();
+    this.picturePreviewUrl.set(URL.createObjectURL(file));
+    this.pendingPictureFile.set(file);
+    this.pendingPictureRemoved.set(false);
   }
 
   removePicture(): void {
     this.pictureError = null;
-    this.pictureUploading.set(true);
-    this.userService.removeProfilePicture().subscribe({
-      next: () => this.pictureUploading.set(false),
-      error: (err) => {
-        this.pictureUploading.set(false);
-        this.pictureError = err.error?.error ?? 'Não foi possível remover a imagem. Tente novamente.';
-      },
-    });
+    const hadPendingFile = !!this.pendingPictureFile();
+    this.revokePreview();
+    this.pendingPictureFile.set(null);
+    // Só marca remoção de verdade se já havia foto guardada no servidor; se
+    // era apenas uma seleção pendente, cancelar a seleção já basta.
+    this.pendingPictureRemoved.set(!hadPendingFile && !!this.user()?.picture);
+  }
+
+  private revokePreview(): void {
+    const preview = this.picturePreviewUrl();
+    if (preview) URL.revokeObjectURL(preview);
+    this.picturePreviewUrl.set(null);
+  }
+
+  private clearPendingPicture(): void {
+    this.revokePreview();
+    this.pendingPictureFile.set(null);
+    this.pendingPictureRemoved.set(false);
   }
 
   openDeleteDialog(): void {
