@@ -95,10 +95,14 @@
 
           @if (isUserMenuOpen) {
             <div class="care-menu" (click)="$event.stopPropagation()">
-              <div class="menu-user-header">
+              <button
+                type="button"
+                class="menu-user-header"
+                (click)="closeMenus(); navigateTo(navigationService.Pages.DASHBOARD_PROFILE)"
+              >
                 <span class="menu-user-name">{{ firstName() }}</span>
                 <span class="menu-user-email">{{ userEmail() }}</span>
-              </div>
+              </button>
               <button class="dropdown-item" (click)="closeMenus(); navigateTo(navigationService.Pages.DASHBOARD)">
                 <span translate="no" class="material-symbols-outlined">person</span>
                 <span>Conta</span>
