@@ -1,13 +1,13 @@
 <section class="confianca">
   <div class="confianca-inner">
-    <div class="confianca-head">
+    <div class="confianca-head" appScrollAnimate="fade-in-up">
       <span class="eyebrow">Confiança e segurança</span>
       <h2 class="title">O cuidado também está no que não se vê</h2>
     </div>
 
     <div class="trust-grid">
       @for (item of items; track item.label) {
-        <div class="trust-item">
+        <div class="trust-item" appScrollAnimate="fade-in-up">
           <span
             class="trust-chip"
             [style.background]="item.chipBackground"

@@ -1,13 +1,13 @@
 <section class="pilares">
   <div class="pilares-inner">
-    <div class="pilares-head">
+    <div class="pilares-head" appScrollAnimate="fade-in-up">
       <span class="eyebrow">Os quatro pilares</span>
       <h2 class="title">O que sustenta cada atendimento</h2>
     </div>
 
     <div class="pilares-grid">
       @for (pilar of pilares; track pilar.name) {
-        <div class="pilar-card" [style.border-color]="pilar.borderColor">
+        <div class="pilar-card" appScrollAnimate="fade-in-up" [style.border-color]="pilar.borderColor">
           <img class="pilar-icon" [src]="pilar.icon" alt="" aria-hidden="true" />
           <h3 class="pilar-title">{{ pilar.name }}</h3>
           <p class="pilar-description">{{ pilar.description }}</p>

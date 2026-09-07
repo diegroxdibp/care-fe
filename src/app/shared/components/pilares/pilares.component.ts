@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ScrollAnimateDirective } from '../../directives/scroll-animate.directive';
 
 interface Pilar {
   name: string;
@@ -10,6 +11,7 @@ interface Pilar {
 @Component({
   selector: 'app-pilares',
   standalone: true,
+  imports: [ScrollAnimateDirective],
   templateUrl: './pilares.component.html',
   styleUrl: './pilares.component.scss',
 })

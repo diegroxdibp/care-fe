@@ -4,10 +4,12 @@ import { NavigationService } from '../../services/navigation.service';
 import { Pages } from '../../enums/pages.enum';
 import { ServiceType } from '../../models/service.model';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { ScrollAnimateDirective } from '../../directives/scroll-animate.directive';
 
 @Component({
   selector: 'app-services-list',
   standalone: true,
+  imports: [ScrollAnimateDirective],
   templateUrl: './services-list.component.html',
   styleUrl: './services-list.component.scss',
   animations: [

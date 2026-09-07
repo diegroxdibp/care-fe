@@ -2,11 +2,12 @@ import { Component, signal, computed, HostListener } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { trigger, state, style, animate, transition } from '@angular/animations';
 import { AppConstants } from '../../../app-constants';
+import { ScrollAnimateDirective } from '../../directives/scroll-animate.directive';
 
 @Component({
   selector: 'app-faq',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ScrollAnimateDirective],
   templateUrl: './faq.component.html',
   styleUrl: './faq.component.scss',
   animations: [

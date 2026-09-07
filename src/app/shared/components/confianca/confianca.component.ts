@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ScrollAnimateDirective } from '../../directives/scroll-animate.directive';
 
 interface TrustItem {
   icon: string;
@@ -11,6 +12,7 @@ interface TrustItem {
 @Component({
   selector: 'app-confianca',
   standalone: true,
+  imports: [ScrollAnimateDirective],
   templateUrl: './confianca.component.html',
   styleUrl: './confianca.component.scss',
 })

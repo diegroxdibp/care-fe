@@ -1,9 +1,9 @@
 <section class="como-funciona">
   <div class="cf-inner">
-    <span class="eyebrow">Como funciona</span>
-    <h2 class="title">Três passos até a primeira sessão</h2>
+    <span class="eyebrow" appScrollAnimate="fade-in-up">Como funciona</span>
+    <h2 class="title" appScrollAnimate="fade-in-up">Três passos até a primeira sessão</h2>
 
-    <div class="login-note">
+    <div class="login-note" appScrollAnimate="fade-in-up">
       <div class="login-note-text">
         <p class="login-note-label">
           <span translate="no" class="material-symbols-outlined login-note-icon">lock_open_right</span>
@@ -25,7 +25,7 @@
 
     <div class="steps-grid">
       @for (step of steps; track step.n) {
-        <div class="step-card" [style.border-top-color]="step.accentColor">
+        <div class="step-card" appScrollAnimate="fade-in-up" [style.border-top-color]="step.accentColor">
           <div class="step-card-head">
             <span class="step-num">{{ step.n }}</span>
             @if (step.needsLogin) {

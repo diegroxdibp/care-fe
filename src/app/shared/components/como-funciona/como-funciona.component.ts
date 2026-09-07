@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NavigationService } from '../../services/navigation.service';
 import { SessionService } from '../../services/session.service';
 import { Pages } from '../../enums/pages.enum';
+import { ScrollAnimateDirective } from '../../directives/scroll-animate.directive';
 
 interface Step {
   n: string;
@@ -14,6 +15,7 @@ interface Step {
 @Component({
   selector: 'app-como-funciona',
   standalone: true,
+  imports: [ScrollAnimateDirective],
   templateUrl: './como-funciona.component.html',
   styleUrl: './como-funciona.component.scss',
 })

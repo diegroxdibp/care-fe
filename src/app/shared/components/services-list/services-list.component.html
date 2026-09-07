@@ -1,12 +1,12 @@
 <section class="services-list">
   <div class="services-inner">
 
-    <div class="services-head">
+    <div class="services-head" appScrollAnimate="fade-in-up">
       <span class="eyebrow">Serviços</span>
       <h2 class="title">Abordagens disponíveis</h2></div>
 
     @for (service of AppConstants.services; track service.name) {
-      <div class="service-group">
+      <div class="service-group" appScrollAnimate="fade-in-up">
         <div class="group-head">
           <h3 class="group-name">{{ service.name }}</h3>
           @if (!service.available) {
