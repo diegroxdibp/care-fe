@@ -6,7 +6,7 @@
   @if (!isMobile()) {
     <!-- ============ DESKTOP: sticky rail + answers ============ -->
     <div class="faq__layout">
-      <nav class="faq__nav">
+      <nav class="faq__nav" appScrollAnimate="fade-in-up">
         @for (topic of faq; track topic.topicName) {
           <button
             type="button"
@@ -20,7 +20,7 @@
         }
       </nav>
 
-      <ul class="faq__list">
+      <ul class="faq__list" appScrollAnimate="fade-in-up">
         @for (item of selected().items; track item.question; let i = $index) {
           <li class="faq__row">
             <button
@@ -63,11 +63,11 @@
     </div>
   } @else {
     <!-- ============ MOBILE: nested accordion ============ -->
-    <p class="faq__pick">Escolha um tema</p>
+    <p class="faq__pick" appScrollAnimate="fade-in-up">Escolha um tema</p>
 
     <div class="faq__topics">
       @for (topic of faq; track topic.topicName) {
-        <div class="faq__topic" [class.is-open]="openTopic() === topic.topicName">
+        <div class="faq__topic" appScrollAnimate="fade-in-up" [class.is-open]="openTopic() === topic.topicName">
           <button
             type="button"
             class="faq__topicHead"
@@ -134,7 +134,7 @@
   }
 
   <!-- ============ Contact prompt ============ -->
-  <div class="faq__contact">
+  <div class="faq__contact" appScrollAnimate="fade-in-up">
 <!--    <span class="faq__contactIcon">-->
 <!--      <img ngSrc="assets/images/hands1.svg" alt="" aria-hidden="true" height="16" width="16"/>-->
 <!--    </span>-->
