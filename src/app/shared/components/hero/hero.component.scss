@@ -24,6 +24,11 @@
     grid-template-columns: 1fr 1fr;
     min-height: 770px;
     max-height: 100vh;
+    // Above ~1450px the two columns just keep stretching apart with nothing
+    // to anchor them together — cap the grid and center it so extra width
+    // becomes side margin instead of a growing gap between text and photo.
+    max-width: 1450px;
+    margin: 0 auto;
   }
 }
 
