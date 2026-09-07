@@ -6,8 +6,8 @@
     </div>
 
     <div class="trust-grid">
-      @for (item of items; track item.label) {
-        <div class="trust-item" appScrollAnimate="fade-in-up">
+      @for (item of items; track item.label; let i = $index) {
+        <div class="trust-item" appScrollAnimate="fade-in-up" [style.transition-delay.ms]="i * 120">
           <span
             class="trust-chip"
             [style.background]="item.chipBackground"

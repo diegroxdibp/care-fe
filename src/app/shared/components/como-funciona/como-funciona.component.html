@@ -24,8 +24,13 @@
     </div>
 
     <div class="steps-grid">
-      @for (step of steps; track step.n) {
-        <div class="step-card" appScrollAnimate="fade-in-up" [style.border-top-color]="step.accentColor">
+      @for (step of steps; track step.n; let i = $index) {
+        <div
+          class="step-card"
+          appScrollAnimate="fade-in-up"
+          [style.transition-delay.ms]="i * 120"
+          [style.border-top-color]="step.accentColor"
+        >
           <div class="step-card-head">
             <span class="step-num">{{ step.n }}</span>
             @if (step.needsLogin) {
