@@ -73,6 +73,8 @@
   flex-shrink: 0;
   cursor: pointer;
 
+  &.uploading { cursor: default; }
+
   @media (min-width: breakpoint.$breakpoint-xs) {
     width: 112px;
     height: 112px;
@@ -116,9 +118,19 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
-  .avatar-circle:hover & { opacity: 1; }
+  .avatar-circle:hover &,
+  .avatar-circle.uploading & { opacity: 1; }
 
   .material-symbols-outlined { font-size: 22px; }
+}
+
+.spin {
+  animation: avatar-spin 0.9s linear infinite;
+}
+
+@keyframes avatar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .overlay-label {
@@ -141,6 +153,16 @@
     font-family: typography.$sourceSans;
     font-size: 12.5px;
     color: var(--color-muted);
+  }
+
+  .error-msg {
+    width: 100%;
+    margin-right: 0;
+    text-align: center;
+
+    @media (min-width: breakpoint.$breakpoint-xs) {
+      text-align: left;
+    }
   }
 }
 

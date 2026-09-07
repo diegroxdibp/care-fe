@@ -11,6 +11,7 @@ const SELF_HANDLED_ENDPOINTS = [
   '/api/auth/register',
   '/api/auth/me',
   '/api/user/onboarding',
+  '/api/user/profile/picture',
 ];
 
 // The one-shot GET each SSE service fires when (re)connecting — retried

@@ -49,6 +49,32 @@ export class UserService {
       );
   }
 
+  updateProfilePicture(file: File): Observable<User> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<User>(AppConstants.apiEndpoints.profilePicture, formData, {
+        withCredentials: true,
+      })
+      .pipe(
+        tap((updatedUser: User) =>
+          this.sessionService.updateUser(updatedUser)
+        )
+      );
+  }
+
+  removeProfilePicture(): Observable<User> {
+    return this.http
+      .delete<User>(AppConstants.apiEndpoints.profilePicture, {
+        withCredentials: true,
+      })
+      .pipe(
+        tap((updatedUser: User) =>
+          this.sessionService.updateUser(updatedUser)
+        )
+      );
+  }
+
   deleteAccount(): Observable<void> {
     return this.http.delete<void>(AppConstants.apiEndpoints.deleteAccount, {
       withCredentials: true,

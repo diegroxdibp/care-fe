@@ -7,28 +7,45 @@
 
   <!-- Profile picture -->
   <div class="avatar-row">
-    <div class="avatar-circle" [attr.aria-label]="'Foto de perfil'">
+    <input
+      #pictureInput
+      type="file"
+      accept="image/jpeg,image/png"
+      hidden
+      (change)="onPictureSelected($event)"
+    />
+    <div
+      class="avatar-circle"
+      [class.uploading]="pictureUploading()"
+      [attr.aria-label]="'Foto de perfil'"
+      (click)="triggerPictureInput()"
+    >
       @if (user()?.picture) {
         <img [src]="user()!.picture" alt="Foto de perfil" class="avatar-img" referrerpolicy="no-referrer" />
-        <div class="avatar-overlay">
-          <span translate="no" class="material-symbols-outlined">photo_camera</span>
-          <span class="overlay-label">Alterar</span>
-        </div>
       } @else {
         <span class="avatar-initials">{{ userInitials() }}</span>
-        <div class="avatar-overlay">
+      }
+      <div class="avatar-overlay">
+        @if (pictureUploading()) {
+          <span translate="no" class="material-symbols-outlined spin">progress_activity</span>
+        } @else {
           <span translate="no" class="material-symbols-outlined">photo_camera</span>
           <span class="overlay-label">Alterar</span>
-        </div>
-      }
+        }
+      </div>
     </div>
     <div class="avatar-actions">
-      <button type="button" class="btn-primary-sm" (click)="notifyWip()">
+      <button type="button" class="btn-primary-sm" [disabled]="pictureUploading()" (click)="triggerPictureInput()">
         <span translate="no" class="material-symbols-outlined">file_upload</span>
         Alterar foto
       </button>
-      <button type="button" class="btn-outline-sm" (click)="notifyWip()">Remover</button>
+      @if (user()?.picture) {
+        <button type="button" class="btn-outline-sm" [disabled]="pictureUploading()" (click)="removePicture()">Remover</button>
+      }
       <span class="hint">JPG ou PNG, até 5 MB.</span>
+      @if (pictureError) {
+        <span class="error-msg">{{ pictureError }}</span>
+      }
     </div>
   </div>
 

@@ -10,7 +10,7 @@ export interface User {
   phone?: string;
   gender?: Genders;
   bio?: string;
-  picture?: string;
+  picture?: string | null;
   roles: string[];
   profileCompleted: boolean;
   /** Moeda em que a pessoa é cobrada. O cliente nunca converte valores. */

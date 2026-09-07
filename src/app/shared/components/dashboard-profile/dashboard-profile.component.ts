@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormService } from '../../../core/services/form.service';
@@ -42,6 +42,11 @@ const BIO_ALLOWED_ROLES: string[] = [
   Roles.ADMIN,
 ];
 
+// Mantém em sincronia com o hint "JPG ou PNG, até 5 MB" no template e com
+// a validação equivalente no backend (ProfilePictureService).
+const ALLOWED_PICTURE_TYPES = ['image/jpeg', 'image/png'];
+const MAX_PICTURE_SIZE_BYTES = 5 * 1024 * 1024;
+
 @Component({
   selector: 'app-dashboard-profile',
   imports: [ReactiveFormsModule, MatDialogModule, CountryPhoneFieldComponent, StyledSelectComponent, BirthdateCalendarComponent, CurrencyToggleComponent],
@@ -82,6 +87,10 @@ export class DashboardProfileComponent implements OnInit {
 
   readonly saveSuccess = signal(false);
   saveError: string | null = null;
+
+  @ViewChild('pictureInput') pictureInput!: ElementRef<HTMLInputElement>;
+  readonly pictureUploading = signal(false);
+  pictureError: string | null = null;
 
   get nameCtrl(): FormControl {
     return this.formService.profileForm.get(FormControlsNames.NAME_PROFILE) as FormControl;
@@ -260,8 +269,49 @@ export class DashboardProfileComponent implements OnInit {
     if (user) this.patchForm(user);
   }
 
-  notifyWip(): void {
-    this.snackbarService.openSnackBar({ message: 'Funcionalidade em construção.' });
+  triggerPictureInput(): void {
+    this.pictureError = null;
+    this.pictureInput.nativeElement.click();
+  }
+
+  onPictureSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    // Allow reselecting the same file later even if this attempt fails.
+    input.value = '';
+    if (!file) return;
+
+    this.pictureError = null;
+
+    if (!ALLOWED_PICTURE_TYPES.includes(file.type)) {
+      this.pictureError = 'Formato inválido. Envie um arquivo JPG ou PNG.';
+      return;
+    }
+    if (file.size > MAX_PICTURE_SIZE_BYTES) {
+      this.pictureError = 'A imagem deve ter até 5 MB.';
+      return;
+    }
+
+    this.pictureUploading.set(true);
+    this.userService.updateProfilePicture(file).subscribe({
+      next: () => this.pictureUploading.set(false),
+      error: (err) => {
+        this.pictureUploading.set(false);
+        this.pictureError = err.error?.error ?? 'Não foi possível enviar a imagem. Tente novamente.';
+      },
+    });
+  }
+
+  removePicture(): void {
+    this.pictureError = null;
+    this.pictureUploading.set(true);
+    this.userService.removeProfilePicture().subscribe({
+      next: () => this.pictureUploading.set(false),
+      error: (err) => {
+        this.pictureUploading.set(false);
+        this.pictureError = err.error?.error ?? 'Não foi possível remover a imagem. Tente novamente.';
+      },
+    });
   }
 
   openDeleteDialog(): void {

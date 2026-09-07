@@ -11,6 +11,7 @@ export const AppConstants = {
     onboarding: `${environment.apiUrl}/api/user/onboarding`,
     updateProfile: `${environment.apiUrl}/api/user/profile`,
     getProfile: `${environment.apiUrl}/api/user/profile`,
+    profilePicture: `${environment.apiUrl}/api/user/profile/picture`,
     login: `${environment.apiUrl}/api/auth/login`,
     logout: `${environment.apiUrl}/api/auth/logout`,
     forgotPassword: `${environment.apiUrl}/api/auth/forgot-password`,
