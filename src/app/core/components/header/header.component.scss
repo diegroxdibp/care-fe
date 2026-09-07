@@ -9,7 +9,11 @@
     display: flex;
     height: 70px;
     width: 100%;
-    z-index: 100;
+    // Above the dashboard's fixed mobile bottom nav (.bottombar, z-index:
+    // 200) — otherwise the header (position: fixed) caps its own stacking
+    // context here, so the account dropdown's z-index: 1000 only wins
+    // against other things inside the header, not the bottom nav.
+    z-index: 250;
     padding: 0 4px;
     background-color: white;
   }
