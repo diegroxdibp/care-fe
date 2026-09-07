@@ -4,14 +4,17 @@
     <div class="pink-panel" aria-hidden="true"></div>
 
     <div class="portrait">
-      <img
-        class="hero-photo reveal"
-        [class.loaded]="heroImageLoaded"
-        (load)="heroImageLoaded = true"
-        src="assets/images/care-hero-cut.webp"
-        alt="Pessoa em um momento de acolhimento"
-        fetchpriority="high"
-      />
+      <picture>
+        <source media="(max-width: 767px)" srcset="assets/images/care-hero-cut-mobile.webp" />
+        <img
+          class="hero-photo reveal"
+          [class.loaded]="heroImageLoaded"
+          (load)="heroImageLoaded = true"
+          src="assets/images/care-hero-cut.webp"
+          alt="Pessoa em um momento de acolhimento"
+          fetchpriority="high"
+        />
+      </picture>
     </div>
 
     <div class="h-content">

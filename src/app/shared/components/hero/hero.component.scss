@@ -34,7 +34,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 300px;
+  height: 420px;
   background: var(--color-secondary-pink);
   z-index: 0;
 
@@ -52,7 +52,7 @@
 .portrait {
   position: relative;
   z-index: 2;
-  height: 300px;
+  height: 420px;
   overflow: hidden;
   pointer-events: none;
 
@@ -65,17 +65,24 @@
   }
 }
 
+// Mobile uses a separate, pre-centered source image (see the <picture> in the
+// template) — the subject isn't centered in the original photo (she sits well
+// right-of-center, by design: desktop anchors the image bottom-right and
+// relies on that), so a plain object-position:center on the original file
+// would crop off-center on mobile. object-fit:cover fills the 300px band
+// exactly, no auto-sizing edge cases.
 .hero-photo {
   display: block;
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 330px;
-  width: auto;
+  top: 0;
+  right: 0;
+  bottom: -30px;
+  left: 0;
+  width: 100%;
+  height: 100%;
   max-width: none;
-  object-fit: contain;
-  object-position: bottom center;
+  object-fit: cover;
+  object-position: center;
   filter: drop-shadow(16px 22px 30px rgba(34, 50, 110, 0.18));
   opacity: 0;
   transition: opacity 200ms ease-in-out;
@@ -83,10 +90,12 @@
   &.loaded { opacity: 1; }
 
   @media (min-width: breakpoint.$breakpoint-sm) {
+    top: auto;
+    bottom: auto;
     left: auto;
-    right: 0;
-    transform: none;
+    width: auto;
     height: 100%;
+    object-fit: contain;
     object-position: bottom right;
   }
 }
@@ -129,7 +138,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin: 18px 0 0;
+  margin: 0;
   font-family: var(--font-serif);
   font-weight: 400;
   font-size: 44px;
