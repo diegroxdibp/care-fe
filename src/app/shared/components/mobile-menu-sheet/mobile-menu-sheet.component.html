@@ -2,11 +2,13 @@
 
 @if (navbarService.showUserMenu()) {
   <div class="user-strip">
-    <span class="avatar">{{ userInitials() }}</span>
-    <div class="user-meta">
-      <div class="user-name">{{ userName() }}</div>
-      <div class="user-email">{{ userEmail() }}</div>
-    </div>
+    <button type="button" class="user-strip-info" (click)="go(Pages.DASHBOARD_PROFILE)">
+      <span class="avatar">{{ userInitials() }}</span>
+      <div class="user-meta">
+        <div class="user-name">{{ userName() }}</div>
+        <div class="user-email">{{ userEmail() }}</div>
+      </div>
+    </button>
     <button class="close-btn" (click)="close()" aria-label="Fechar menu">
       <span translate="no" class="material-symbols-outlined">close</span>
     </button>

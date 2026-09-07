@@ -21,8 +21,27 @@
 .user-strip {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 14px 16px 18px 24px;
+}
+
+.user-strip-info {
+  display: flex;
+  align-items: center;
   gap: 14px;
-  padding: 14px 24px 18px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  margin: -6px -10px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(142, 127, 174, 0.10); }
 }
 
 .close-row {
