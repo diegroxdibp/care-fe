@@ -3,41 +3,43 @@
 
     <div class="pink-panel" aria-hidden="true"></div>
 
-    <div class="portrait">
-      <picture>
-        <source media="(max-width: 767px)" srcset="assets/images/care-hero-cut-mobile.webp" />
-        <img
-          class="hero-photo reveal"
-          [class.loaded]="heroImageLoaded"
-          (load)="heroImageLoaded = true"
-          src="assets/images/care-hero-cut.webp"
-          alt="Pessoa em um momento de acolhimento"
-          fetchpriority="high"
-        />
-      </picture>
-    </div>
-
-    <div class="h-content">
-<!--      <span class="h-eyebrow reveal">Clínica Ampliada Ressignificações</span>-->
-
-      <h1 class="h-title reveal d1">
-        <span>Care é</span>
-        <span class="h-word typed">{{ typedText() }}<span class="h-cursor" aria-hidden="true"></span></span>
-      </h1>
-
-      <p class="h-sub reveal d2">
-        Uma clínica ampliada de cuidado em saúde mental, relacional, física e social.
-      </p>
-
-      <div class="h-cta reveal d3">
-        <button class="btn-primary" (click)="navigateToScheduling()">
-          Agendar um atendimento
-        </button>
+    <div class="hero-grid">
+      <div class="portrait">
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/images/care-hero-cut-mobile.webp" />
+          <img
+            class="hero-photo reveal"
+            [class.loaded]="heroImageLoaded"
+            (load)="heroImageLoaded = true"
+            src="assets/images/care-hero-cut.webp"
+            alt="Pessoa em um momento de acolhimento"
+            fetchpriority="high"
+          />
+        </picture>
       </div>
 
-      <p class="h-closing reveal d3">
-        Comprometida com a ressignificação das perspectivas e práticas em saúde.
-      </p>
+      <div class="h-content">
+<!--        <span class="h-eyebrow reveal">Clínica Ampliada Ressignificações</span>-->
+
+        <h1 class="h-title reveal d1">
+          <span>Care é</span>
+          <span class="h-word typed">{{ typedText() }}<span class="h-cursor" aria-hidden="true"></span></span>
+        </h1>
+
+        <p class="h-sub reveal d2">
+          Uma clínica ampliada de cuidado em saúde mental, relacional, física e social.
+        </p>
+
+        <div class="h-cta reveal d3">
+          <button class="btn-primary" (click)="navigateToScheduling()">
+            Agendar um atendimento
+          </button>
+        </div>
+
+        <p class="h-closing reveal d3">
+          Comprometida com a ressignificação das perspectivas e práticas em saúde.
+        </p>
+      </div>
     </div>
 
   </div>

@@ -18,6 +18,14 @@
   width: 100%;
   overflow: hidden;
   background: var(--color-surface-tint);
+}
+
+// Holds the two content columns only — the tint/pink backgrounds live on
+// .hero-inner (full-bleed, unaffected) and .pink-panel (sibling, still
+// anchored to .hero-inner's true edges) so they keep spanning the whole
+// viewport even once this wrapper caps out.
+.hero-grid {
+  width: 100%;
 
   @media (min-width: breakpoint.$breakpoint-sm) {
     display: grid;
