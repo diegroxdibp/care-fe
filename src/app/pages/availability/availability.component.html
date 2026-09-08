@@ -8,6 +8,14 @@
     </p>
   </div>
 
+  @if (loadError()) {
+    <div class="load-error-banner">
+      <span translate="no" class="material-symbols-outlined">error_outline</span>
+      <span class="error-text">Não foi possível carregar as suas disponibilidades. Tente novamente.</span>
+      <button type="button" class="retry-btn" (click)="loadInitialData()">Tentar novamente</button>
+    </div>
+  }
+
   <!-- ─────────────────────────────────────────────────────────────────── -->
   <!-- DESKTOP LAYOUT                                                       -->
   <!-- ─────────────────────────────────────────────────────────────────── -->

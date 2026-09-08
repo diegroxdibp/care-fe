@@ -1,4 +1,4 @@
-import { catchError, forkJoin, map, of, switchMap, throwError, type Observable } from 'rxjs';
+import { catchError, forkJoin, map, of, retry, switchMap, throwError, type Observable } from 'rxjs';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import {
   AfterViewInit,
@@ -333,6 +333,13 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ─ Data
   services = signal<ProfessionalService[]>([]);
   appointments = signal<Appointment[]>([]);
+
+  // Carregamento inicial de blocks/appointments — ver loadInitialData().
+  // Sem isto, uma falha transitória (ex.: a máquina do Fly.io do care-be
+  // ainda a acordar de um auto-suspend) deixava a página permanentemente
+  // vazia e sem qualquer sinal de erro, só resolvido com um reload manual.
+  readonly loadingInitialData = signal(false);
+  readonly loadError = signal(false);
 
   private _nextId = 0;
 
@@ -680,28 +687,55 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ─ Lifecycle ────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
+    this.loadInitialData();
+  }
+
+  /**
+   * Carrega blocks + appointments da semana. Chamada no ngOnInit e pelo
+   * botão "Tentar novamente" quando falha — ver comentário em loadError.
+   */
+  loadInitialData(): void {
+    this.loadError.set(false);
+
     this.apiService.getServices().subscribe({
       next: (svcs) => { if (svcs?.length) this.services.set(svcs); },
       error: () => {},
     });
 
     const userId = this.sessionService.user()?.id;
-    if (userId) {
-      this.apiService.getAvailabilitiesByProfessionalId(userId).subscribe({
-        next: (avails) => this.blocks.set(this.groupAvailabilitiesIntoBlocks(avails)),
-        error: () => {},
-      });
-      this.apiService.getProfessionalAppointments(userId).subscribe({
-        next: (appts) => {
-          this.appointments.set(appts.map(a => ({
-            ...a,
-            startTime: stripSec(a.startTime),
-            endTime: fromApiEndTime(a.endTime),
-          })));
-        },
-        error: () => {},
-      });
+    if (!userId) {
+      // Sessão ainda não carregada (ex.: navegação logo após o login) —
+      // sem isto o utilizador ficava sem qualquer sinal de que algo falhou.
+      this.loadError.set(true);
+      return;
     }
+
+    this.loadingInitialData.set(true);
+    forkJoin({
+      availabilities: this.apiService.getAvailabilitiesByProfessionalId(userId),
+      appointments: this.apiService.getProfessionalAppointments(userId),
+    })
+      .pipe(
+        // Uma tentativa extra evita que uma falha transitória (ex.: o
+        // backend do Fly.io ainda a acordar de um auto-suspend) deixe a
+        // página permanentemente vazia.
+        retry({ count: 2, delay: 1500 }),
+        catchError(() => {
+          this.loadingInitialData.set(false);
+          this.loadError.set(true);
+          return of(null);
+        }),
+      )
+      .subscribe((result) => {
+        if (!result) return;
+        this.loadingInitialData.set(false);
+        this.blocks.set(this.groupAvailabilitiesIntoBlocks(result.availabilities));
+        this.appointments.set(result.appointments.map(a => ({
+          ...a,
+          startTime: stripSec(a.startTime),
+          endTime: fromApiEndTime(a.endTime),
+        })));
+      });
   }
 
   ngAfterViewInit(): void {

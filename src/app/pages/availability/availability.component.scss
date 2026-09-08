@@ -71,6 +71,39 @@
   flex: 1;
 }
 
+// ─── Load error banner ───────────────────────────────────────────────────────
+
+.load-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 40px 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: rgba(192, 57, 43, 0.08);
+  border: 1px solid rgba(192, 57, 43, 0.24);
+  color: #c0392b;
+  font-size: 14px;
+
+  .material-symbols-outlined { font-size: 20px; flex-shrink: 0; }
+
+  .error-text { flex: 1; }
+
+  .retry-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #c0392b;
+    background: #fff;
+    color: #c0392b;
+    font-weight: 600;
+    font-size: 13.5px;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover { background: #c0392b; color: #fff; }
+  }
+}
+
 // ─── Shared controls ─────────────────────────────────────────────────────────
 
 // Filled field
