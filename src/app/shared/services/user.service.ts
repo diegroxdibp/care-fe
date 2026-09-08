@@ -24,7 +24,20 @@ export class UserService {
       .get<User>(AppConstants.apiEndpoints.getProfile, {
         withCredentials: true,
       })
-      .pipe(tap((user: User) => this.sessionService.setUser(user)));
+      .pipe(
+        tap((user: User) => {
+          // updateUser (merge), not setUser (replace) — every other method
+          // in this file already merges. /api/user/profile's response was
+          // clobbering fields set by /api/auth/me at login (e.g. id, before
+          // ProfileViewDTO included it) every time this ran, which is
+          // whenever the account/profile page loads.
+          if (this.sessionService.user()) {
+            this.sessionService.updateUser(user);
+          } else {
+            this.sessionService.setUser(user);
+          }
+        }),
+      );
   }
 
   onboarding(payload: OnboardingPayload): Observable<OnboardingResponse> {
