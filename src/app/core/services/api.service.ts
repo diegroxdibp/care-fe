@@ -237,6 +237,14 @@ export class ApiService {
     );
   }
 
+  resendProposalEmail(id: number): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/api/appointments/${id}/resend-proposal-email`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
   updateAppointmentNotes(id: number, notes: string): Observable<Appointment> {
     return this.http.patch<Appointment>(
       `${environment.apiUrl}/api/appointments/${id}/notes`,

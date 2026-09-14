@@ -351,6 +351,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ─ Notas para a pessoa cliente, no painel de detalhe da sessão selecionada
   notesDraft = signal('');
   notesSaving = signal(false);
+  resendingProposalEmail = signal(false);
 
   // ─ Editor state
   selectedServiceIds = signal<Set<number>>(new Set());
@@ -2410,6 +2411,19 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       error: () => {
         this.notesSaving.set(false);
         this.snackbarService.openSnackBar({ message: 'Erro ao guardar as notas. Tente novamente.' });
+      },
+    });
+  }
+
+  resendProposalEmail(appt: Appointment): void {
+    this.resendingProposalEmail.set(true);
+    this.apiService.resendProposalEmail(appt.id).subscribe({
+      next: () => {
+        this.resendingProposalEmail.set(false);
+        this.snackbarService.openSnackBar({ message: 'Email da proposta reenviado.' });
+      },
+      error: () => {
+        this.resendingProposalEmail.set(false);
       },
     });
   }

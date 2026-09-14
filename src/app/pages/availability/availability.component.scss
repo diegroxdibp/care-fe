@@ -1981,6 +1981,20 @@ input[type="number"].field-value {
 }
 .av .appt-detail .ad-actions .btn-invite-recurring:active { transform: translateY(0); }
 .av .appt-detail .ad-actions .btn-invite-recurring .material-symbols-outlined { font-size: 16px; }
+.av .appt-detail .ad-actions .btn-resend-email {
+  background: #fff; color: var(--color-secondary-indigo); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-sans); cursor: pointer;
+  transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care), transform 0.15s var(--ease-care);
+}
+.av .appt-detail .ad-actions .btn-resend-email:hover {
+  background: rgba(34,50,110,0.09);
+  border-color: var(--color-secondary-indigo);
+  transform: translateY(-1px);
+}
+.av .appt-detail .ad-actions .btn-resend-email:active { transform: translateY(0); }
+.av .appt-detail .ad-actions .btn-resend-email:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.av .appt-detail .ad-actions .btn-resend-email .material-symbols-outlined { font-size: 16px; }
 .av .appt-detail .ad-actions .btn-cancel {
   background: #fff; color: var(--color-primary-purple); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
   padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;

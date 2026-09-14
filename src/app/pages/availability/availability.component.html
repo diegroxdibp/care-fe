@@ -1077,6 +1077,12 @@
         Reagendar sessão
       </button>
     }
+    @if (appt.status === 'PENDING') {
+      <button class="btn-resend-email" [disabled]="resendingProposalEmail()" (click)="resendProposalEmail(appt)">
+        <span translate="no" class="material-symbols-outlined">forward_to_inbox</span>
+        {{ resendingProposalEmail() ? 'A reenviar...' : 'Reenviar email' }}
+      </button>
+    }
     <button class="btn-cancel" [disabled]="isApptPast(appt)" (click)="cancelAppointment(appt)">
       <span translate="no" class="material-symbols-outlined">close</span>
       {{ appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
