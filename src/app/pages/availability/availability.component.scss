@@ -32,6 +32,97 @@
   * { box-sizing: border-box; }
 }
 
+// ─── Shared style fragments ──────────────────────────────────────────────────
+//
+// Placeholders (rather than plain classes) so @extend can merge the selectors
+// that use them straight into the compiled output, regardless of how deeply
+// each one is nested in its own context - keeps the compiled CSS under the
+// anyComponentStyle budget without changing how anything looks.
+
+%purple-fill {
+  background: var(--color-primary-purple);
+  color: #fff;
+  border-color: var(--color-primary-purple);
+}
+
+%req-color { color: var(--color-primary-purple); }
+
+%blue-fill { background: var(--color-primary-blue); color: #fff; }
+
+%small-field-label { font-size: 12px; color: var(--color-muted); font-weight: 500; }
+
+%icon-16 { font-size: 16px; }
+
+%no-border-top { border-top: none; }
+
+%active-lift-reset { transform: translateY(0); }
+
+%active-lift-reset-flat { transform: translateY(0); box-shadow: none; }
+
+%hidden { display: none; }
+
+%purple-tint-bg { background: rgba(142,127,174,0.08); }
+
+%icon-20 { font-size: 20px; }
+
+%icon-18 { font-size: 18px; }
+
+%compact-select-font { font-size: 15px; }
+
+%no-margin-bottom { margin-bottom: 0; }
+
+%compact-time-field-padding { padding: 9px 12px; }
+
+%flex-shrinkable { flex: 1; min-width: 0; }
+
+%flex-row-center-gap8 { display: flex; align-items: center; gap: 8px; }
+
+%surface-tint-hover-bg { background: var(--color-surface-tint); }
+
+%resize-grip {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.45);
+  transition: background 0.15s, width 0.15s;
+}
+
+%resize-grip-hover {
+  background: rgba(255, 255, 255, 0.85);
+  width: 28px;
+}
+
+// Shared by .block-editor .be-actions .btn-remove (desktop) and the mobile
+// sheet's own copy of it (can't nest under .block-editor there).
+%btn-remove-base {
+  background: #fff;
+  color: var(--color-primary-purple);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 11px;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  width: 100%;
+}
+
+%btn-remove-hover-bg {
+  background: rgba(142,127,174,0.09);
+  border-color: var(--color-primary-purple);
+}
+
+%btn-remove-hover-lift {
+  @extend %btn-remove-hover-bg;
+  transform: translateY(-1px);
+}
+
+
 // ─── Panel header ────────────────────────────────────────────────────────────
 
 .panel-head {
@@ -129,11 +220,9 @@
   }
 
   .field-label {
-    font-size: 12px;
-    color: var(--color-muted);
-    font-weight: 500;
+    @extend %small-field-label;
 
-    .req { color: var(--color-primary-purple); }
+    .req { @extend %req-color; }
   }
 
   .field-value {
@@ -155,8 +244,8 @@
       color: var(--color-primary-blue);
       font-family: var(--font-sans);
 
-      &::-webkit-calendar-picker-indicator { display: none; }
-      &::-webkit-inner-spin-button { display: none; }
+      &::-webkit-calendar-picker-indicator { @extend %hidden; }
+      &::-webkit-inner-spin-button { @extend %hidden; }
     }
   }
 
@@ -203,15 +292,13 @@
   user-select: none;
 }
 
-.money-row {
+.money-row,
+.time-row {
   display: flex;
   gap: 12px;
 }
 
-.money-col {
-  flex: 1;
-  min-width: 0;
-}
+.money-col { @extend %flex-shrinkable; }
 
 .field-error {
   display: block;
@@ -262,7 +349,7 @@ input[type="number"].field-value {
   margin-bottom: 8px;
   display: block;
 
-  .req { color: var(--color-primary-purple); }
+  .req { @extend %req-color; }
 }
 
 // Segmented control
@@ -273,8 +360,6 @@ input[type="number"].field-value {
   padding: 4px;
   gap: 2px;
   width: 100%;
-
-  &.compact { width: auto; }
 
   button {
     flex: 1;
@@ -295,7 +380,7 @@ input[type="number"].field-value {
     cursor: pointer;
     transition: background 0.18s var(--ease-care), color 0.18s var(--ease-care);
 
-    .material-symbols-outlined { font-size: 16px; }
+    .material-symbols-outlined { @extend %icon-16; }
 
     &:not(.on):hover {
       background: rgba(34,50,110,0.06);
@@ -307,7 +392,7 @@ input[type="number"].field-value {
       color: var(--color-primary-blue);
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
 
-      &.presencial { color: var(--color-primary-purple); }
+      &.presencial { @extend %req-color; }
       &.remoto { color: var(--color-secondary-green); }
     }
   }
@@ -389,18 +474,10 @@ input[type="number"].field-value {
 
   &:hover { border-color: var(--color-primary-purple); }
 
-  &.on {
-    background: var(--color-primary-purple);
-    color: #fff;
-    border-color: var(--color-primary-purple);
-  }
+  &.on { @extend %purple-fill; }
 }
 
-// Time inputs
-.time-row {
-  display: flex;
-  gap: 12px;
-}
+// Time inputs — .time-row shares .money-row's layout, merged above.
 
 .time-field {
   flex: 1;
@@ -412,15 +489,11 @@ input[type="number"].field-value {
   gap: 2px;
 
   .field-label {
-    font-size: 12px;
-    color: var(--color-muted);
-    font-weight: 500;
+    @extend %small-field-label;
   }
 
   .time-value {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    @extend %flex-row-center-gap8;
 
     .material-symbols-outlined {
       font-size: 18px;
@@ -447,10 +520,7 @@ input[type="number"].field-value {
       font-variant-numeric: tabular-nums;
     }
 
-    app-styled-select {
-      flex: 1;
-      min-width: 0;
-    }
+    app-styled-select { @extend %flex-shrinkable; }
 
     ::ng-deep app-styled-select .select-trigger {
       background: none;
@@ -527,9 +597,9 @@ input[type="number"].field-value {
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(142,127,174,0.3);
   }
-  &:active { transform: translateY(0); box-shadow: none; }
+  &:active { @extend %active-lift-reset-flat; }
 
-  .material-symbols-outlined { font-size: 18px; }
+  .material-symbols-outlined { @extend %icon-18; }
 }
 
 // ─── Desktop two-column layout ───────────────────────────────────────────────
@@ -552,9 +622,7 @@ input[type="number"].field-value {
   margin-bottom: 18px;
 
   .wk-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    @extend %flex-row-center-gap8;
 
     button {
       width: 34px;
@@ -568,13 +636,9 @@ input[type="number"].field-value {
       font-family: var(--font-sans);
       transition: background 0.18s var(--ease-care), color 0.18s var(--ease-care), border-color 0.18s var(--ease-care);
 
-      .material-symbols-outlined { font-size: 20px; }
+      .material-symbols-outlined { @extend %icon-20; }
 
-      &:hover {
-        background: var(--color-primary-purple);
-        color: #fff;
-        border-color: var(--color-primary-purple);
-      }
+      &:hover { @extend %purple-fill; }
     }
 
     .today-btn {
@@ -584,11 +648,7 @@ input[type="number"].field-value {
       font-size: 13px;
       transition: background 0.18s var(--ease-care), color 0.18s var(--ease-care), border-color 0.18s var(--ease-care);
 
-      &:hover {
-        background: var(--color-primary-purple);
-        color: #fff;
-        border-color: var(--color-primary-purple);
-      }
+      &:hover { @extend %purple-fill; }
     }
 
     .wk-label {
@@ -619,8 +679,7 @@ input[type="number"].field-value {
       height: 12px;
       border-radius: 3px;
 
-      &.presencial { background: var(--color-primary-purple); }
-      &.remoto { background: var(--color-secondary-green); }
+      // .presencial/.remoto colors are shared with .s-av/.ad-av below.
       &.any { background: var(--color-secondary-cyan); }
       &.pending-ring { background: #fff; box-shadow: inset 0 0 0 2.5px #f0a500; }
     }
@@ -630,20 +689,6 @@ input[type="number"].field-value {
       color: var(--color-secondary-indigo);
     }
 
-    .pin-badge {
-      width: 17px;
-      height: 17px;
-      border-radius: 999px;
-      background: var(--color-primary-blue);
-      display: inline-grid;
-      place-items: center;
-
-      .material-symbols-outlined {
-        font-size: 11px;
-        color: #fff;
-        font-variation-settings: 'FILL' 1;
-      }
-    }
   }
 
   .lg-sep {
@@ -718,7 +763,7 @@ input[type="number"].field-value {
     &.today {
       background: color-mix(in srgb, var(--color-primary-purple) 7%, transparent);
 
-      .dn { color: var(--color-primary-purple); }
+      .dn { @extend %req-color; }
     }
   }
 }
@@ -739,7 +784,7 @@ input[type="number"].field-value {
     font-variant-numeric: tabular-nums;
 
     &:first-child,
-    &.first { border-top: none; }
+    &.first { @extend %no-border-top; }
   }
 }
 
@@ -758,9 +803,9 @@ input[type="number"].field-value {
     transition: background 0.12s;
 
     &:first-child,
-    &.first { border-top: none; }
+    &.first { @extend %no-border-top; }
 
-    &:hover { background: rgba(142,127,174,0.08); }
+    &:hover { @extend %purple-tint-bg; }
   }
 }
 
@@ -784,8 +829,8 @@ input[type="number"].field-value {
   border: 1.5px solid transparent;
   transition: box-shadow 0.15s var(--ease-care);
 
-  &.remoto { background: var(--color-secondary-green); }
-  &.any { background: var(--color-secondary-cyan); color: var(--color-primary-blue); }
+  // .remoto/.any colors are shared with .s-av/.ad-av (see the merged rules
+  // for .av .slot-row .s-av.c0/.c1 further down).
   &.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-primary-blue); }
 
   .b-top {
@@ -800,46 +845,6 @@ input[type="number"].field-value {
     font-variant-numeric: tabular-nums;
   }
 
-  .b-badge {
-    display: inline-grid;
-    place-items: center;
-    flex-shrink: 0;
-
-    .material-symbols-outlined {
-      font-size: 14px;
-      opacity: 0.85;
-    }
-  }
-
-  &.unica .b-badge {
-    width: 19px;
-    height: 19px;
-    border-radius: 999px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-
-    .material-symbols-outlined {
-      font-size: 12px;
-      opacity: 1;
-      color: var(--color-primary-blue);
-      font-variation-settings: 'FILL' 1, 'wght' 500;
-    }
-  }
-
-  .b-svc {
-    opacity: 0.92;
-    font-size: 10.5px;
-    margin-top: 2px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  .b-slots {
-    opacity: 0.8;
-    font-size: 10px;
-    margin-top: 2px;
-  }
 }
 
 // Block move
@@ -856,7 +861,7 @@ input[type="number"].field-value {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
   opacity: 0.88;
 
-  .b-slots, .b-badge, .b-resize-handle, .b-resize-handle-top { display: none; }
+  .b-resize-handle, .b-resize-handle-top { @extend %hidden; }
 }
 
 // Drag-select ghost
@@ -869,7 +874,7 @@ input[type="number"].field-value {
   color: var(--color-primary-purple);
 
   .b-top { opacity: 0.85; font-weight: 600; }
-  .b-svc, .b-slots, .b-badge, .b-resize-handle, .b-resize-handle-top { display: none; }
+  .b-resize-handle, .b-resize-handle-top { @extend %hidden; }
 }
 
 // Resize handle (shared desktop + mobile)
@@ -886,18 +891,9 @@ input[type="number"].field-value {
   justify-content: center;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 
-  .grip {
-    width: 22px;
-    height: 3px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.45);
-    transition: background 0.15s, width 0.15s;
-  }
+  .grip { @extend %resize-grip; }
 
-  &:hover .grip {
-    background: rgba(255, 255, 255, 0.85);
-    width: 28px;
-  }
+  &:hover .grip { @extend %resize-grip-hover; }
 }
 
 .b-resize-handle-top {
@@ -913,21 +909,15 @@ input[type="number"].field-value {
   justify-content: center;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 
-  .grip {
-    width: 22px;
-    height: 3px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.45);
-    transition: background 0.15s, width 0.15s;
-  }
+  .grip { @extend %resize-grip; }
 
-  &:hover .grip {
-    background: rgba(255, 255, 255, 0.85);
-    width: 28px;
-  }
+  &:hover .grip { @extend %resize-grip-hover; }
 }
 
-.block.resizing {
+// Shared with the mobile .m-block equivalents below (identical treatment,
+// different namespace) via the combined selectors on each rule.
+.block.resizing,
+.mob .m-block.resizing {
   cursor: ns-resize;
   user-select: none;
   z-index: 10;
@@ -936,13 +926,15 @@ input[type="number"].field-value {
 }
 
 // Conflicted block indicator (existing block that overlaps the current preview)
-.block.conflicted {
+.block.conflicted,
+.mob .m-block.conflicted {
   border-color: #d32f2f;
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(211, 47, 47, 0.7);
 }
 
-// Preview block (desktop) — z-index: 1 keeps it below existing blocks (z-index: 2)
-.block.preview {
+// Preview block — z-index: 1 keeps it below existing blocks (z-index: 2)
+.block.preview,
+.mob .m-block.preview {
   pointer-events: auto;
   z-index: 1;
   box-shadow: none;
@@ -968,9 +960,10 @@ input[type="number"].field-value {
     border-style: solid;
     color: #d32f2f;
   }
+}
 
+.block.preview {
   .b-top { opacity: 0.9; }
-  .b-svc, .b-slots { display: none; }
 }
 
 .cal-toolbar:has(.today-btn:hover) ~ .cal .dh.today {
@@ -1026,18 +1019,8 @@ input[type="number"].field-value {
       align-items: center;
       gap: 10px;
 
-      .be-pending-badge {
-        font-family: var(--font-sans);
-        font-style: normal;
-        font-weight: 700;
-        font-size: 11px;
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-        color: #b25e00;
-        background: #fff3e0;
-        border-radius: var(--radius-pill);
-        padding: 3px 10px;
-      }
+      // .be-pending-badge's look is shared with .appt-detail .sh-body's copy
+      // (see .av .appt-detail .sh-body .be-pending-badge further down).
     }
 
     .be-sub {
@@ -1072,7 +1055,7 @@ input[type="number"].field-value {
   .be-section {
     margin-bottom: 22px;
 
-    &:last-of-type { margin-bottom: 0; }
+    &:last-of-type { @extend %no-margin-bottom; }
   }
 
   .be-actions {
@@ -1084,38 +1067,20 @@ input[type="number"].field-value {
     gap: 8px;
 
     .btn-remove {
-      background: #fff;
-      color: var(--color-primary-purple);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 11px;
-      font-weight: 600;
-      font-size: 12px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-family: var(--font-sans);
-      width: 100%;
+      @extend %btn-remove-base;
       transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care), transform 0.15s var(--ease-care);
 
-      &:hover {
-        background: rgba(142,127,174,0.09);
-        border-color: var(--color-primary-purple);
-        transform: translateY(-1px);
-      }
-      &:active { transform: translateY(0); }
+      &:hover { @extend %btn-remove-hover-lift; }
+      &:active { @extend %active-lift-reset; }
 
-      .material-symbols-outlined { font-size: 16px; }
+      .material-symbols-outlined { @extend %icon-16; }
     }
   }
 
   // Compact time row inside the narrow editor
   .time-row { gap: 8px; }
-  .time-field { padding: 9px 12px; }
-  .time-field .time-value select { font-size: 15px; }
+  .time-field { @extend %compact-time-field-padding; }
+  .time-field .time-value select { @extend %compact-select-font; }
 }
 
 // ─── MOBILE ──────────────────────────────────────────────────────────────────
@@ -1210,8 +1175,8 @@ input[type="number"].field-value {
       color: var(--color-primary-blue);
       cursor: pointer;
       transition: background 0.15s ease;
-      &:hover { background: var(--color-surface-tint); }
-      .material-symbols-outlined { font-size: 20px; }
+      &:hover { @extend %surface-tint-hover-bg; }
+      .material-symbols-outlined { @extend %icon-20; }
     }
 
     .wp-today {
@@ -1225,7 +1190,7 @@ input[type="number"].field-value {
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: background 0.15s ease;
-      &:hover { background: var(--color-surface-tint); }
+      &:hover { @extend %surface-tint-hover-bg; }
     }
 
     .wp-label {
@@ -1290,11 +1255,8 @@ input[type="number"].field-value {
     }
 
     &.sel {
-      .dn {
-        background: var(--color-primary-blue);
-        color: #fff;
-      }
-      .wd { color: var(--color-primary-purple); }
+      .dn { @extend %blue-fill; }
+      .wd { @extend %req-color; }
     }
 
     .dot {
@@ -1340,9 +1302,9 @@ input[type="number"].field-value {
     transition: background 0.12s;
 
     &:first-child,
-    &.first { border-top: none; }
+    &.first { @extend %no-border-top; }
 
-    &:active { background: rgba(142,127,174,0.08); }
+    &:active { @extend %purple-tint-bg; }
 
     .lbl {
       position: absolute;
@@ -1370,15 +1332,10 @@ input[type="number"].field-value {
     overflow: hidden;
     cursor: pointer;
 
-    &.remoto { background: var(--color-secondary-green); }
-    &.any { background: var(--color-secondary-cyan); color: var(--color-primary-blue); }
+    // .remoto/.any colors are shared with .s-av/.ad-av (see the merged rules
+    // for .av .slot-row .s-av.c0/.c1 further down).
 
-    .mb-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
+    // .mb-top's layout is shared with .bd-row (see .av .block .b-band .bd-row).
 
     .mb-time {
       font-weight: 700;
@@ -1386,92 +1343,10 @@ input[type="number"].field-value {
       font-variant-numeric: tabular-nums;
     }
 
-    .mb-badge {
-      display: inline-grid;
-      place-items: center;
-
-      .material-symbols-outlined { font-size: 14px; opacity: 0.85; }
-    }
-
-    &.unica .mb-badge {
-      width: 19px;
-      height: 19px;
-      border-radius: 999px;
-      background: #fff;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-
-      .material-symbols-outlined {
-        font-size: 12px;
-        opacity: 1;
-        color: var(--color-primary-blue);
-        font-variation-settings: 'FILL' 1, 'wght' 500;
-      }
-    }
-
-    .mb-svc {
-      font-size: 12px;
-      margin-top: 3px;
-      opacity: 0.95;
-    }
-
-    .mb-meta {
-      font-size: 11px;
-      margin-top: 3px;
-      opacity: 0.82;
-      display: flex;
-      gap: 10px;
-
-      span {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-      }
-
-      .material-symbols-outlined { font-size: 12px; }
-    }
   }
 
-  .m-block.resizing {
-    cursor: ns-resize;
-    user-select: none;
-    z-index: 10;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-    opacity: 0.92;
-  }
-
-  .m-block.conflicted {
-    border-color: #d32f2f;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(211, 47, 47, 0.7);
-  }
-
-  // Preview block (mobile) — z-index: 1 keeps it below existing blocks
-  .m-block.preview {
-    pointer-events: auto;
-    z-index: 1;
-    box-shadow: none;
-    background: color-mix(in srgb, var(--color-primary-purple) 28%, transparent);
-    border: 2px dashed color-mix(in srgb, var(--color-primary-purple) 80%, transparent);
-    color: var(--color-primary-purple);
-
-    &.remoto {
-      background: color-mix(in srgb, var(--color-secondary-green) 28%, transparent);
-      border-color: color-mix(in srgb, var(--color-secondary-green) 80%, transparent);
-      color: var(--color-secondary-green);
-    }
-
-    &.any {
-      background: color-mix(in srgb, var(--color-secondary-cyan) 28%, transparent);
-      border-color: color-mix(in srgb, var(--color-secondary-cyan) 80%, transparent);
-      color: var(--color-primary-blue);
-    }
-
-    &.conflict {
-      background: rgba(211, 47, 47, 0.18);
-      border-color: #d32f2f;
-      border-style: solid;
-      color: #d32f2f;
-    }
-  }
+  // .m-block.resizing/.conflicted/.preview share the desktop .block
+  // treatment - see the combined selectors up in the desktop block rules.
 
   // FAB
   //
@@ -1578,8 +1453,8 @@ input[type="number"].field-value {
       // be-section inside sheet
       .be-section { margin-bottom: 20px; }
 
-      .time-field { padding: 9px 12px; }
-      .time-field .time-value select { font-size: 15px; }
+      .time-field { @extend %compact-time-field-padding; }
+      .time-field .time-value select { @extend %compact-select-font; }
       .seg button { padding: 9px 10px; font-size: 12.5px; }
     }
 
@@ -1595,29 +1470,12 @@ input[type="number"].field-value {
       // Same look as .block-editor .be-actions .btn-remove — duplicated here since
       // the mobile sheet footer isn't nested under .block-editor.
       .btn-remove {
-        background: #fff;
-        color: var(--color-primary-purple);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        padding: 11px;
-        font-weight: 600;
-        font-size: 12px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        font-family: var(--font-sans);
-        width: 100%;
+        @extend %btn-remove-base;
         transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care);
 
-        &:hover {
-          background: rgba(142,127,174,0.09);
-          border-color: var(--color-primary-purple);
-        }
+        &:hover { @extend %btn-remove-hover-bg; }
 
-        .material-symbols-outlined { font-size: 16px; }
+        .material-symbols-outlined { @extend %icon-16; }
       }
     }
   }
@@ -1635,29 +1493,40 @@ input[type="number"].field-value {
 
 // ─── Booked-slot awareness + edit guards ─────────────────────────────────────
 
-.av .block { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.av .block,
+.av .m-block { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 // Ghosts that use .b-top (not .b-bands) need their own padding since the parent is reset to 0
 .av .block.drag-ghost,
 .av .block.preview,
 .av .block.move-ghost.preview-mv { padding: 7px 9px; }
 
-.av .block .b-bands { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.av .block .b-band {
+.av .block .b-bands,
+.av .m-block .mb-bands { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+// Only the horizontal padding differs from .mb-band below (tighter on desktop).
+.av .block .b-band,
+.av .m-block .mb-band {
   flex: 1; min-height: 0; position: relative;
   display: flex; flex-direction: column; justify-content: center; gap: 1px;
-  padding: 2px 8px;
   border-top: 1px solid rgba(255,255,255,0.30);
 }
-.av .block .b-band:first-child { border-top: none; }
-.av .block .b-band > * { position: relative; z-index: 1; }
+.av .block .b-band { padding: 2px 8px; }
+.av .block .b-band:first-child,
+.av .m-block .mb-band:first-child { @extend %no-border-top; }
+.av .block .b-band > *,
+.av .m-block .mb-band > * { position: relative; z-index: 1; }
 
-.av .block .b-band .bd-row {
+// bd-row/bd-svc/bd-rec/its icon are sized the same on desktop and mobile;
+// bd-time/bd-name/bd-rec's icon are not, so those stay separate below.
+.av .block .b-band .bd-row,
+.av .m-block .mb-band .bd-row,
+.mob .m-block .mb-top {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
 }
 .av .block .b-band .bd-time {
   font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: 0.92;
 }
-.av .block .b-band .bd-svc {
+.av .block .b-band .bd-svc,
+.av .m-block .mb-band .bd-svc {
   font-size: 9px; font-weight: 700; letter-spacing: 0.2px; text-transform: uppercase;
   text-align: left; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -1665,24 +1534,34 @@ input[type="number"].field-value {
   font-size: 10.5px; font-weight: 600; text-align: left;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.av .block .b-band .bd-rec { flex-shrink: 0; display: inline-grid; place-items: center; opacity: 0.85; }
+.av .block .b-band .bd-rec,
+.av .m-block .mb-band .bd-rec { flex-shrink: 0; display: inline-grid; place-items: center; opacity: 0.85; }
 .av .block .b-band .bd-rec .material-symbols-outlined { font-size: 12px; }
-.av .block .b-band .bd-rec.unica .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+.av .block .b-band .bd-rec.unica .material-symbols-outlined,
+.av .m-block .mb-band .bd-rec.unica .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
 
-.av .block .b-band.free::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.34); }
-.av .block .b-band.free .bd-name { font-weight: 500; font-style: italic; opacity: 0.85; }
+.av .block .b-band.free::before,
+.av .m-block .mb-band.free::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.34); }
+.av .block .b-band.free .bd-name,
+.av .m-block .mb-band.free .bd-name { font-weight: 500; font-style: italic; opacity: 0.85; }
 
 .av .block.any .b-band { border-top-color: rgba(34,50,110,0.16); }
 .av .block.any .b-band.free::before { background: rgba(255,255,255,0.52); }
 
 .av .block.any .b-band.booked.appt-presencial::before,
-.av .block.any .b-band.booked.appt-remoto::before {
+.av .block.any .b-band.booked.appt-remoto::before,
+.av .m-block.any .mb-band.booked.appt-presencial::before,
+.av .m-block.any .mb-band.booked.appt-remoto::before {
   content: ""; position: absolute; inset: 0;
 }
-.av .block.any .b-band.booked.appt-presencial::before { background: var(--color-primary-purple); }
-.av .block.any .b-band.booked.appt-remoto::before { background: var(--color-secondary-green); }
+.av .block.any .b-band.booked.appt-presencial::before,
+.av .m-block.any .mb-band.booked.appt-presencial::before { background: var(--color-primary-purple); }
+.av .block.any .b-band.booked.appt-remoto::before,
+.av .m-block.any .mb-band.booked.appt-remoto::before { background: var(--color-secondary-green); }
 .av .block.any .b-band.booked.appt-presencial,
-.av .block.any .b-band.booked.appt-remoto {
+.av .block.any .b-band.booked.appt-remoto,
+.av .m-block.any .mb-band.booked.appt-presencial,
+.av .m-block.any .mb-band.booked.appt-remoto {
   color: #fff;
   border-top-color: rgba(255,255,255,0.30);
 }
@@ -1695,7 +1574,7 @@ input[type="number"].field-value {
 }
 .av .block.dense .b-band .bd-row { display: contents; }
 .av .block.dense .b-band .bd-time { flex-shrink: 0; order: 1; }
-.av .block.dense .b-band .bd-svc { display: none; }
+.av .block.dense .b-band .bd-svc { @extend %hidden; }
 .av .block.dense .b-band .bd-name { display: block; flex: 1; font-size: 10px; min-width: 0; order: 2; }
 .av .block.dense .b-band .bd-rec { flex-shrink: 0; order: 3; }
 
@@ -1732,9 +1611,12 @@ input[type="number"].field-value {
   border-radius: inherit;
 }
 
-.av .block .b-band.booked { cursor: pointer; transition: filter 0.15s var(--ease-care); }
-.av .block .b-band.booked:hover { filter: brightness(0.93); }
-.av .block .b-band.booked.sel-slot::after {
+.av .block .b-band.booked,
+.av .m-block .mb-band.booked { cursor: pointer; transition: filter 0.15s var(--ease-care); }
+.av .block .b-band.booked:hover,
+.av .m-block .mb-band.booked:hover { filter: brightness(0.93); }
+.av .block .b-band.booked.sel-slot::after,
+.av .m-block .mb-band.booked.sel-slot::after {
   content: ""; position: absolute; inset: 0; z-index: 2;
   background: rgba(0,0,0,0.16);
   border-radius: 2px;
@@ -1742,7 +1624,8 @@ input[type="number"].field-value {
 
 .av .slots-section .ss-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 .av .slots-section .ss-head .ss-count { font-size: 12px; color: var(--color-secondary-green); font-weight: 700; }
-.av .slots-section .ss-head .ss-count.none { color: var(--color-muted); font-weight: 500; }
+.av .slots-section .ss-head .ss-count.none,
+.av .slot-row.free .s-body .s-name { color: var(--color-muted); font-weight: 500; }
 
 .av .slot-list { border: 1px solid var(--color-border-soft); border-radius: var(--radius-md); overflow: hidden; }
 .av .slot-row {
@@ -1750,7 +1633,7 @@ input[type="number"].field-value {
   align-items: center; gap: 10px; padding: 9px 12px;
   border-top: 1px solid var(--color-border-soft); background: #fff;
 }
-.av .slot-row:first-child { border-top: none; }
+.av .slot-row:first-child { @extend %no-border-top; }
 .av .slot-row .s-time { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--color-primary-blue); }
 .av .slot-row .s-body { min-width: 0; }
 .av .slot-row .s-body .s-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1758,17 +1641,16 @@ input[type="number"].field-value {
 .av .slot-row .s-body .s-meta .rec { display: inline-flex; align-items: center; gap: 3px; }
 .av .slot-row .s-body .s-meta .rec .material-symbols-outlined { font-size: 13px; }
 .av .slot-row .s-chev { color: var(--color-muted); display: inline-flex; }
-.av .slot-row .s-chev .material-symbols-outlined { font-size: 18px; }
+.av .slot-row .s-chev .material-symbols-outlined { @extend %icon-18; }
 
 .av .slot-row .s-av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
-.av .slot-row .s-av.c0 { background: var(--color-secondary-cyan); color: var(--color-primary-blue); }
-.av .slot-row .s-av.c1 { background: var(--color-secondary-green); }
-.av .slot-row .s-av.c2 { background: var(--color-primary-purple); }
+// .c0/.c1/.c2 colors are shared with .ad-patient .ad-av below; .c3 has no
+// equivalent there.
 .av .slot-row .s-av.c3 { background: var(--color-secondary-pink); color: var(--color-primary-blue); }
 .av .slot-row .s-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; }
 .av .slot-row .s-dot::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed var(--color-border); }
-.av .slot-row.free .s-time { color: var(--color-muted); }
-.av .slot-row.free .s-body .s-name { color: var(--color-muted); font-weight: 500; }
+.av .slot-row.free .s-time,
+.av .appt-detail .ad-notes-input::placeholder { color: var(--color-muted); }
 .av .slot-row.booked {
   background: rgba(86,176,147,0.07);
   transition: background 0.15s var(--ease-care);
@@ -1799,7 +1681,7 @@ input[type="number"].field-value {
   transition: background 0.14s var(--ease-care), color 0.14s var(--ease-care);
 }
 .av .slot-row .s-rm .material-symbols-outlined,
-.av .slot-row .s-propose .material-symbols-outlined { font-size: 16px; }
+.av .slot-row .s-propose .material-symbols-outlined { @extend %icon-16; }
 .av .slot-row .s-rm:hover {
   background: rgba(220, 38, 38, 0.09);
   color: #dc2626;
@@ -1814,7 +1696,8 @@ input[type="number"].field-value {
   background: rgba(86,176,147,0.10); border: 1px solid rgba(86,176,147,0.32);
   border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 20px;
 }
-.av .book-notice .material-symbols-outlined { font-size: 18px; color: var(--color-secondary-green); flex-shrink: 0; margin-top: 1px; }
+.av .book-notice .material-symbols-outlined,
+.av .remove-guard .material-symbols-outlined { font-size: 18px; color: var(--color-secondary-green); flex-shrink: 0; margin-top: 1px; }
 .av .book-notice .bn-text { font-size: 12.5px; line-height: 1.45; color: var(--color-primary-blue); }
 .av .book-notice .bn-text strong { font-weight: 700; }
 
@@ -1829,14 +1712,13 @@ input[type="number"].field-value {
 }
 .av .chip.booked-svc { opacity: 1; pointer-events: none; background: var(--color-primary-blue); color: #fff; border-color: var(--color-primary-blue); }
 .av .chip.booked-svc .bdot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-secondary-green); margin-left: 2px; display: inline-block; }
-.av .chip.booked-svc .material-symbols-outlined { display: none; }
+.av .chip.booked-svc .material-symbols-outlined { @extend %hidden; }
 
 .av .remove-guard {
   display: flex; gap: 10px; align-items: flex-start;
   background: var(--color-surface-tint); border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-lg); padding: 12px 14px;
 }
-.av .remove-guard .material-symbols-outlined { font-size: 18px; color: var(--color-secondary-green); flex-shrink: 0; margin-top: 1px; }
 .av .remove-guard .rg-text { font-size: 12px; line-height: 1.45; color: var(--color-muted); }
 .av .remove-guard .rg-text strong { color: var(--color-primary-blue); font-weight: 700; }
 
@@ -1848,36 +1730,12 @@ input[type="number"].field-value {
 }
 .av .block .resize-floor .rf-lbl { position: absolute; left: 6px; bottom: 4px; font-size: 9px; font-weight: 700; color: #fff; opacity: 0.92; }
 
-.av .m-block { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
-.av .m-block .mb-bands { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.av .m-block .mb-band { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 10px; border-top: 1px solid rgba(255,255,255,0.30); }
-.av .m-block .mb-band:first-child { border-top: none; }
-.av .m-block .mb-band > * { position: relative; z-index: 1; }
-.av .m-block .mb-band .bd-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.av .m-block .mb-band { padding: 2px 10px; }
 .av .m-block .mb-band .bd-time { font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: 0.92; }
-.av .m-block .mb-band .bd-svc { font-size: 9px; font-weight: 700; letter-spacing: 0.2px; text-transform: uppercase; text-align: left; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .av .m-block .mb-band .bd-name { font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.av .m-block .mb-band .bd-rec { flex-shrink: 0; display: inline-grid; place-items: center; opacity: 0.85; }
 .av .m-block .mb-band .bd-rec .material-symbols-outlined { font-size: 13px; }
-.av .m-block .mb-band .bd-rec.unica .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
-.av .m-block .mb-band.free::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.34); }
-.av .m-block .mb-band.free .bd-name { font-weight: 500; font-style: italic; opacity: 0.85; }
-.av .m-block .mb-band.booked { cursor: pointer; transition: filter 0.15s var(--ease-care); }
-.av .m-block .mb-band.booked:hover { filter: brightness(0.93); }
-.av .m-block .mb-band.booked.sel-slot::after {
-  content: ""; position: absolute; inset: 0; z-index: 2;
-  background: rgba(0,0,0,0.16);
-  border-radius: 2px;
-}
-
-.av .m-block.any .mb-band.booked.appt-presencial::before,
-.av .m-block.any .mb-band.booked.appt-remoto::before {
-  content: ""; position: absolute; inset: 0;
-}
-.av .m-block.any .mb-band.booked.appt-presencial::before { background: var(--color-primary-purple); }
-.av .m-block.any .mb-band.booked.appt-remoto::before { background: var(--color-secondary-green); }
-.av .m-block.any .mb-band.booked.appt-presencial,
-.av .m-block.any .mb-band.booked.appt-remoto { color: #fff; border-top-color: rgba(255,255,255,0.30); }
+// The rest of .mb-band's look (bd-row/bd-svc/bd-rec/free/booked/.any states)
+// is shared with .b-band above via combined selectors on each rule.
 
 // The desktop .be-title only exists nested under .block-editor .be-head; the mobile
 // appt-detail sheet shows the title in .sh-body instead (sh-head is taken up by the
@@ -1892,6 +1750,7 @@ input[type="number"].field-value {
   align-items: center;
   gap: 10px;
 }
+.block-editor .be-head .be-title .be-pending-badge,
 .av .appt-detail .sh-body .be-pending-badge {
   font-family: var(--font-sans);
   font-style: normal;
@@ -1932,9 +1791,18 @@ input[type="number"].field-value {
   width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
   font-size: 17px; font-weight: 700; color: #fff; flex-shrink: 0;
 }
-.av .appt-detail .ad-patient .ad-av.c0 { background: var(--color-secondary-cyan); color: var(--color-primary-blue); }
-.av .appt-detail .ad-patient .ad-av.c1 { background: var(--color-secondary-green); }
-.av .appt-detail .ad-patient .ad-av.c2 { background: var(--color-primary-purple); }
+.av .slot-row .s-av.c0,
+.av .appt-detail .ad-patient .ad-av.c0,
+.block.any,
+.mob .m-block.any { background: var(--color-secondary-cyan); color: var(--color-primary-blue); }
+.av .slot-row .s-av.c1,
+.av .appt-detail .ad-patient .ad-av.c1,
+.block.remoto,
+.mob .m-block.remoto,
+.legend .lg .sw.remoto { background: var(--color-secondary-green); }
+.av .slot-row .s-av.c2,
+.av .appt-detail .ad-patient .ad-av.c2,
+.legend .lg .sw.presencial { background: var(--color-primary-purple); }
 .av .appt-detail .pt-name { font-size: 17px; font-weight: 700; color: var(--color-primary-blue); }
 .av .appt-detail .pt-sub { font-size: 12.5px; color: var(--color-muted); margin-top: 2px; }
 .av .appt-detail .ad-rows { display: flex; flex-direction: column; gap: 2px; }
@@ -1944,7 +1812,8 @@ input[type="number"].field-value {
 }
 .av .appt-detail .ad-row:last-child { border-bottom: none; }
 .av .appt-detail .ad-row .material-symbols-outlined { font-size: 19px; color: var(--color-secondary-indigo); flex-shrink: 0; }
-.av .appt-detail .ad-row .ad-k { font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.av .appt-detail .ad-row .ad-k,
+.av .appt-detail .ad-notes-label { font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .av .appt-detail .ad-row .ad-v { font-size: 14px; font-weight: 600; color: var(--color-primary-blue); }
 .av .appt-detail .ad-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
 .av .appt-detail .ad-pill.presencial { background: rgba(142,127,174,0.16); color: var(--color-primary-purple); }
@@ -1961,66 +1830,49 @@ input[type="number"].field-value {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(34,50,110,0.28);
 }
-.av .appt-detail .ad-actions .btn-resched:active { transform: translateY(0); box-shadow: none; }
+.av .appt-detail .ad-actions .btn-resched:active { @extend %active-lift-reset-flat; }
 .av .appt-detail .ad-actions .btn-resched:disabled,
 .av .appt-detail .ad-actions .btn-cancel:disabled {
   opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none;
 }
 .av .appt-detail .ad-actions .btn-resched:disabled:hover { background: var(--color-primary-blue); }
 .av .appt-detail .ad-actions .btn-cancel:disabled:hover { background: #fff; border-color: var(--color-border); }
-.av .appt-detail .ad-actions .btn-invite-recurring {
-  background: #fff; color: var(--color-secondary-indigo); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
-  padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-sans); cursor: pointer;
-  transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care), transform 0.15s var(--ease-care);
-}
-.av .appt-detail .ad-actions .btn-invite-recurring:hover {
-  background: rgba(34,50,110,0.09);
-  border-color: var(--color-secondary-indigo);
-  transform: translateY(-1px);
-}
-.av .appt-detail .ad-actions .btn-invite-recurring:active { transform: translateY(0); }
-.av .appt-detail .ad-actions .btn-invite-recurring .material-symbols-outlined { font-size: 16px; }
+.av .appt-detail .ad-actions .btn-invite-recurring,
 .av .appt-detail .ad-actions .btn-resend-email {
   background: #fff; color: var(--color-secondary-indigo); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
   padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-sans); cursor: pointer;
   transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care), transform 0.15s var(--ease-care);
 }
+.av .appt-detail .ad-actions .btn-invite-recurring:hover,
 .av .appt-detail .ad-actions .btn-resend-email:hover {
   background: rgba(34,50,110,0.09);
   border-color: var(--color-secondary-indigo);
   transform: translateY(-1px);
 }
-.av .appt-detail .ad-actions .btn-resend-email:active { transform: translateY(0); }
+.av .appt-detail .ad-actions .btn-invite-recurring:active,
+.av .appt-detail .ad-actions .btn-resend-email:active { @extend %active-lift-reset; }
 .av .appt-detail .ad-actions .btn-resend-email:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-.av .appt-detail .ad-actions .btn-resend-email .material-symbols-outlined { font-size: 16px; }
+.av .appt-detail .ad-actions .btn-invite-recurring .material-symbols-outlined,
+.av .appt-detail .ad-actions .btn-resend-email .material-symbols-outlined { @extend %icon-16; }
 .av .appt-detail .ad-actions .btn-cancel {
   background: #fff; color: var(--color-primary-purple); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
   padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-sans); cursor: pointer;
   transition: background 0.18s var(--ease-care), border-color 0.18s var(--ease-care), transform 0.15s var(--ease-care);
 }
-.av .appt-detail .ad-actions .btn-cancel:hover {
-  background: rgba(142,127,174,0.09);
-  border-color: var(--color-primary-purple);
-  transform: translateY(-1px);
-}
-.av .appt-detail .ad-actions .btn-cancel:active { transform: translateY(0); }
+.av .appt-detail .ad-actions .btn-cancel:hover { @extend %btn-remove-hover-lift; }
+.av .appt-detail .ad-actions .btn-cancel:active { @extend %active-lift-reset; }
 .av .appt-detail .ad-actions .btn-cancel .material-symbols-outlined,
-.av .appt-detail .ad-actions .btn-resched .material-symbols-outlined { font-size: 16px; }
+.av .appt-detail .ad-actions .btn-resched .material-symbols-outlined { @extend %icon-16; }
 
 .av .appt-detail .ad-notes { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-.av .appt-detail .ad-notes-label {
-  font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.5px;
-}
 .av .appt-detail .ad-notes-input {
   font-family: var(--font-sans); font-size: 14px; color: var(--color-primary-blue);
   border: 1px solid var(--color-border); border-radius: 8px; padding: 11px 14px;
   resize: vertical; outline: none; transition: border-color 0.18s var(--ease-care);
 }
 .av .appt-detail .ad-notes-input:focus { border-color: var(--color-primary-blue); }
-.av .appt-detail .ad-notes-input::placeholder { color: var(--color-muted); }
 .av .appt-detail .ad-notes-actions { display: flex; justify-content: flex-end; }
 .av .appt-detail .btn-save-notes {
   background: #fff; color: var(--color-primary-blue); border: 1px solid var(--color-primary-blue);
@@ -2028,7 +1880,7 @@ input[type="number"].field-value {
   font-family: var(--font-sans); cursor: pointer;
   transition: background 0.18s var(--ease-care), color 0.18s var(--ease-care);
 }
-.av .appt-detail .btn-save-notes:hover:not(:disabled) { background: var(--color-primary-blue); color: #fff; }
+.av .appt-detail .btn-save-notes:hover:not(:disabled) { @extend %blue-fill; }
 .av .appt-detail .btn-save-notes:disabled { opacity: 0.5; cursor: not-allowed; }
 
 // ─── Editor date field — custom calendar popover ──────────────────────────────
@@ -2086,9 +1938,9 @@ input[type="number"].field-value {
   color: var(--color-primary-blue);
   transition: background var(--dur-fast) ease;
 
-  &:hover { background: var(--color-surface-tint); }
+  &:hover { @extend %surface-tint-hover-bg; }
 
-  .material-symbols-outlined { font-size: 20px; }
+  .material-symbols-outlined { @extend %icon-20; }
 }
 
 .av .ed-cal-popover .cal-weekdays {
@@ -2129,13 +1981,13 @@ input[type="number"].field-value {
   cursor: pointer;
   transition: background var(--dur-fast) ease;
 
-  &:hover:not(:disabled) { background: var(--color-surface-tint); }
+  &:hover:not(:disabled) { @extend %surface-tint-hover-bg; }
 
   &.other-month { color: var(--color-muted); opacity: 0.4; }
 
   &.today:not(.selected) { box-shadow: inset 0 0 0 1px var(--color-primary-blue); }
 
-  &.selected { background: var(--color-primary-blue); color: #fff; }
+  &.selected { @extend %blue-fill; }
 
   &:disabled { color: var(--color-muted); cursor: not-allowed; opacity: 0.35; }
 }
