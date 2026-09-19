@@ -153,11 +153,15 @@ export class DashboardPageComponent implements OnInit {
     }),
   );
 
+  /**
+   * A próxima sessão de facto — nunca uma já passada. Sem sessões futuras,
+   * o destaque fica vazio em vez de mostrar a última passada como se fosse
+   * a próxima, o que enganava quem já não tem nada agendado.
+   */
   readonly nextSession = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const all = this.sessions();
-    return all.find(s => s.date >= today) ?? all[all.length - 1] ?? null;
+    return this.sessions().find(s => s.date >= today) ?? null;
   });
 
   /** Verdadeiro quando existe alguma sessão além da de destaque. */
@@ -165,8 +169,9 @@ export class DashboardPageComponent implements OnInit {
 
   readonly upcomingSessions = computed(() => {
     const next = this.nextSession();
-    if (!next) return [];
-    let list = this.sessions().filter(s => s !== next);
+    // Sem destaque (nada futuro), a lista mostra tudo — é o histórico de
+    // sessões passadas, não "as restantes depois da próxima".
+    let list = next ? this.sessions().filter(s => s !== next) : this.sessions();
     if (this.hidePastSessions()) {
       list = list.filter(s => !this.isPast(s.date));
     }
