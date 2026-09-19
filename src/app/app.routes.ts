@@ -202,6 +202,16 @@ export const routes: Routes = [
                 './shared/components/dashboard-messages/dashboard-messages.component'
               ).then((m) => m.DashboardMessagesComponent),
           },
+
+          {
+            // Mesma restrição de papel que /availability — só quem atende tem agenda própria.
+            path: 'my-appointments',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/dashboard-professional-appointments/dashboard-professional-appointments.component'
+              ).then((m) => m.DashboardProfessionalAppointmentsComponent),
+          },
         ],
       },
 

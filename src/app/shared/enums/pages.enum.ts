@@ -10,6 +10,7 @@ export enum Pages {
   DASHBOARD_PROFILE = `${Pages.DASHBOARD}/profile`,
   DASHBOARD_SCHEDULE = `${Pages.DASHBOARD}/schedule`,
   DASHBOARD_MESSAGES = `${Pages.DASHBOARD}/messages`,
+  DASHBOARD_PROFESSIONAL_APPOINTMENTS = `${Pages.DASHBOARD}/my-appointments`,
   ABOUT = 'about',
   BIO = 'bio',
   SERVICES = 'services',

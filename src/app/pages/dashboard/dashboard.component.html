@@ -42,6 +42,15 @@
           <span translate="no" class="material-symbols-outlined">person</span>
           <span>Perfil</span>
         </a>
+        @if (isProfessional()) {
+          <a
+            [routerLink]="['my-appointments']"
+            routerLinkActive="active"
+          >
+            <span translate="no" class="material-symbols-outlined">calendar_month</span>
+            <span>Meus atendimentos</span>
+          </a>
+        }
 <!--        <a class="sidebar-link-disabled">-->
 <!--          <span translate="no" class="material-symbols-outlined">receipt_long</span>-->
 <!--          <span>Faturação</span>-->
@@ -434,6 +443,15 @@
       <span translate="no" class="material-symbols-outlined">person</span>
       <span>Perfil</span>
     </a>
+    @if (isProfessional()) {
+      <a
+        [routerLink]="['my-appointments']"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">calendar_month</span>
+        <span>Atendimentos</span>
+      </a>
+    }
   </nav>
 
   <!-- Tooltip partilhado dos botões "Reagendar"/"Cancelar" desativados -

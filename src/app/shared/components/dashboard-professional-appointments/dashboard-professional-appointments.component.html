@@ -1,0 +1,212 @@
+<div class="panel">
+
+  <div class="panel-header">
+    <h2>Meus atendimentos</h2>
+  </div>
+
+  <div class="container">
+
+    <div class="filter-row">
+      <label id="pa-client-label">Filtrar por paciente</label>
+      <app-styled-select
+        inputId="pa-client-filter"
+        placeholder="Todos os pacientes"
+        searchPlaceholder="Pesquisar paciente..."
+        [options]="clientOptions()"
+        [value]="selectedClientId()"
+        (valueChange)="onClientFilterChange($event)"
+      />
+    </div>
+
+    @if (loading()) {
+      <div class="empty-card">
+        <p>A carregar...</p>
+      </div>
+    } @else {
+
+      <div class="section-head">
+        <h3>Próximo atendimento</h3>
+      </div>
+
+      @if (nextSession(); as s) {
+        <div class="hero-card" id="pa-hero-card" [class.highlighted]="highlightedAppointmentId() === s.appointmentId">
+          <div class="date-block">
+            <div class="day-of-week">{{ s.fullDow }}</div>
+            <div class="num">{{ s.day }}</div>
+            <div class="mon">{{ s.month }}</div>
+          </div>
+
+          <div class="info">
+            <div class="row1">
+              <div class="row1-title">
+                <h3>{{ s.who }}</h3>
+                <div class="with">{{ s.service }}</div>
+              </div>
+              <div class="row1-meta">
+                <span class="meta">
+                  <span translate="no" class="material-symbols-outlined">schedule</span>
+                  {{ s.startTime }}&nbsp;–&nbsp;{{ s.endTime }}
+                </span>
+                <span class="meta">
+                  <span translate="no" class="material-symbols-outlined">location_on</span>
+                  {{ s.mode }}
+                </span>
+              </div>
+            </div>
+
+            <div class="row2">
+              <span translate="no" class="material-symbols-outlined row2-icon">
+                {{ s.mode === 'Remoto' ? 'videocam' : 'place' }}
+              </span>
+              <div class="row2-body">
+                <div class="ad-k">{{ s.mode === 'Remoto' ? 'Plataforma' : 'Endereço' }}</div>
+                <div class="ad-v" [class.to-agree]="!(s.mode === 'Remoto' ? s.platform : s.address)">
+                  {{ (s.mode === 'Remoto' ? s.platform : s.address) || 'a combinar' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row3">
+              <div class="row3-item">
+                <span translate="no" class="material-symbols-outlined">schedule</span>
+                <div><div class="ad-k">Duração</div><div class="ad-v">{{ s.duration }}</div></div>
+              </div>
+              <div class="row3-item">
+                <span translate="no" class="material-symbols-outlined">payments</span>
+                <div><div class="ad-k">Valor</div><div class="ad-v" [class.to-agree]="!s.price">{{ s.price || 'a combinar' }}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-message" (click)="openThread(s)">
+              <span translate="no" class="material-symbols-outlined">forum</span>
+              Mensagem
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="empty-card">
+          <span translate="no" class="material-symbols-outlined empty-icon">event_busy</span>
+          <p>{{ emptyStateMessage() }}</p>
+        </div>
+      }
+
+      @if (hasOtherSessions()) {
+        <div class="section-head">
+          <h3>Próximos atendimentos</h3>
+          <button
+            type="button"
+            class="past-toggle"
+            [class.on]="hidePastSessions()"
+            [attr.aria-pressed]="hidePastSessions()"
+            (click)="togglePastVisibility()"
+          >
+            <span translate="no" class="material-symbols-outlined">
+              {{ hidePastSessions() ? 'visibility' : 'visibility_off' }}
+            </span>
+            {{ hidePastSessions() ? 'Mostrar passados' : 'Ocultar passados' }}
+          </button>
+        </div>
+
+        <div class="upcoming-card">
+          <div class="up-list">
+            @for (s of upcomingSessions(); track s.key) {
+              <div class="row-wrap" id="pa-row-{{ s.appointmentId }}">
+                <div
+                  class="row"
+                  [class.open]="openSessionId() === s.appointmentId"
+                  [class.past]="isPast(s.date)"
+                  [class.highlighted]="highlightedAppointmentId() === s.appointmentId"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-expanded]="openSessionId() === s.appointmentId"
+                  [attr.aria-controls]="'pa-panel-' + s.appointmentId"
+                  (click)="toggleSession(s.appointmentId)"
+                  (keydown.enter)="toggleSession(s.appointmentId)"
+                  (keydown.space)="$event.preventDefault(); toggleSession(s.appointmentId)"
+                >
+                  <div class="when">
+                    <div class="dow">{{ s.dow }}</div>
+                    <div class="num">{{ s.day }}<small>{{ s.month }}</small></div>
+                  </div>
+                  <div class="what">
+                    {{ s.who }}
+                    <small>{{ s.service }}</small>
+                  </div>
+                  <span class="mode-pill" [class.remoto]="s.mode === 'Remoto'">
+                    {{ s.mode }}
+                  </span>
+                  <div class="time">{{ s.startTime }}</div>
+                  <span
+                    translate="no"
+                    class="material-symbols-outlined chevron"
+                    [class.invert]="openSessionId() === s.appointmentId"
+                  >expand_more</span>
+                </div>
+
+                @if (openSessionId() === s.appointmentId) {
+                  <div class="panel-detail" id="pa-panel-{{ s.appointmentId }}">
+                    <div class="ad-rows">
+                      <div class="ad-row">
+                        <span translate="no" class="material-symbols-outlined">groups</span>
+                        <div><div class="ad-k">Serviço</div><div class="ad-v">{{ s.service }}</div></div>
+                      </div>
+                      @if (s.mode !== 'Remoto') {
+                        <div class="ad-row">
+                          <span translate="no" class="material-symbols-outlined">place</span>
+                          <div><div class="ad-k">Endereço</div><div class="ad-v" [class.to-agree]="!s.address">{{ s.address || 'a combinar' }}</div></div>
+                        </div>
+                      }
+                      @if (s.mode === 'Remoto') {
+                        <div class="ad-row">
+                          <span translate="no" class="material-symbols-outlined">videocam</span>
+                          <div><div class="ad-k">Plataforma</div><div class="ad-v" [class.to-agree]="!s.platform">{{ s.platform || 'a combinar' }}</div></div>
+                        </div>
+                      }
+                      <div class="ad-row">
+                        <span translate="no" class="material-symbols-outlined">payments</span>
+                        <div><div class="ad-k">Valor</div><div class="ad-v" [class.to-agree]="!s.price">{{ s.price || 'a combinar' }}</div></div>
+                      </div>
+                      <div class="ad-row">
+                        <span translate="no" class="material-symbols-outlined">event_repeat</span>
+                        <div><div class="ad-k">Recorrência</div><div class="ad-v">{{ s.recurrence }}</div></div>
+                      </div>
+                      <div class="ad-row">
+                        <span translate="no" class="material-symbols-outlined">schedule</span>
+                        <div><div class="ad-k">Duração</div><div class="ad-v">{{ s.duration }}</div></div>
+                      </div>
+                      <div class="ad-row">
+                        <span translate="no" class="material-symbols-outlined">credit_card</span>
+                        <div><div class="ad-k">Pagamento</div><div class="ad-v">{{ s.payment }}</div></div>
+                      </div>
+                    </div>
+
+                    @if (s.notes) {
+                      <div class="notes-box">
+                        <div class="notes-head">
+                          <span translate="no" class="material-symbols-outlined">sticky_note_2</span>
+                          <span>Notas</span>
+                        </div>
+                        <div class="notes-body">{{ s.notes }}</div>
+                      </div>
+                    }
+
+                    <div class="panel-actions">
+                      <button class="btn-message" (click)="openThread(s)">
+                        <span translate="no" class="material-symbols-outlined">forum</span>
+                        Mensagem
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+
+  </div>
+
+</div>

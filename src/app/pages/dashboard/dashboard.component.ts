@@ -27,70 +27,34 @@ import {
   RescheduleDialogResult,
 } from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
 import { Appointment } from '../../shared/models/appointment.model';
-import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
-import { Modality } from '../../shared/enums/modality.enum';
 import { Pages } from '../../shared/enums/pages.enum';
 import { ProfessionalService } from '../../shared/models/professional-service.model';
-import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
-import { RecurrenceFrequency } from '../../shared/enums/recurrence-frequency.enum';
-import { Currency, formatPrice } from '../../shared/enums/currency.enum';
-import { generateOccurrences } from '../../shared/utils/recurrence.util';
+import { Currency } from '../../shared/enums/currency.enum';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { toApiTime } from '../../shared/utils/session-time.util';
-import { normalizeModality, toBackendModality } from '../../shared/utils/modality-compatibility.util';
+import { toBackendModality } from '../../shared/utils/modality-compatibility.util';
+import {
+  BuiltSession as DashSession,
+  SessionCounterpart as DashSessionProfessional,
+  buildSessions,
+  toDateKey,
+} from '../../shared/utils/session-list.util';
+import { Roles } from '../../shared/enums/roles.enum';
+import { environment } from '../../../environments/environment';
 import { filter } from 'rxjs';
 
-/** 'A combinar' cobre ANY e qualquer modalidade não resolvível — nunca um palpite. */
-export type SessionMode = 'Presencial' | 'Remoto' | 'A combinar';
-
-export interface DashSessionProfessional {
-  id: number;
-  name: string;
-  role?: string;
-  initials: string;
-}
-
-export interface DashSession {
-  appointmentId: number;
-  /**
-   * Identidade da linha: a marcação e a ocorrência.
-   *
-   * Uma série recorrente é uma marcação só e várias linhas, pelo que o id
-   * sozinho repete-se — e o @for que o usava como chave queixava-se de chaves
-   * duplicadas e reaproveitava linhas erradas ao reordenar.
-   */
-  key: string;
-  /** Quem atende — a agenda de onde saem as vagas para onde a sessão pode mudar. */
-  professionalId: number;
-  /** A sessão só pode mudar para uma vaga que ofereça este mesmo serviço. */
-  professionalServiceId: number;
-  /** A vaga onde a sessão está hoje. */
-  availabilityId: number;
-  date: Date;
-  dow: string;
-  fullDow: string;
-  day: number;
-  month: string;
-  who: string;
-  service: string;
-  startTime: string;
-  endTime: string;
-  mode: SessionMode;
-  /** A modalidade crua — `mode` já é rótulo e não serve para voltar à API. */
-  modality: Modality;
-  address?: string;
-  platform?: string;
-  price?: string;
-  recurrence: string;
-  isRecurring: boolean;
-  duration: string;
-  payment: string;
-  notes?: string;
-  professionals: DashSessionProfessional[];
-}
+export type { DashSession, DashSessionProfessional };
 
 const ACTIVE_VIEW_STORAGE_KEY = 'dashboard.activeView';
 const HIDE_PAST_STORAGE_KEY = 'dashboard.hidePastSessions';
+
+// Mesmos papéis e mesma isenção em staging/dev que AvailabilityAccessGuard —
+// a aba só faz sentido para quem tem agenda própria como profissional.
+const PROFESSIONAL_DASHBOARD_ALLOWED_ROLES: string[] = [
+  Roles.THERAPIST,
+  Roles.PROFESSIONAL,
+  Roles.ADMIN,
+];
 
 @Component({
   selector: 'app-dashboard-page',
@@ -160,6 +124,12 @@ export class DashboardPageComponent implements OnInit {
 
   readonly firstName = computed(() => this.user()?.name?.split(' ')[0] ?? '');
 
+  readonly isProfessional = computed(() => {
+    if (!environment.production) return true;
+    const roles = this.user()?.roles ?? [];
+    return roles.some((role) => PROFESSIONAL_DASHBOARD_ALLOWED_ROLES.includes(role));
+  });
+
   readonly greeting = computed(() => {
     const h = new Date().getHours();
     return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
@@ -176,7 +146,11 @@ export class DashboardPageComponent implements OnInit {
 
   /** Todas as sessões, incluindo a de destaque — usado pelo calendário. */
   readonly sessions = computed(() =>
-    this.buildSessions(this.appointments(), this.services()),
+    buildSessions(this.appointments(), this.services(), {
+      perspective: 'CLIENT',
+      currency: this.sessionService.user()?.currency ?? Currency.EUR,
+      paymentsEnabled: this.featureFlagService.paymentsEnabled(),
+    }),
   );
 
   readonly nextSession = computed(() => {
@@ -235,41 +209,6 @@ export class DashboardPageComponent implements OnInit {
   dowAbr(date: Date): string {
     return DashboardPageComponent.WEEK_DOW_ABR[(date.getDay() + 6) % 7];
   }
-
-  private static readonly DOW_ABR: Record<string, string> = {
-    SUNDAY: 'Dom',    [DayOfWeek.SUNDAY]: 'Dom',
-    MONDAY: 'Seg',    [DayOfWeek.MONDAY]: 'Seg',
-    TUESDAY: 'Ter',   [DayOfWeek.TUESDAY]: 'Ter',
-    WEDNESDAY: 'Qua', [DayOfWeek.WEDNESDAY]: 'Qua',
-    THURSDAY: 'Qui',  [DayOfWeek.THURSDAY]: 'Qui',
-    FRIDAY: 'Sex',    [DayOfWeek.FRIDAY]: 'Sex',
-    SATURDAY: 'Sáb',  [DayOfWeek.SATURDAY]: 'Sáb',
-  };
-
-  private static readonly DOW_FULL: Record<string, string> = {
-    SUNDAY: 'Domingo',    [DayOfWeek.SUNDAY]: 'Domingo',
-    MONDAY: 'Segunda',    [DayOfWeek.MONDAY]: 'Segunda',
-    TUESDAY: 'Terça',     [DayOfWeek.TUESDAY]: 'Terça',
-    WEDNESDAY: 'Quarta',  [DayOfWeek.WEDNESDAY]: 'Quarta',
-    THURSDAY: 'Quinta',   [DayOfWeek.THURSDAY]: 'Quinta',
-    FRIDAY: 'Sexta',      [DayOfWeek.FRIDAY]: 'Sexta',
-    SATURDAY: 'Sábado',   [DayOfWeek.SATURDAY]: 'Sábado',
-  };
-
-  private static readonly DOW_JS: Record<string, number> = {
-    SUNDAY: 0,    [DayOfWeek.SUNDAY]: 0,
-    MONDAY: 1,    [DayOfWeek.MONDAY]: 1,
-    TUESDAY: 2,   [DayOfWeek.TUESDAY]: 2,
-    WEDNESDAY: 3, [DayOfWeek.WEDNESDAY]: 3,
-    THURSDAY: 4,  [DayOfWeek.THURSDAY]: 4,
-    FRIDAY: 5,    [DayOfWeek.FRIDAY]: 5,
-    SATURDAY: 6,  [DayOfWeek.SATURDAY]: 6,
-  };
-
-  private static readonly MONTHS = [
-    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
-  ];
 
   ngOnInit(): void {
     this.router.events
@@ -491,7 +430,7 @@ export class DashboardPageComponent implements OnInit {
   rescheduleSession(session: DashSession): void {
     // A ocorrência a mover é a desta linha, não a âncora da série: numa sessão
     // semanal a âncora pode ser de há meses, e mandá-la libertaria a semana errada.
-    const occurrenceDate = DashboardPageComponent.toDateKey(session.date);
+    const occurrenceDate = toDateKey(session.date);
 
     this.apiService.getAvailabilitiesByProfessionalId(session.professionalId).subscribe({
       next: (avails) => {
@@ -572,7 +511,7 @@ export class DashboardPageComponent implements OnInit {
   }
 
   cancelSession(session: DashSession): void {
-    const occurrenceDate = DashboardPageComponent.toDateKey(session.date);
+    const occurrenceDate = toDateKey(session.date);
 
     // Numa série recorrente há duas coisas diferentes que "cancelar" pode
     // querer dizer, e só a pessoa sabe qual - perguntar. Numa sessão única
@@ -642,7 +581,7 @@ export class DashboardPageComponent implements OnInit {
 
     const newEnd = new Date(session.date);
     newEnd.setDate(newEnd.getDate() - 1);
-    const newEndKey = DashboardPageComponent.toDateKey(newEnd);
+    const newEndKey = toDateKey(newEnd);
     this.appointments.update((list) =>
       list.flatMap((a) => {
         if (a.id !== session.appointmentId) return [a];
@@ -651,170 +590,5 @@ export class DashboardPageComponent implements OnInit {
         return [{ ...a, endDate: newEndKey }];
       }),
     );
-  }
-
-  private buildSessions(appointments: Appointment[], services: ProfessionalService[]): DashSession[] {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const limit = new Date(today);
-    limit.setMonth(limit.getMonth() + 12);
-
-    const sessions: DashSession[] = [];
-
-    for (const appt of appointments) {
-      const excluded = new Set(appt.excludedDates ?? []);
-      const dates = (appt.isRecurring
-        ? this.recurringDates(appt, today, limit)
-        : this.oneTimeDates(appt)
-      ).filter(d => !excluded.has(DashboardPageComponent.toDateKey(d)));
-
-      const rawServiceName = services.find(s => s.id === appt.professionalServiceId)?.name ?? '';
-      const serviceName = ProfessionalSessionService[rawServiceName as keyof typeof ProfessionalSessionService] ?? rawServiceName;
-
-      // appt.modality comes from the backend as the raw enum name
-      // ('LOCAL'/'REMOTE'/'ANY'), not the Portuguese Modality label
-      // ('Presencial'/'Remoto') — normalize before comparing. ANY (or
-      // anything unresolvable) is a real value on availabilities and must
-      // not be guessed as 'Presencial' — render 'A combinar' instead.
-      const normalized = normalizeModality(appt.modality);
-      const mode: SessionMode =
-        normalized === Modality.LOCAL ? 'Presencial'
-        : normalized === Modality.REMOTE ? 'Remoto'
-        : 'A combinar';
-
-      const professionals = this.buildProfessionals(appt);
-      const who = professionals.length === 1
-        ? professionals[0].name
-        : `${professionals[0].name} e mais ${professionals.length - 1}`;
-
-      const duration = this.durationLabel(appt.startTime, appt.endTime);
-      const recurrence = appt.isRecurring && appt.recurrenceFrequency
-        ? RecurrenceFrequency[appt.recurrenceFrequency]
-        : 'Não recorrente';
-      const price = this.priceLabel(appt);
-      const payment = this.paymentLabel(appt);
-
-      for (const date of dates) {
-        sessions.push({
-          appointmentId: appt.id,
-          key: `${appt.id}@${DashboardPageComponent.toDateKey(date)}`,
-          professionalId: appt.professionalId,
-          professionalServiceId: appt.professionalServiceId,
-          availabilityId: appt.availabilityId,
-          date,
-          dow: DashboardPageComponent.DOW_ABR[appt.dayOfWeek] ?? '?',
-          fullDow: DashboardPageComponent.DOW_FULL[appt.dayOfWeek] ?? '?',
-          day: date.getDate(),
-          month: DashboardPageComponent.MONTHS[date.getMonth()],
-          who,
-          service: serviceName,
-          startTime: appt.startTime?.slice(0, 5) ?? '',
-          endTime: appt.endTime?.slice(0, 5) ?? '',
-          mode,
-          modality: normalized,
-          address: appt.address,
-          platform: appt.platform,
-          price,
-          recurrence,
-          isRecurring: !!appt.isRecurring,
-          duration,
-          payment,
-          notes: appt.notes,
-          professionals,
-        });
-      }
-    }
-
-    return sessions.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }
-
-  private buildProfessionals(appt: Appointment): DashSessionProfessional[] {
-    if (appt.professionals?.length) {
-      return appt.professionals.map(p => ({
-        ...p,
-        initials: this.initialsFor(p.name),
-      }));
-    }
-    return [{
-      id: appt.professionalId,
-      name: appt.professionalName,
-      initials: this.initialsFor(appt.professionalName),
-    }];
-  }
-
-  private initialsFor(name: string): string {
-    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return '?';
-    return parts.length === 1
-      ? parts[0][0].toUpperCase()
-      : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  /** Minutos entre "HH:mm:ss" (ou "HH:mm"), sem arredondar. */
-  private durationLabel(startTime?: string, endTime?: string): string {
-    if (!startTime || !endTime) return '';
-    const toMinutes = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m;
-    };
-    // Uma sessão pode atravessar a meia-noite (ex.: 23:00–00:00) - nesse
-    // caso o fim "parece" mais cedo que o início em minutos do dia, daí
-    // envolver para o dia seguinte em vez de dar uma duração negativa.
-    let minutes = toMinutes(endTime) - toMinutes(startTime);
-    if (minutes <= 0) minutes += 24 * 60;
-    return `${minutes} minutos`;
-  }
-
-  /** Moeda do utilizador apenas — nunca mostra as duas. undefined ⇒ "a combinar". */
-  private priceLabel(appt: Appointment): string | undefined {
-    const currency = this.sessionService.user()?.currency ?? Currency.EUR;
-    const amount = currency === Currency.BRL ? appt.priceBRL : appt.price;
-    return amount != null ? formatPrice(amount, currency) : undefined;
-  }
-
-  private paymentLabel(appt: Appointment): string {
-    if (!this.featureFlagService.paymentsEnabled()) {
-      return 'Combinado com a profissional';
-    }
-    // Preparado para quando os pagamentos entrarem — hoje inatingível.
-    switch (appt.status) {
-      case 'CONFIRMED':
-        return 'Pago';
-      case 'PENDING':
-      default:
-        return 'Combinado com a profissional';
-    }
-  }
-
-  /** yyyy-MM-dd em hora local — as datas do backend não têm fuso. */
-  private static toDateKey(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  private recurringDates(appt: Appointment, from: Date, limit: Date): Date[] {
-    const targetDay = DashboardPageComponent.DOW_JS[appt.dayOfWeek];
-    if (targetDay === undefined) return [];
-
-    const start = appt.startDate ? new Date(appt.startDate) : new Date(from);
-    start.setHours(0, 0, 0, 0);
-    const end = appt.endDate ? new Date(appt.endDate) : new Date(limit);
-    end.setHours(23, 59, 59, 999);
-
-    const base = from > start ? new Date(from) : new Date(start);
-    const diff = (targetDay - base.getDay() + 7) % 7;
-    base.setDate(base.getDate() + diff);
-
-    const finalLimit = end < limit ? end : limit;
-    return generateOccurrences(appt.recurrenceFrequency, start, base, finalLimit, 10);
-  }
-
-  private oneTimeDates(appt: Appointment): Date[] {
-    if (!appt.startDate) return [];
-    const d = new Date(appt.startDate);
-    d.setHours(0, 0, 0, 0);
-    return [d];
   }
 }
