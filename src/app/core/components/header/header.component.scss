@@ -235,6 +235,17 @@
     0 2px 6px rgba(34, 50, 110, 0.08);
   padding: 6px 0;
   z-index: 1000;
+  overflow: hidden;
+
+  // The site-wide focus ring (styles.scss) sits *outside* the element via a
+  // positive outline-offset — fine for standalone buttons, but these rows
+  // span the full width of a tight, rounded panel, so that ring poked out
+  // past the panel's edges. Draw it inset instead, sized to stay inside the
+  // row itself.
+  :focus-visible {
+    outline-offset: -3px;
+    border-radius: 8px;
+  }
 
   .menu-user-header {
     width: 100%;

@@ -26,8 +26,13 @@
       @if (navbarService.showAuthLinks()) {
         <ul class="auth">
           <li>
-            <a (click)="navigateTo(navigationService.Pages.SIGN_IN)"
-               [class.active]="isActive(navigationService.Pages.SIGN_IN) || isActive(navigationService.Pages.SIGN_UP)">Entrar</a>
+            <a
+              tabindex="0"
+              [class.active]="isActive(navigationService.Pages.SIGN_IN) || isActive(navigationService.Pages.SIGN_UP)"
+              (click)="navigateTo(navigationService.Pages.SIGN_IN)"
+              (keydown.enter)="navigateTo(navigationService.Pages.SIGN_IN)"
+              (keydown.space)="$event.preventDefault(); navigateTo(navigationService.Pages.SIGN_IN)"
+            >Entrar</a>
           </li>
         </ul>
       }
@@ -65,7 +70,14 @@
               </div>
 
               @for (n of notificationsService.notifications().slice(0, 5); track n.id) {
-                <a class="notif-item" [class.is-unread]="!n.read" (click)="onNotifClick(n)">
+                <a
+                  class="notif-item"
+                  tabindex="0"
+                  [class.is-unread]="!n.read"
+                  (click)="onNotifClick(n)"
+                  (keydown.enter)="onNotifClick(n)"
+                  (keydown.space)="$event.preventDefault(); onNotifClick(n)"
+                >
                   <span class="unread-dot" [class.visible]="!n.read" aria-hidden="true"></span>
                   <span class="notif-body">
                     <span class="notif-text">{{ n.message }}</span>
@@ -78,7 +90,13 @@
                 <div class="notif-empty">Sem notificações</div>
               }
 
-              <a class="notif-item notif-seeall" (click)="goToNotifications()">Ver todas</a>
+              <a
+                class="notif-item notif-seeall"
+                tabindex="0"
+                (click)="goToNotifications()"
+                (keydown.enter)="goToNotifications()"
+                (keydown.space)="$event.preventDefault(); goToNotifications()"
+              >Ver todas</a>
             </div>
           }
         </div>

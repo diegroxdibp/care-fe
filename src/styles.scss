@@ -10,6 +10,23 @@
   box-sizing: border-box;
 }
 
+// Site-wide default keyboard-focus indicator (WCAG 2.4.7 / 2.4.11). Only
+// renders for keyboard/programmatic focus, never for mouse clicks. Acts as a
+// safety net for any interactive element that doesn't define its own — on-brand
+// focus treatments elsewhere (e.g. header nav) simply override it locally.
+//
+// The outline always follows the focused element's own border-radius, so
+// plain text links (no radius of their own) rendered a hard-cornered ring
+// while buttons/cards elsewhere looked rounded. border-radius here is the
+// fallback shape for anything that doesn't already set one — a component
+// that already declares its own border-radius keeps it (higher specificity
+// wins), so this only rounds the previously-square cases.
+:focus-visible {
+  outline: 3px solid var(--color-primary-purple);
+  outline-offset: 4px;
+  border-radius: var(--radius-xs);
+}
+
 html {
   // Par do <meta name="color-scheme" content="only light"> do index.html — ver
   // lá a explicação. Repetido aqui para que o opt-out sobreviva a qualquer

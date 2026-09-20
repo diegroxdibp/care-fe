@@ -7,17 +7,19 @@
 
     <div class="trust-grid">
       @for (item of items; track item.label; let i = $index) {
-        <div class="trust-item" appScrollAnimate="fade-in-up" [style.transition-delay.ms]="i * 120">
-          <span
-            class="trust-chip"
-            [style.background]="item.chipBackground"
-            [style.color]="item.chipForeground"
-          >
-            <span translate="no" class="material-symbols-outlined">{{ item.icon }}</span>
-          </span>
-          <div class="trust-text">
-            <h4 class="trust-label">{{ item.label }}</h4>
-            <p class="trust-description">{{ item.description }}</p>
+        <div class="trust-item-anim" appScrollAnimate="fade-in-up" [style.transition-delay.ms]="i * 120">
+          <div class="trust-item">
+            <span
+              class="trust-chip"
+              [style.background]="item.chipBackground"
+              [style.color]="item.chipForeground"
+            >
+              <span translate="no" class="material-symbols-outlined">{{ item.icon }}</span>
+            </span>
+            <div class="trust-text">
+              <h4 class="trust-label">{{ item.label }}</h4>
+              <p class="trust-description">{{ item.description }}</p>
+            </div>
           </div>
         </div>
       }

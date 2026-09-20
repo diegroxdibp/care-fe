@@ -86,24 +86,40 @@
   }
 }
 
+.pilar-card-anim {
+  display: flex;
+}
+
 .pilar-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
   border-radius: var(--radius-xl);
   padding: 22px 20px;
   background: var(--color-white);
   border: 2px solid;
+  transition: transform 0.22s ease-out, filter var(--dur-base) var(--ease-care);
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     gap: 16px;
     padding: 28px 24px 26px;
+  }
+
+  &:hover {
+    transform: translateY(-6px);
+    filter: var(--shadow-floating);
+
+    .pilar-icon {
+      transform: scale(1.12) rotate(-4deg);
+    }
   }
 }
 
 .pilar-icon {
   width: 34px;
   height: 34px;
+  transition: transform 0.2s ease-out;
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     width: 38px;

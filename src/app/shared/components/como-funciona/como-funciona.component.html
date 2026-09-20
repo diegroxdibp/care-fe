@@ -26,22 +26,23 @@
     <div class="steps-grid">
       @for (step of steps; track step.n; let i = $index) {
         <div
-          class="step-card"
+          class="step-card-anim"
           appScrollAnimate="fade-in-up"
           [style.transition-delay.ms]="i * 120"
-          [style.border-top-color]="step.accentColor"
         >
-          <div class="step-card-head">
-            <span class="step-num">{{ step.n }}</span>
-            @if (step.needsLogin) {
-              <span class="step-tag">
-                <span translate="no" class="material-symbols-outlined">lock</span>
-                Requer sessão
-              </span>
-            }
+          <div class="step-card" [style.border-top-color]="step.accentColor">
+            <div class="step-card-head">
+              <span class="step-num">{{ step.n }}</span>
+              @if (step.needsLogin) {
+                <span class="step-tag">
+                  <span translate="no" class="material-symbols-outlined">lock</span>
+                  Requer sessão
+                </span>
+              }
+            </div>
+            <h3 class="step-title">{{ step.title }}</h3>
+            <p class="step-description">{{ step.description }}</p>
           </div>
-          <h3 class="step-title">{{ step.title }}</h3>
-          <p class="step-description">{{ step.description }}</p>
         </div>
       }
     </div>

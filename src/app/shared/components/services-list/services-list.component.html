@@ -20,7 +20,13 @@
             @let rowOpen = isOpen(itemKey);
 
             <li class="type-row" [class.is-open]="rowOpen">
-              <div class="type-head" (click)="toggleItem(itemKey)">
+              <button
+                type="button"
+                class="type-head"
+                (click)="toggleItem(itemKey)"
+                [attr.aria-expanded]="rowOpen"
+                [attr.aria-controls]="'type-panel-' + itemKey"
+              >
                 <span class="open-bar" [class.is-open]="rowOpen"></span>
                 <div class="type-text">
                   <h4 class="type-name" [class.is-open]="rowOpen">{{ serviceType.name }}</h4>
@@ -29,9 +35,9 @@
                   }
                 </div>
                 <span translate="no" class="material-symbols-outlined chevron" [class.is-open]="rowOpen">expand_more</span>
-              </div>
+              </button>
 
-              <div class="type-content" [@expandCollapse]="rowOpen ? 'expanded' : 'collapsed'">
+              <div class="type-content" [id]="'type-panel-' + itemKey" [inert]="!rowOpen" [@expandCollapse]="rowOpen ? 'expanded' : 'collapsed'">
                 <p class="type-description">{{ serviceType.description }}</p>
 
                 @if (service.available) {

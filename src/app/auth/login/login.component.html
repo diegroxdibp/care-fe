@@ -44,13 +44,24 @@
       </div>
     </div>
 
-    <a class="forgot" (click)="navigationService.navigateTo(Pages.FORGOT_PASSWORD)">Esqueci minha senha</a>
+    <a
+      class="forgot"
+      tabindex="0"
+      (click)="navigationService.navigateTo(Pages.FORGOT_PASSWORD)"
+      (keydown.enter)="navigationService.navigateTo(Pages.FORGOT_PASSWORD)"
+      (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.FORGOT_PASSWORD)"
+    >Esqueci minha senha</a>
 
     @if (error) {
       <div class="error-msg">
         {{ error }}
         @if (unconfirmed) {
-          <a (click)="navigationService.navigateTo(Pages.CONFIRM_EMAIL)">Reenviar link de confirmação</a>
+          <a
+            tabindex="0"
+            (click)="navigationService.navigateTo(Pages.CONFIRM_EMAIL)"
+            (keydown.enter)="navigationService.navigateTo(Pages.CONFIRM_EMAIL)"
+            (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.CONFIRM_EMAIL)"
+          >Reenviar link de confirmação</a>
         }
       </div>
     }
@@ -71,7 +82,12 @@
 
     <p class="switch-link">
       Não tem uma conta?
-      <a (click)="navigationService.navigateTo(Pages.SIGN_UP)">Cadastre-se</a>
+      <a
+        tabindex="0"
+        (click)="navigationService.navigateTo(Pages.SIGN_UP)"
+        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_UP)"
+        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_UP)"
+      >Cadastre-se</a>
     </p>
   </form>
 </div>

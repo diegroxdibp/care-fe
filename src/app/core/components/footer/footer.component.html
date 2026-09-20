@@ -13,8 +13,22 @@
       <div class="col">
         <h4>Links Úteis</h4>
         <ul>
-          <li><a (click)="navigateTo(Pages.HOME, 'faq')">FAQ</a></li>
-          <li><a (click)="navigateTo(Pages.SCHEDULING)">Agendar</a></li>
+          <li>
+            <a
+              tabindex="0"
+              (click)="navigateTo(Pages.HOME, 'faq')"
+              (keydown.enter)="navigateTo(Pages.HOME, 'faq')"
+              (keydown.space)="$event.preventDefault(); navigateTo(Pages.HOME, 'faq')"
+            >FAQ</a>
+          </li>
+          <li>
+            <a
+              tabindex="0"
+              (click)="navigateTo(Pages.SCHEDULING)"
+              (keydown.enter)="navigateTo(Pages.SCHEDULING)"
+              (keydown.space)="$event.preventDefault(); navigateTo(Pages.SCHEDULING)"
+            >Agendar</a>
+          </li>
         </ul>
       </div>
 

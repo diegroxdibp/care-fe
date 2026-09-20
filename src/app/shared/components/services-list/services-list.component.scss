@@ -6,6 +6,14 @@
   font-family: var(--font-sans);
 }
 
+// This section's background is dark (--color-secondary-indigo), where the
+// site-wide purple focus ring (styles.scss) falls under the 3:1 non-text
+// contrast minimum — swap just the color for the cyan already used as this
+// section's accent, keeping width/offset from the global rule.
+:focus-visible {
+  outline-color: var(--color-secondary-cyan);
+}
+
 .services-list {
   max-width: none;
   width: 100%;
@@ -141,13 +149,27 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  border: none;
+  background: none;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   gap: 12px;
   padding: 20px 4px 20px 16px;
   min-height: 64px;
   cursor: pointer;
   border-radius: 10px;
-  outline: 2px solid transparent;
-  transition: outline 0.12s ease, background 0.2s ease;
+  transition: background 0.2s ease;
+
+  // Focus must be visible at every breakpoint — unlike :hover (below), which
+  // is desktop-only to avoid a "stuck" ring on touch devices after a tap.
+  &:focus-visible {
+    outline: 3px solid var(--color-secondary-cyan);
+    outline-offset: 2px;
+    background: rgba(255, 255, 255, 0.06);
+  }
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     gap: 20px;
@@ -155,7 +177,7 @@
     min-height: unset;
 
     &:hover {
-      outline: 2px solid var(--color-primary-purple);
+      outline: 2px solid var(--color-secondary-cyan);
       background: rgba(255, 255, 255, 0.06);
     }
   }
@@ -223,7 +245,12 @@
 }
 
 .type-content {
-  padding: 0 4px 22px 16px;
+  // Right padding is a bit wider than the others: the expand/collapse
+  // animation (services-list.component.ts) keeps this permanently
+  // `overflow: hidden` even while open, and the default outward focus ring
+  // (3px + 4px offset) needs ~7px of clearance past the "Agendar" button's
+  // edge to avoid being clipped by it.
+  padding: 0 10px 22px 16px;
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     display: grid;

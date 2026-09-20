@@ -190,18 +190,34 @@
   }
 }
 
+.step-card-anim {
+  display: flex;
+}
+
 .step-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
   background: var(--color-surface-tint);
   border-top: 4px solid;
   border-radius: var(--radius-xl);
   padding: 22px 20px;
+  transition: transform 0.22s ease-out, filter var(--dur-base) var(--ease-care), background var(--dur-base) var(--ease-care);
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     gap: 14px;
     padding: 30px 28px 32px;
+  }
+
+  &:hover {
+    transform: translateY(-6px);
+    background: var(--color-white);
+    filter: var(--shadow-floating);
+
+    .step-num {
+      transform: scale(1.12);
+    }
   }
 }
 
@@ -213,10 +229,12 @@
 }
 
 .step-num {
+  display: inline-block;
   font-family: var(--font-serif);
   font-size: 28px;
   line-height: 1;
   color: var(--color-primary-purple);
+  transition: transform 0.2s ease-out;
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     font-size: 34px;

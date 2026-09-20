@@ -8,14 +8,15 @@
     <div class="pilares-grid">
       @for (pilar of pilares; track pilar.name; let i = $index) {
         <div
-          class="pilar-card"
+          class="pilar-card-anim"
           appScrollAnimate="fade-in-up"
           [style.transition-delay.ms]="i * 120"
-          [style.border-color]="pilar.borderColor"
         >
-          <img class="pilar-icon" [src]="pilar.icon" alt="" aria-hidden="true" />
-          <h3 class="pilar-title">{{ pilar.name }}</h3>
-          <p class="pilar-description">{{ pilar.description }}</p>
+          <div class="pilar-card" [style.border-color]="pilar.borderColor">
+            <img class="pilar-icon" [src]="pilar.icon" alt="" aria-hidden="true" />
+            <h3 class="pilar-title">{{ pilar.name }}</h3>
+            <p class="pilar-description">{{ pilar.description }}</p>
+          </div>
         </div>
       }
     </div>

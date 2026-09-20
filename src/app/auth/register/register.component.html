@@ -130,7 +130,12 @@
 
     <p class="switch-link">
       Já tem uma conta?
-      <a (click)="navigationService.navigateTo(Pages.SIGN_IN)">Entrar</a>
+      <a
+        tabindex="0"
+        (click)="navigationService.navigateTo(Pages.SIGN_IN)"
+        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_IN)"
+        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_IN)"
+      >Entrar</a>
     </p>
   </form>
 </div>
