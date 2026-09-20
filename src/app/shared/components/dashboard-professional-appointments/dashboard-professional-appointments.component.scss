@@ -328,6 +328,13 @@
   cursor: pointer;
   transition: background var(--dur-fast);
 
+  // Sits flush against .panel-detail when open (no gap here, just the
+  // border-bottom) — an outward ring would bleed down into that panel's
+  // content, same issue fixed on the two other accordions in the app.
+  &:focus-visible {
+    outline-offset: -3px;
+  }
+
   &:hover { background: var(--color-surface-tint); }
   &.open { background: #fbfbfd; }
 
