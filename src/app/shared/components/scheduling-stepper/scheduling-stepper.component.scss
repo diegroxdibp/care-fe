@@ -66,7 +66,6 @@
   .circles {
     display: flex;
     align-items: center;
-    gap: 6px;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -74,7 +73,18 @@
     li {
       display: flex;
       align-items: center;
-      flex: 0 0 auto;
+      gap: 4px;
+      // Every step but the last stretches to share the row equally, giving
+      // its connector room to grow into — nesting the connector inside a
+      // flex:0 li left it with nothing to grow into, so no line ever drew.
+      // The last step has no connector, so it just hugs its circle instead
+      // of stretching into empty trailing space.
+      flex: 1 1 0;
+      min-width: 0;
+
+      &:last-child {
+        flex: 0 0 auto;
+      }
     }
   }
 
