@@ -5,6 +5,8 @@ import { AuthService } from '../auth.service';
 import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
 import { clearStoredSchedulingNext, isValidSchedulingNext, readStoredSchedulingNext } from '../../shared/utils/scheduling-next.util';
+import { FormService } from '../../core/services/form.service';
+import { FormControlsNames } from '../../shared/enums/form-controls-names.enum';
 
 /** Same channel name as RegisterComponent — see the comment there. */
 const AUTH_BROADCAST_CHANNEL = 'care-auth';
@@ -19,11 +21,19 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly formService = inject(FormService);
   readonly navigationService = inject(NavigationService);
 
   readonly Pages = Pages;
   readonly token = this.route.snapshot.queryParamMap.get('token');
-  readonly resendEmailCtrl = new FormControl('', [Validators.required, Validators.email]);
+  // Prefilled from the shared auth form when the person just came from
+  // signup/login in this same session — landing on an expired link and
+  // having to retype the email you just typed a minute ago is exactly the
+  // "stuck" complaint this page exists to avoid.
+  readonly resendEmailCtrl = new FormControl(
+    this.formService.authForm.get(FormControlsNames.EMAIL)?.value ?? '',
+    [Validators.required, Validators.email],
+  );
 
   loading = true;
   success = false;

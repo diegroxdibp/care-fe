@@ -27,9 +27,13 @@
               id="resend-email"
               type="email"
               [formControl]="resendEmailCtrl"
+              [class.has-error]="resendEmailCtrl.touched && resendEmailCtrl.invalid"
               placeholder="seu@email.com"
               autocomplete="email"
             />
+            @if (resendEmailCtrl.touched && resendEmailCtrl.invalid) {
+              <span class="field-error">Indique um email válido.</span>
+            }
           </div>
 
           @if (resendError) {

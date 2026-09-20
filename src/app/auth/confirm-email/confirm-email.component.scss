@@ -84,7 +84,15 @@ h1 {
 
     &:focus { border-color: palette.$primaryColorBlue; }
     &::placeholder { color: var(--color-muted); }
+    &.has-error { border-color: #c0392b; }
   }
+}
+
+.field-error {
+  font-family: typography.$sourceSans;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #c0392b;
 }
 
 .error-msg {
