@@ -46,7 +46,6 @@ import { filter } from 'rxjs';
 export type { DashSession, DashSessionProfessional };
 
 const ACTIVE_VIEW_STORAGE_KEY = 'dashboard.activeView';
-const HIDE_PAST_STORAGE_KEY = 'dashboard.hidePastSessions';
 
 // Mesmos papéis e mesma isenção em staging/dev que AvailabilityAccessGuard —
 // a aba só faz sentido para quem tem agenda própria como profissional.
@@ -104,8 +103,13 @@ export class DashboardPageComponent implements OnInit {
   /** 'YYYY-MM-DD' do dia selecionado no calendário, ou null. */
   readonly selectedDay = signal<string | null>(null);
 
-  /** Oculta sessões já passadas na lista "Próximas sessões" — por omissão ficam visíveis, esbatidas. */
-  readonly hidePastSessions = signal<boolean>(this.readStoredHidePast());
+  /**
+   * Oculta sessões já passadas na lista "Próximas sessões" — por omissão só
+   * as futuras aparecem, e a pessoa só vê as passadas ao clicar "Mostrar
+   * passadas". Não persiste entre visitas de propósito: cada carregamento
+   * começa oculto, nunca preso a uma escolha feita há sessões atrás.
+   */
+  readonly hidePastSessions = signal<boolean>(true);
 
   readonly showSchedule = computed(() => {
     const url = this.currentUrl();
@@ -258,24 +262,7 @@ export class DashboardPageComponent implements OnInit {
   }
 
   togglePastVisibility(): void {
-    this.hidePastSessions.update((cur) => {
-      const next = !cur;
-      try {
-        localStorage.setItem(HIDE_PAST_STORAGE_KEY, String(next));
-      } catch {
-        // localStorage indisponível — a escolha só não sobrevive ao reload.
-      }
-      return next;
-    });
-  }
-
-  private readStoredHidePast(): boolean {
-    try {
-      const stored = localStorage.getItem(HIDE_PAST_STORAGE_KEY);
-      return stored === null ? true : stored === 'true';
-    } catch {
-      return true;
-    }
+    this.hidePastSessions.update((cur) => !cur);
   }
 
   /** Verdadeiro quando a data da ocorrência já passou (comparação por dia, não por hora). */
