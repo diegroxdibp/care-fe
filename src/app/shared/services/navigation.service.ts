@@ -1,5 +1,5 @@
 import { computed, inject, Injectable } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Params, Router } from '@angular/router';
 import { Pages } from '../enums/pages.enum';
 import { NavigationItem } from '../models/navigation-item.model';
 import { ViewportScroller } from '@angular/common';
@@ -86,7 +86,7 @@ export class NavigationService {
     );
   }
 
-  navigateTo(page: Pages, fragment?: string): void {
+  navigateTo(page: Pages, fragment?: string, queryParams?: Params): void {
     this.snackbarService.closeSnackbar();
 
     if (fragment && this.router.url.split(/[?#]/)[0] === `/${page}`) {
@@ -102,7 +102,10 @@ export class NavigationService {
       // Read by HomeComponent on (re)creation, for navigation from another route.
       this.pendingSection = fragment;
     }
-    this.router.navigate([page], fragment ? { fragment } : undefined);
+    this.router.navigate([page], {
+      ...(fragment ? { fragment } : undefined),
+      ...(queryParams ? { queryParams } : undefined),
+    });
   }
 
   /** Navigates to Scheduling, pre-selecting a service. `serviceKey` must match ProfessionalService.name as returned by the backend (the ProfessionalSessionService enum key, e.g. 'MINDFULNESS') — read by SchedulingComponent via the `service` query param. */

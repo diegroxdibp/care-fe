@@ -1,9 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
+import { clearStoredSchedulingNext, isValidSchedulingNext, readStoredSchedulingNext } from '../../shared/utils/scheduling-next.util';
+
+/** Same channel name as RegisterComponent — see the comment there. */
+const AUTH_BROADCAST_CHANNEL = 'care-auth';
 
 @Component({
   selector: 'app-confirm-email',
@@ -11,7 +15,7 @@ import { NavigationService } from '../../shared/services/navigation.service';
   templateUrl: './confirm-email.component.html',
   styleUrl: './confirm-email.component.scss',
 })
-export class ConfirmEmailComponent implements OnInit {
+export class ConfirmEmailComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -29,6 +33,8 @@ export class ConfirmEmailComponent implements OnInit {
   resendSent = false;
   resendError: string | null = null;
 
+  private authBroadcastChannel: BroadcastChannel | null = null;
+
   ngOnInit(): void {
     if (!this.token) {
       this.loading = false;
@@ -36,16 +42,38 @@ export class ConfirmEmailComponent implements OnInit {
     }
 
     this.authService.confirmEmail({ token: this.token }).subscribe({
-      next: () => {
+      next: (result) => {
         this.loading = false;
         this.success = true;
-        setTimeout(() => this.router.navigate(['/auth/signin']), 2500);
+
+        // The backend confirms and signs in in the same call (sets the JWT
+        // cookie) — refresh local session state so the app actually knows
+        // it's authenticated before navigating anywhere protected.
+        this.authService.refreshSession().subscribe();
+
+        const next = isValidSchedulingNext(result.next) ? result.next : readStoredSchedulingNext();
+        clearStoredSchedulingNext();
+
+        // Wakes up a register/account-step tab left waiting in another tab
+        // of the same browser — see RegisterComponent. The cookie just set
+        // above is shared across tabs of the same browser, so that tab can
+        // go straight to `next` too, no separate login step needed there.
+        if (typeof BroadcastChannel !== 'undefined') {
+          this.authBroadcastChannel = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+          this.authBroadcastChannel.postMessage({ type: 'email-confirmed', next });
+        }
+
+        setTimeout(() => this.router.navigateByUrl(next ?? '/dashboard'), 2500);
       },
       error: (err) => {
         this.loading = false;
         this.error = err.error?.error ?? 'Não foi possível confirmar a conta. Tente novamente.';
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.authBroadcastChannel?.close();
   }
 
   resend(event: Event): void {

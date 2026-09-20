@@ -1,4 +1,4 @@
-<div class="page">
+<div [class.page]="!embedded">
   <form (submit)="signUp($event)" novalidate>
     @if (registered) {
       <h1>Verifique o seu email</h1>
@@ -6,7 +6,11 @@
         Enviamos um link de confirmação para o seu email. Clique nele para ativar a sua conta e poder iniciar sessão.
       </p>
     } @else {
-    <h1>Crie sua conta</h1>
+    @if (embedded) {
+      <h2>Crie sua conta</h2>
+    } @else {
+      <h1>Crie sua conta</h1>
+    }
     <p class="subtitle">Um espaço para acolher quem cuida e quem precisa de cuidado.</p>
 
     <div class="field">
@@ -113,7 +117,7 @@
       <div class="error-msg">{{ error }}</div>
     }
 
-    <button type="submit" class="btn-primary" [disabled]="!canSubmit || submitting">{{ submitting ? 'A criar...' : 'Cadastrar' }}</button>
+    <button type="submit" class="btn-primary" [disabled]="!canSubmit || submitting">{{ buttonLabel }}</button>
 
     <div class="divider"><span>Ou cadastre-se com</span></div>
 
@@ -132,9 +136,9 @@
       Já tem uma conta?
       <a
         tabindex="0"
-        (click)="navigationService.navigateTo(Pages.SIGN_IN)"
-        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_IN)"
-        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_IN)"
+        (click)="navigationService.navigateTo(Pages.SIGN_IN, undefined, next ? { next } : undefined)"
+        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_IN, undefined, next ? { next } : undefined)"
+        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_IN, undefined, next ? { next } : undefined)"
       >Entrar</a>
     </p>
   </form>

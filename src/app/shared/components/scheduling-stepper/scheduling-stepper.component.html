@@ -1,0 +1,27 @@
+<ol class="stepper stepper-desktop">
+  @for (label of labels; track label; let i = $index) {
+    <li [class.current]="isCurrent(i + 1)" [attr.aria-current]="isCurrent(i + 1) ? 'step' : null">
+      <div class="circle-row">
+        <span class="circle">{{ i + 1 }}</span>
+        @if (i < labels.length - 1) {
+          <span class="connector"></span>
+        }
+      </div>
+      <span class="label">{{ label }}</span>
+    </li>
+  }
+</ol>
+
+<div class="stepper stepper-mobile">
+  <ol class="circles">
+    @for (label of labels; track label; let i = $index) {
+      <li [class.current]="isCurrent(i + 1)" [attr.aria-current]="isCurrent(i + 1) ? 'step' : null">
+        <span class="circle">{{ i + 1 }}</span>
+        @if (i < labels.length - 1) {
+          <span class="connector"></span>
+        }
+      </li>
+    }
+  </ol>
+  <span class="caption">Passo {{ currentStep }} de {{ labels.length }} · {{ labels[currentStep - 1] }}</span>
+</div>

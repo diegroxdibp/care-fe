@@ -150,6 +150,7 @@
   --color-surface-tint: #f6f7fb;     /* very pale wash of blue */
   --color-border: #d4d7e3;           /* input borders */
   --color-border-soft: #e6e8f1;
+  --color-border-strong: #b6bcd0;    /* darkened from --color-border for contrast, e.g. upcoming step circles */
   --color-divider: #cfdfe2;          /* "or sign in with" line */
   --color-muted: #8897ad;            /* placeholder grey */
   --color-success: #23a25b;          /* password rule check */

@@ -4,6 +4,7 @@ import { Pages } from './shared/enums/pages.enum';
 import { AccessGuard } from './auth/auth.guard';
 import { AuthOnlyGuard } from './auth/authOnly.guard';
 import { AvailabilityAccessGuard } from './auth/availability-access.guard';
+import { GuestOnlyGuard } from './auth/guest-only.guard';
 import { pendingBookingGuard } from './core/pages/scheduling/confirm/pending-booking.guard';
 import { HomeComponent } from './core/pages/home/home.component';
 
@@ -147,6 +148,19 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./core/pages/error/error.component').then(
         (m) => m.ErrorPageComponent,
+      ),
+  },
+
+  // Step 1 of 5 of the scheduling flow — where AccessGuard sends a
+  // logged-out visitor instead of the old blocking snackbar. Public and
+  // guest-only, same as the rest of /auth; must stay outside the protected
+  // "" group below for the same ordering reason as the other public routes.
+  {
+    path: `${Pages.SCHEDULING}/conta`,
+    canMatch: [GuestOnlyGuard],
+    loadComponent: () =>
+      import('./core/pages/scheduling/account-step/account-step.component').then(
+        (m) => m.AccountStepComponent,
       ),
   },
 

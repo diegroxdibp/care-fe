@@ -16,6 +16,7 @@ import { SignUpResponse } from '../shared/models/sign-up-response';
 import { ForgotPasswordPayload } from '../shared/models/forgot-password-payload';
 import { ResetPasswordPayload } from '../shared/models/reset-password-payload';
 import { ConfirmEmailPayload } from '../shared/models/confirm-email-payload';
+import { ConfirmEmailResponse } from '../shared/models/confirm-email-response';
 import { ResendConfirmationPayload } from '../shared/models/resend-confirmation-payload';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -72,10 +73,14 @@ export class AuthService {
     );
   }
 
-  confirmEmail(payload: ConfirmEmailPayload): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
+  // withCredentials: confirming now also signs in (the backend sets the JWT
+  // cookie in the same call) — without it the browser would drop the
+  // Set-Cookie header from this cross-origin response.
+  confirmEmail(payload: ConfirmEmailPayload): Observable<ConfirmEmailResponse> {
+    return this.http.post<ConfirmEmailResponse>(
       AppConstants.apiEndpoints.confirmEmail,
       payload,
+      { withCredentials: true },
     );
   }
 

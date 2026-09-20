@@ -1,0 +1,50 @@
+<div class="shell">
+  <app-scheduling-stepper [currentStep]="1" />
+
+  <div class="body">
+    <div class="left">
+      <h1>Primeiro passo: a sua conta</h1>
+
+      <p class="intro intro-desktop">
+        Marcar uma sessão é reservar o tempo de uma pessoa profissional. Por isso a conta vem primeiro: é ela que
+        liga o horário a si, permite avisá-la de qualquer alteração e deixa-a remarcar ou cancelar quando precisar.
+      </p>
+      <p class="intro intro-mobile">
+        A conta é onde ficam guardados os seus horários e o histórico das sessões — por isso vem antes de escolher
+        data e profissional.
+      </p>
+
+      <div class="save-place">
+        <span translate="no" class="material-symbols-outlined icon">bookmark</span>
+        <div class="text">
+          <span class="eyebrow">Guardámos o seu lugar</span>
+          <span class="body-desktop">
+            Guardamos o ponto do agendamento onde estava. Enviamos-lhe um email para confirmar a conta e o link
+            traz-lhe de volta exatamente a esse ponto, com a sessão já iniciada.
+          </span>
+          <span class="body-mobile">
+            Guardamos o ponto onde estava. O email de confirmação traz-lhe de volta a esse ponto, com a sessão já
+            iniciada.
+          </span>
+        </div>
+      </div>
+
+      <div class="reassurance">
+        <div class="row">
+          <span translate="no" class="material-symbols-outlined">schedule</span>
+          <span>Leva cerca de um minuto.</span>
+        </div>
+        <div class="row">
+          <span translate="no" class="material-symbols-outlined">mail</span>
+          <span>A conta é confirmada por email, uma única vez. Se confirmar noutro aparelho, esta página avança sozinha.</span>
+        </div>
+        <div class="row">
+          <span translate="no" class="material-symbols-outlined">lock</span>
+          <span>Os seus dados clínicos ficam visíveis apenas para si e para a pessoa profissional que a acompanha.</span>
+        </div>
+      </div>
+    </div>
+
+    <app-register class="signup" [embedded]="true" ctaLabel="Criar conta e continuar" [next]="next" />
+  </div>
+</div>

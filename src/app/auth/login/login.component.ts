@@ -2,11 +2,12 @@ import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { FormService } from '../../core/services/form.service';
 import { AuthService } from '../auth.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
 import { FormControlsNames } from '../../shared/enums/form-controls-names.enum';
 import { AppConstants } from '../../app-constants';
+import { clearStoredSchedulingNext, isValidSchedulingNext, storeSchedulingNext } from '../../shared/utils/scheduling-next.util';
 
 @Component({
   selector: 'app-login',
@@ -18,12 +19,25 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly formService = inject(FormService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly navigationService = inject(NavigationService);
 
   readonly Pages = Pages;
   error: string | null = null;
   unconfirmed = false;
   showPassword = false;
+
+  /** Resuming a scheduling attempt made while logged out — see AccessGuard. */
+  readonly next: string | null = this.resolveNext();
+
+  private resolveNext(): string | null {
+    const fromQuery = this.route.snapshot.queryParamMap.get('next');
+    if (isValidSchedulingNext(fromQuery)) {
+      storeSchedulingNext(fromQuery);
+      return fromQuery;
+    }
+    return null;
+  }
 
   get emailCtrl(): FormControl {
     return this.formService.authForm.get(FormControlsNames.EMAIL) as FormControl;
@@ -45,7 +59,8 @@ export class LoginComponent {
     this.authService.signIn(this.formService.signInPayload()).subscribe({
       next: () => {
         this.submitting = false;
-        this.router.navigate(['/dashboard']);
+        clearStoredSchedulingNext();
+        this.router.navigateByUrl(this.next ?? '/dashboard');
       },
       error: (err) => {
         this.submitting = false;

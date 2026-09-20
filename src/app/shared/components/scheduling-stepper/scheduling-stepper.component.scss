@@ -1,0 +1,128 @@
+@use "assets/styles/breakpoints.scss" as breakpoint;
+@use "assets/styles/typography.scss" as typography;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.stepper-desktop {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    width: 100%;
+  }
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .circle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .connector {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+    margin-right: 10px;
+  }
+
+  .label {
+    align-self: flex-start;
+    margin-left: 14px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-family: typography.$sourceSans;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-secondary-indigo);
+  }
+
+  li.current .label {
+    font-weight: 700;
+    color: var(--color-primary-blue);
+  }
+}
+
+.stepper-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    display: none;
+  }
+
+  .circles {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+  }
+
+  .connector {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+  }
+
+  .caption {
+    font-family: typography.$sourceSans;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--color-primary-purple);
+  }
+}
+
+// Shared circle look, both layouts.
+.circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-family: typography.$sourceSans;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: #fff;
+  border: 2px solid var(--color-border-strong);
+  color: var(--color-secondary-indigo);
+  box-sizing: border-box;
+}
+
+.stepper-desktop .circle {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+
+.stepper-mobile .circle {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+li.current .circle {
+  background: var(--color-primary-blue);
+  border-color: var(--color-primary-blue);
+  color: #fff;
+}

@@ -84,9 +84,9 @@
       Não tem uma conta?
       <a
         tabindex="0"
-        (click)="navigationService.navigateTo(Pages.SIGN_UP)"
-        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_UP)"
-        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_UP)"
+        (click)="navigationService.navigateTo(Pages.SIGN_UP, undefined, next ? { next } : undefined)"
+        (keydown.enter)="navigationService.navigateTo(Pages.SIGN_UP, undefined, next ? { next } : undefined)"
+        (keydown.space)="$event.preventDefault(); navigationService.navigateTo(Pages.SIGN_UP, undefined, next ? { next } : undefined)"
       >Cadastre-se</a>
     </p>
   </form>

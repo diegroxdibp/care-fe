@@ -9,6 +9,13 @@
   background: linear-gradient(180deg, var(--color-surface-tint) 0%, #fff 60%);
 }
 
+// Embedded inside /scheduling/conta: the parent page already draws the
+// gradient and owns the two-column grid, so this component just contributes
+// the card itself — no centering, no padding, no page-shell background.
+:host(.embedded) {
+  background: none;
+}
+
 .page {
   flex: 1;
   display: flex;
@@ -40,6 +47,18 @@ h1 {
 
   @media (min-width: breakpoint.$breakpoint-xs) {
     font-size: 28px !important;
+  }
+}
+
+// Embedded (/scheduling/conta): h2 instead of h1 — the page around it owns
+// the h1 — at the card sizes from that handoff (22px mobile / 24px desktop),
+// not the standalone page's own h1 scale above.
+:host(.embedded) h2 {
+  font-size: 22px !important;
+  margin: 0 0 6px !important;
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    font-size: 24px !important;
   }
 }
 
