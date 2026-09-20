@@ -165,9 +165,13 @@
 
   // Focus must be visible at every breakpoint — unlike :hover (below), which
   // is desktop-only to avoid a "stuck" ring on touch devices after a tap.
+  //
+  // Inset, not outward: this row sits flush against its own .type-content
+  // (no gap between them in .type-row), so an outward ring here bled down
+  // into the open panel below, covering its text and its cyan side-border.
   &:focus-visible {
     outline: 3px solid var(--color-secondary-cyan);
-    outline-offset: 2px;
+    outline-offset: -3px;
     background: rgba(255, 255, 255, 0.06);
   }
 
