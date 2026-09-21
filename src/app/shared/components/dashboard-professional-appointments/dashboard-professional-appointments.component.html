@@ -79,6 +79,12 @@
           </div>
 
           <div class="actions">
+            @if (canJoin(s)) {
+              <button class="btn-join" (click)="joinSession(s)">
+                <span translate="no" class="material-symbols-outlined">videocam</span>
+                Entrar na sessão
+              </button>
+            }
             <button class="btn-message" (click)="openThread(s)">
               <span translate="no" class="material-symbols-outlined">forum</span>
               Mensagem
@@ -193,6 +199,12 @@
                     }
 
                     <div class="panel-actions">
+                      @if (canJoin(s)) {
+                        <button class="btn-join" (click)="joinSession(s)">
+                          <span translate="no" class="material-symbols-outlined">videocam</span>
+                          Entrar na sessão
+                        </button>
+                      }
                       <button class="btn-message" (click)="openThread(s)">
                         <span translate="no" class="material-symbols-outlined">forum</span>
                         Mensagem

@@ -134,6 +134,38 @@ function durationLabel(startTime?: string, endTime?: string): string {
   return `${minutes} minutos`;
 }
 
+const JOIN_WINDOW_BEFORE_MIN = 5;
+const JOIN_WINDOW_AFTER_MIN = 30;
+
+function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
+  if (!session.startTime || !session.endTime) return null;
+  const [sh, sm] = session.startTime.split(':').map(Number);
+  const [eh, em] = session.endTime.split(':').map(Number);
+  const start = new Date(session.date);
+  start.setHours(sh, sm, 0, 0);
+  const end = new Date(session.date);
+  end.setHours(eh, em, 0, 0);
+  // Mesma regra da durationLabel: uma sessão pode atravessar a meia-noite.
+  if (end <= start) end.setDate(end.getDate() + 1);
+  return { start, end };
+}
+
+/**
+ * Se a sessão remota está dentro da janela de entrada da videochamada (5 min
+ * antes até 30 min depois do horário combinado). Só decide se o botão
+ * "Entrar" aparece — quem manda de facto é o backend, que recusa fora da
+ * janela mesmo que este cálculo do lado do cliente esteja desalinhado com o
+ * relógio do servidor.
+ */
+export function canJoinSession(session: BuiltSession, now: Date = new Date()): boolean {
+  if (session.mode !== 'Remoto') return false;
+  const bounds = sessionBounds(session);
+  if (!bounds) return false;
+  const opensAt = new Date(bounds.start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60_000);
+  const closesAt = new Date(bounds.end.getTime() + JOIN_WINDOW_AFTER_MIN * 60_000);
+  return now >= opensAt && now <= closesAt;
+}
+
 /** Moeda de quem vê a lista apenas — nunca mostra as duas. undefined ⇒ "a combinar". */
 function priceLabel(appt: Appointment, currency: Currency): string | undefined {
   const amount = currency === Currency.BRL ? appt.priceBRL : appt.price;

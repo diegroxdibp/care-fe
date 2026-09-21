@@ -37,6 +37,7 @@ import {
   BuiltSession as DashSession,
   SessionCounterpart as DashSessionProfessional,
   buildSessions,
+  canJoinSession,
   toDateKey,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
@@ -491,6 +492,14 @@ export class DashboardPageComponent implements OnInit {
       next: (appts) => this.appointments.set(appts),
       error: () => {},
     });
+  }
+
+  canJoin(session: DashSession): boolean {
+    return canJoinSession(session);
+  }
+
+  joinSession(session: DashSession): void {
+    this.router.navigate(['/appointments', session.appointmentId, 'room']);
   }
 
   openThread(session: DashSession): void {

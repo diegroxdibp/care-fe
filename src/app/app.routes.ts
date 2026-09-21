@@ -256,6 +256,16 @@ export const routes: Routes = [
             (m) => m.AvailabilityComponent,
           ),
       },
+
+      // Fora da shell do dashboard de propósito: a chamada de vídeo precisa do
+      // ecrã inteiro, sem o menu/sidebar a competir com o layout da sala.
+      {
+        path: Pages.APPOINTMENT_ROOM,
+        loadComponent: () =>
+          import('./pages/appointment-room/appointment-room.component').then(
+            (m) => m.AppointmentRoomComponent,
+          ),
+      },
     ],
   },
 

@@ -34,6 +34,7 @@ import { PatientSummary } from '../../shared/models/patient.model';
 import { RecurringProposalPayload } from '../../shared/models/recurring-proposal-payload.model';
 import { ReschedulePayload } from '../../shared/models/reschedule-payload.model';
 import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
+import { VideoSession } from '../../shared/models/video-session.model';
 
 @Injectable({
   providedIn: 'root',
@@ -241,6 +242,13 @@ export class ApiService {
     return this.http.patch<Appointment>(
       `${environment.apiUrl}/api/appointments/${id}/notes`,
       { notes },
+      { withCredentials: true },
+    );
+  }
+
+  getVideoSession(appointmentId: number): Observable<VideoSession> {
+    return this.http.get<VideoSession>(
+      `${environment.apiUrl}/api/appointments/${appointmentId}/video-session`,
       { withCredentials: true },
     );
   }

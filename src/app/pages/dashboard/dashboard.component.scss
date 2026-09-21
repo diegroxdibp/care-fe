@@ -548,6 +548,26 @@
   }
 }
 
+.btn-join {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-primary-blue);
+  border: 1px solid var(--color-primary-blue);
+  border-radius: var(--radius-lg);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-white);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--dur-fast);
+
+  span.material-symbols-outlined { font-size: 17px; }
+  &:hover { opacity: 0.88; }
+}
+
 .btn-cancel {
   background: none;
   border: none;
@@ -954,7 +974,7 @@
     padding-right: 0;
 
     .tt { width: 100%; }
-    .btn-reschedule, .btn-cancel { width: 100%; justify-content: center; }
+    .btn-reschedule, .btn-cancel, .btn-join { width: 100%; justify-content: center; }
   }
 }
 

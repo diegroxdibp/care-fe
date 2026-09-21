@@ -160,6 +160,12 @@
 
               <!-- Actions -->
               <div class="actions">
+                @if (canJoin(s)) {
+                  <button class="btn-join" (click)="joinSession(s)">
+                    <span translate="no" class="material-symbols-outlined">videocam</span>
+                    Entrar na sessão
+                  </button>
+                }
                 <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível reagendar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                   <button class="btn-reschedule" [disabled]="!canModifySession(s)" (click)="rescheduleSession(s)">
                     <span translate="no" class="material-symbols-outlined">event_repeat</span>
@@ -367,6 +373,12 @@
                         }
 
                         <div class="panel-actions">
+                          @if (canJoin(s)) {
+                            <button class="btn-join" (click)="joinSession(s)">
+                              <span translate="no" class="material-symbols-outlined">videocam</span>
+                              Entrar na sessão
+                            </button>
+                          }
                           <span class="tt" [class.tt-disabled]="!canModifySession(s)" [attr.tabindex]="!canModifySession(s) ? 0 : null" (mouseenter)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (focusin)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (click)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (pointerdown)="!canModifySession(s) && onTooltipReveal($event, 'Só é possível cancelar até 24 h antes da sessão.')" (mouseleave)="onTooltipHide()" (focusout)="onTooltipHide()">
                             <button class="btn-cancel" [disabled]="!canModifySession(s)" (click)="cancelSession(s)">Cancelar sessão</button>
                           </span>

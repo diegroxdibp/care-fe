@@ -1,0 +1,114 @@
+<div class="room">
+
+  @switch (state()) {
+
+    @case ('loading') {
+      <div class="status-screen">
+        <div class="spinner"></div>
+        <p>A ligar à sala...</p>
+      </div>
+    }
+
+    @case ('not-available') {
+      <div class="status-screen">
+        <span translate="no" class="material-symbols-outlined status-icon">videocam_off</span>
+        <p>{{ errorMessage() }}</p>
+        <div class="status-actions">
+          <button class="btn-primary" (click)="retry()">Tentar novamente</button>
+          <button class="btn-ghost" (click)="leave()">Voltar ao painel</button>
+        </div>
+      </div>
+    }
+
+    @case ('ended') {
+      <div class="status-screen">
+        <span translate="no" class="material-symbols-outlined status-icon">call_end</span>
+        <p>A sessão terminou.</p>
+        <button class="btn-primary" (click)="leave()">Voltar ao painel</button>
+      </div>
+    }
+
+    @case ('in-call') {
+      <header class="room-header">
+        <div class="room-title">
+          <span translate="no" class="material-symbols-outlined">videocam</span>
+          {{ counterpartName() ? 'Sessão com ' + counterpartName() : 'Sessão por videochamada' }}
+        </div>
+      </header>
+
+      <div class="stage" [class.chat-open]="chatOpen()">
+        <div class="tiles" [class.single]="tiles().length <= 1">
+          @for (tile of tiles(); track tile.sessionId) {
+            <div class="tile" [class.local]="tile.isLocal">
+              <video
+                [appMediaStream]="tile.stream"
+                autoplay
+                playsinline
+                [muted]="tile.isLocal"
+              ></video>
+              @if (!tile.camOn) {
+                <div class="tile-avatar">
+                  <span translate="no" class="material-symbols-outlined">person</span>
+                </div>
+              }
+              <div class="tile-label">
+                @if (!tile.micOn) {
+                  <span translate="no" class="material-symbols-outlined mic-off">mic_off</span>
+                }
+                {{ tile.name }}
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (chatOpen()) {
+          <aside class="chat-panel">
+            <div class="chat-header">
+              <span>Conversa</span>
+              <button class="chat-close" (click)="toggleChat()" aria-label="Fechar conversa">
+                <span translate="no" class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="chat-messages">
+              @for (m of messages(); track $index) {
+                <div class="chat-message" [class.mine]="m.mine">
+                  <div class="chat-from">{{ m.from }}</div>
+                  <div class="chat-text">{{ m.text }}</div>
+                </div>
+              } @empty {
+                <p class="chat-empty">Sem mensagens ainda.</p>
+              }
+            </div>
+            <div class="chat-input-row">
+              <input
+                #chatInputEl
+                type="text"
+                placeholder="Escrever mensagem..."
+                (keydown.enter)="sendChat(chatInputEl)"
+              />
+              <button (click)="sendChat(chatInputEl)" aria-label="Enviar">
+                <span translate="no" class="material-symbols-outlined">send</span>
+              </button>
+            </div>
+          </aside>
+        }
+      </div>
+
+      <div class="controls">
+        <button class="ctrl" [class.off]="!micOn()" (click)="toggleMic()" [attr.aria-label]="micOn() ? 'Desligar microfone' : 'Ligar microfone'">
+          <span translate="no" class="material-symbols-outlined">{{ micOn() ? 'mic' : 'mic_off' }}</span>
+        </button>
+        <button class="ctrl" [class.off]="!camOn()" (click)="toggleCam()" [attr.aria-label]="camOn() ? 'Desligar câmara' : 'Ligar câmara'">
+          <span translate="no" class="material-symbols-outlined">{{ camOn() ? 'videocam' : 'videocam_off' }}</span>
+        </button>
+        <button class="ctrl" [class.active]="chatOpen()" (click)="toggleChat()" aria-label="Conversa">
+          <span translate="no" class="material-symbols-outlined">chat</span>
+        </button>
+        <button class="ctrl leave" (click)="leave()" aria-label="Sair da sessão">
+          <span translate="no" class="material-symbols-outlined">call_end</span>
+        </button>
+      </div>
+    }
+  }
+
+</div>

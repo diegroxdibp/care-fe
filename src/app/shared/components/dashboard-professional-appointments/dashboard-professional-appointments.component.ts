@@ -9,7 +9,7 @@ import { Appointment } from '../../models/appointment.model';
 import { ProfessionalService } from '../../models/professional-service.model';
 import { PatientSummary } from '../../models/patient.model';
 import { Currency } from '../../enums/currency.enum';
-import { BuiltSession, buildSessions } from '../../utils/session-list.util';
+import { BuiltSession, buildSessions, canJoinSession } from '../../utils/session-list.util';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 
 const ALL_CLIENTS_VALUE = '';
@@ -145,6 +145,14 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
+  }
+
+  canJoin(session: BuiltSession): boolean {
+    return canJoinSession(session);
+  }
+
+  joinSession(session: BuiltSession): void {
+    this.router.navigate(['/appointments', session.appointmentId, 'room']);
   }
 
   openThread(session: BuiltSession): void {
