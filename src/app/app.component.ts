@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   NavigationCancel,
   NavigationEnd,
@@ -37,6 +37,11 @@ export class AppComponent {
   private readonly messageService = inject(MessageService);
   private readonly sessionService = inject(SessionService);
 
+  private readonly currentUrl = signal(this.router.url);
+
+  /** A chamada de vídeo é de ecrã inteiro de propósito - o header fixo (e o menu nele) só lhe ficava por cima. */
+  readonly hideChrome = computed(() => /^\/appointments\/\d+\/room(\/|$)/.test(this.currentUrl()));
+
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
@@ -49,6 +54,10 @@ export class AppComponent {
         event instanceof NavigationError
       ) {
         this.loader.setRouteLoading(false);
+      }
+
+      if (event instanceof NavigationEnd) {
+        this.currentUrl.set(event.urlAfterRedirects);
       }
     });
 

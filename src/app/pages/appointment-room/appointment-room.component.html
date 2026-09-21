@@ -37,26 +37,68 @@
       </header>
 
       <div class="stage" [class.chat-open]="chatOpen()">
-        <div class="tiles" [class.single]="tiles().length <= 1">
-          @for (tile of tiles(); track tile.sessionId) {
-            <div class="tile" [class.local]="tile.isLocal">
+        <div class="tiles">
+          @if (mainTile(); as main) {
+            <div
+              class="tile main"
+              [class.local]="main.isLocal"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Focar ' + main.name"
+              (click)="focusTile(main.sessionId)"
+              (keydown.enter)="focusTile(main.sessionId)"
+            >
               <video
-                [appMediaStream]="tile.stream"
+                [appMediaStream]="main.stream"
                 autoplay
                 playsinline
-                [muted]="tile.isLocal"
+                [muted]="main.isLocal"
               ></video>
-              @if (!tile.camOn) {
+              @if (!main.camOn) {
                 <div class="tile-avatar">
                   <span translate="no" class="material-symbols-outlined">person</span>
                 </div>
               }
               <div class="tile-label">
-                @if (!tile.micOn) {
+                @if (!main.micOn) {
                   <span translate="no" class="material-symbols-outlined mic-off">mic_off</span>
                 }
-                {{ tile.name }}
+                {{ main.name }}
               </div>
+            </div>
+          }
+
+          @if (thumbnailTiles().length) {
+            <div class="thumb-strip">
+              @for (tile of thumbnailTiles(); track tile.sessionId) {
+                <div
+                  class="tile thumb"
+                  [class.local]="tile.isLocal"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="'Focar ' + tile.name"
+                  (click)="focusTile(tile.sessionId)"
+                  (keydown.enter)="focusTile(tile.sessionId)"
+                >
+                  <video
+                    [appMediaStream]="tile.stream"
+                    autoplay
+                    playsinline
+                    [muted]="tile.isLocal"
+                  ></video>
+                  @if (!tile.camOn) {
+                    <div class="tile-avatar">
+                      <span translate="no" class="material-symbols-outlined">person</span>
+                    </div>
+                  }
+                  <div class="tile-label">
+                    @if (!tile.micOn) {
+                      <span translate="no" class="material-symbols-outlined mic-off">mic_off</span>
+                    }
+                    {{ tile.name }}
+                  </div>
+                </div>
+              }
             </div>
           }
         </div>
@@ -103,6 +145,9 @@
         </button>
         <button class="ctrl" [class.active]="chatOpen()" (click)="toggleChat()" aria-label="Conversa">
           <span translate="no" class="material-symbols-outlined">chat</span>
+        </button>
+        <button class="ctrl" [class.active]="isFullscreen()" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Sair do ecrã inteiro' : 'Ecrã inteiro'">
+          <span translate="no" class="material-symbols-outlined">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
         </button>
         <button class="ctrl leave" (click)="leave()" aria-label="Sair da sessão">
           <span translate="no" class="material-symbols-outlined">call_end</span>

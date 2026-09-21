@@ -1,7 +1,9 @@
 import {
   Component,
+  computed,
   Directive,
   ElementRef,
+  HostListener,
   inject,
   Input,
   OnChanges,
@@ -81,6 +83,7 @@ export class AppointmentRoomComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
   private readonly sessionService = inject(SessionService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
   private readonly appointmentId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -93,6 +96,32 @@ export class AppointmentRoomComponent implements OnInit, OnDestroy {
   readonly camOn = signal(true);
   readonly chatOpen = signal(false);
   readonly messages = signal<ChatMessage[]>([]);
+  readonly isFullscreen = signal(false);
+
+  /** Sessão escolhida para ocupar o palco principal - null usa o critério por omissão. */
+  private readonly focusedSessionId = signal<string | null>(null);
+
+  /**
+   * Tile em destaque: a escolhida manualmente, ou por omissão a primeira
+   * pessoa remota - é o próprio profissional a ficar a ocupar metade do
+   * ecrã por omissão que se estava a queixar, não faz sentido a câmara
+   * própria começar em destaque quando há outra pessoa na sala.
+   */
+  readonly mainTile = computed<VideoTile | null>(() => {
+    const list = this.tiles();
+    if (!list.length) return null;
+    const focused = this.focusedSessionId();
+    return (
+      list.find((t) => t.sessionId === focused) ??
+      list.find((t) => !t.isLocal) ??
+      list[0]
+    );
+  });
+
+  readonly thumbnailTiles = computed<VideoTile[]>(() => {
+    const main = this.mainTile();
+    return this.tiles().filter((t) => t !== main);
+  });
 
   private call: DailyCall | null = null;
   private readonly streamsBySessionId = new Map<string, MediaStream>();
@@ -111,6 +140,23 @@ export class AppointmentRoomComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.teardown();
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    this.isFullscreen.set(document.fullscreenElement === this.hostEl.nativeElement);
+  }
+
+  focusTile(sessionId: string): void {
+    this.focusedSessionId.update((cur) => (cur === sessionId ? null : sessionId));
+  }
+
+  toggleFullscreen(): void {
+    if (!document.fullscreenElement) {
+      this.hostEl.nativeElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
   }
 
   private loadCounterpartName(): void {
@@ -257,6 +303,9 @@ export class AppointmentRoomComponent implements OnInit, OnDestroy {
   }
 
   private teardown(): void {
+    if (document.fullscreenElement === this.hostEl.nativeElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     if (this.autoLeaveTimer) {
       clearTimeout(this.autoLeaveTimer);
       this.autoLeaveTimer = null;
