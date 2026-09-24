@@ -137,7 +137,8 @@ function durationLabel(startTime?: string, endTime?: string): string {
 const JOIN_WINDOW_BEFORE_MIN = 5;
 const JOIN_WINDOW_AFTER_MIN = 30;
 
-function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
+/** Início/fim reais (data + hora) de uma ocorrência — null quando não há horas (não devia acontecer numa sessão marcada). */
+export function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
   if (!session.startTime || !session.endTime) return null;
   const [sh, sm] = session.startTime.split(':').map(Number);
   const [eh, em] = session.endTime.split(':').map(Number);
@@ -164,6 +165,23 @@ export function canJoinSession(session: BuiltSession, now: Date = new Date()): b
   const opensAt = new Date(bounds.start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60_000);
   const closesAt = new Date(bounds.end.getTime() + JOIN_WINDOW_AFTER_MIN * 60_000);
   return now >= opensAt && now <= closesAt;
+}
+
+/**
+ * Se a sessão ainda não acabou — a decorrer ou totalmente por vir. Usado
+ * para escolher "a próxima sessão": comparar só a data (sem hora) fazia uma
+ * sessão de hoje já terminada há horas continuar a "contar" como candidata,
+ * e como a lista não desempatava por hora dentro do mesmo dia, a "próxima"
+ * podia sair como a última do dia em vez da seguinte de facto.
+ */
+export function isUpcomingOrOngoing(session: BuiltSession, now: Date = new Date()): boolean {
+  const bounds = sessionBounds(session);
+  if (!bounds) {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    return session.date >= today;
+  }
+  return bounds.end > now;
 }
 
 /** Moeda de quem vê a lista apenas — nunca mostra as duas. undefined ⇒ "a combinar". */
@@ -309,5 +327,9 @@ export function buildSessions(
     }
   }
 
-  return sessions.sort((a, b) => a.date.getTime() - b.date.getTime());
+  // Por instante real (data + hora), não só por dia — senão sessões do mesmo
+  // dia ficavam na ordem em que calharam de entrar na lista, não pela hora.
+  return sessions.sort((a, b) =>
+    (sessionBounds(a)?.start.getTime() ?? a.date.getTime())
+    - (sessionBounds(b)?.start.getTime() ?? b.date.getTime()));
 }

@@ -1,0 +1,103 @@
+<div class="dialog" mat-dialog-content>
+  <h3>Nova sala</h3>
+  <p class="sub">Crie uma sala de videochamada avulsa e partilhe o link com quem precisar.</p>
+
+  <label class="field-label" for="room-name">Nome da sala (opcional)</label>
+  <input
+    id="room-name"
+    class="text-field"
+    type="text"
+    maxlength="200"
+    placeholder="Ex.: Supervisão de equipa"
+    [value]="name()"
+    (input)="name.set($any($event.target).value)"
+  />
+
+  <label class="field-label">Quando fica disponível</label>
+  <div class="segmented">
+    <button type="button" [class.on]="startsNow()" (click)="startsNow.set(true)">Agora</button>
+    <button type="button" [class.on]="!startsNow()" (click)="startsNow.set(false)">Agendar</button>
+  </div>
+
+  @if (!startsNow()) {
+    <div class="schedule-row">
+      <input
+        type="date"
+        class="text-field"
+        [min]="minDate"
+        [value]="scheduledDate()"
+        (input)="scheduledDate.set($any($event.target).value)"
+      />
+      <input
+        type="time"
+        class="text-field"
+        [value]="scheduledTime()"
+        (input)="scheduledTime.set($any($event.target).value)"
+      />
+    </div>
+  }
+
+  <label class="field-label">Duração</label>
+  <div class="segmented">
+    @for (p of presets; track p.minutes) {
+      <button type="button" [class.on]="durationMinutes() === p.minutes" (click)="setPreset(p.minutes)">
+        {{ p.label }}
+      </button>
+    }
+  </div>
+  <div class="custom-duration">
+    <span>Ou personalizada:</span>
+    <input
+      type="number"
+      class="text-field small"
+      min="5"
+      max="480"
+      [value]="durationMinutes()"
+      (input)="durationMinutes.set(+$any($event.target).value)"
+    />
+    <span>minutos</span>
+  </div>
+
+  <label class="field-label">Quem pode entrar</label>
+  <div class="segmented">
+    <button type="button" [class.on]="accessMode() === 'SPECIFIC_USERS'" (click)="accessMode.set('SPECIFIC_USERS')">
+      <span translate="no" class="material-symbols-outlined">group</span>
+      Pessoas específicas
+    </button>
+    <button type="button" [class.on]="accessMode() === 'ANYONE_WITH_LINK'" (click)="accessMode.set('ANYONE_WITH_LINK')">
+      <span translate="no" class="material-symbols-outlined">link</span>
+      Qualquer pessoa com o link
+    </button>
+  </div>
+
+  @if (accessMode() === 'SPECIFIC_USERS') {
+    <app-user-search-picker
+      [selected]="allowedUsers()"
+      (selectedChange)="setAllowedUsers($event)"
+    />
+  } @else {
+    <p class="hint">
+      Qualquer pessoa com sessão iniciada na Care e o link da sala pode entrar, sem precisar de convite.
+    </p>
+  }
+
+  <label class="checkbox-row">
+    <input type="checkbox" [checked]="limitParticipants()" (change)="limitParticipants.set($any($event.target).checked)" />
+    Limitar número de participantes
+  </label>
+  @if (limitParticipants()) {
+    <input
+      type="number"
+      class="text-field small"
+      min="2"
+      max="50"
+      [value]="maxParticipants()"
+      (input)="maxParticipants.set(+$any($event.target).value)"
+    />
+  }
+
+  <div class="btns">
+    <button class="btn-ghost" (click)="cancel()">Cancelar</button>
+    <button class="btn-primary" [disabled]="!canSubmit()" (click)="submit()">Criar sala</button>
+  </div>
+</div>

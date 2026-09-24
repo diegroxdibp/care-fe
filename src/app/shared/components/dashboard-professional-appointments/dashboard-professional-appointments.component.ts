@@ -9,7 +9,7 @@ import { Appointment } from '../../models/appointment.model';
 import { ProfessionalService } from '../../models/professional-service.model';
 import { PatientSummary } from '../../models/patient.model';
 import { Currency } from '../../enums/currency.enum';
-import { BuiltSession, buildSessions, canJoinSession } from '../../utils/session-list.util';
+import { BuiltSession, buildSessions, canJoinSession, isUpcomingOrOngoing } from '../../utils/session-list.util';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 
 const ALL_CLIENTS_VALUE = '';
@@ -61,9 +61,8 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
   );
 
   readonly nextSession = computed(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return this.sessions().find(s => s.date >= today) ?? null;
+    const now = new Date();
+    return this.sessions().find(s => isUpcomingOrOngoing(s, now)) ?? null;
   });
 
   readonly upcomingSessions = computed(() => {

@@ -35,6 +35,7 @@ import { RecurringProposalPayload } from '../../shared/models/recurring-proposal
 import { ReschedulePayload } from '../../shared/models/reschedule-payload.model';
 import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
 import { VideoSession } from '../../shared/models/video-session.model';
+import { CreateRoomPayload, Room, RoomAllowedUser } from '../../shared/models/room.model';
 
 @Injectable({
   providedIn: 'root',
@@ -250,6 +251,42 @@ export class ApiService {
     return this.http.get<VideoSession>(
       `${environment.apiUrl}/api/appointments/${appointmentId}/video-session`,
       { withCredentials: true },
+    );
+  }
+
+  createRoom(payload: CreateRoomPayload): Observable<Room> {
+    return this.http.post<Room>(
+      `${environment.apiUrl}/api/rooms`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  getMyRooms(): Observable<Room[]> {
+    return this.http.get<Room[]>(
+      `${environment.apiUrl}/api/rooms/mine`,
+      { withCredentials: true },
+    );
+  }
+
+  deleteRoom(id: number): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/api/rooms/${id}`,
+      { withCredentials: true },
+    );
+  }
+
+  getRoomVideoSession(id: number): Observable<VideoSession> {
+    return this.http.get<VideoSession>(
+      `${environment.apiUrl}/api/rooms/${id}/video-session`,
+      { withCredentials: true },
+    );
+  }
+
+  searchUsers(query: string): Observable<RoomAllowedUser[]> {
+    return this.http.get<RoomAllowedUser[]>(
+      `${environment.apiUrl}/api/user/search`,
+      { withCredentials: true, params: { q: query } },
     );
   }
 

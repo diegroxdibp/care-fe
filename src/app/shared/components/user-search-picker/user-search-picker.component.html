@@ -1,0 +1,54 @@
+<div class="picker">
+  @if (selected.length) {
+    <div class="chips">
+      @for (u of selected; track u.id) {
+        <span class="chip">
+          @if (u.picture) {
+            <img [src]="u.picture" alt="" class="chip-avatar" />
+          } @else {
+            <span class="chip-avatar chip-initials">{{ initials(u.name) }}</span>
+          }
+          {{ u.name }}
+          <button type="button" class="chip-remove" (click)="remove(u)" [attr.aria-label]="'Remover ' + u.name">
+            <span translate="no" class="material-symbols-outlined">close</span>
+          </button>
+        </span>
+      }
+    </div>
+  }
+
+  <div class="search-wrap" (mousedown)="$event.stopPropagation()">
+    <span translate="no" class="material-symbols-outlined search-icon">search</span>
+    <input
+      type="text"
+      placeholder="Pesquisar por nome ou email..."
+      [value]="query()"
+      (input)="onInput($any($event.target).value)"
+      (focus)="open.set(true)"
+    />
+
+    @if (open() && query().trim().length >= 2) {
+      <div class="results">
+        @if (loading()) {
+          <p class="results-hint">A pesquisar...</p>
+        } @else if (results().length === 0) {
+          <p class="results-hint">Sem resultados.</p>
+        } @else {
+          @for (u of results(); track u.id) {
+            <button type="button" class="result" (click)="pick(u)">
+              @if (u.picture) {
+                <img [src]="u.picture" alt="" class="result-avatar" />
+              } @else {
+                <span class="result-avatar result-initials">{{ initials(u.name) }}</span>
+              }
+              <span class="result-body">
+                <span class="result-name">{{ u.name }}</span>
+                <span class="result-email">{{ u.email }}</span>
+              </span>
+            </button>
+          }
+        }
+      </div>
+    }
+  </div>
+</div>

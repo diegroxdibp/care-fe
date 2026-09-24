@@ -226,6 +226,16 @@ export const routes: Routes = [
                 './shared/components/dashboard-professional-appointments/dashboard-professional-appointments.component'
               ).then((m) => m.DashboardProfessionalAppointmentsComponent),
           },
+
+          {
+            // Ferramenta de quem atende, mesma restrição de papel — ver RoomController no backend.
+            path: 'salas',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/dashboard-salas/dashboard-salas.component'
+              ).then((m) => m.DashboardSalasComponent),
+          },
         ],
       },
 
@@ -264,6 +274,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/appointment-room/appointment-room.component').then(
             (m) => m.AppointmentRoomComponent,
+          ),
+      },
+
+      // Sem canMatch por role de propósito: quem entra por convite pode ser
+      // uma pessoa cliente — getVideoSession autoriza por sala, não por papel.
+      {
+        path: Pages.ROOM_JOIN,
+        loadComponent: () =>
+          import('./pages/room-join/room-join.component').then(
+            (m) => m.RoomJoinComponent,
           ),
       },
     ],

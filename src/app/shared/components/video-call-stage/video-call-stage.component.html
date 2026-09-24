@@ -32,7 +32,7 @@
       <header class="room-header">
         <div class="room-title">
           <span translate="no" class="material-symbols-outlined">videocam</span>
-          {{ counterpartName() ? 'Sessão com ' + counterpartName() : 'Sessão por videochamada' }}
+          {{ title ?? 'Sessão por videochamada' }}
         </div>
       </header>
 

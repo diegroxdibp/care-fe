@@ -1,0 +1,73 @@
+<div class="panel">
+
+  <div class="hero">
+    <div class="hero-text">
+      <span class="hero-eyebrow">
+        <span translate="no" class="material-symbols-outlined">auto_awesome</span>
+        Ferramenta premium
+      </span>
+      <h2>Salas de videochamada</h2>
+      <p>Crie uma sala avulsa em segundos: escolha quando abre, por quanto tempo fica disponível e quem pode entrar.</p>
+    </div>
+    <button class="btn-create" (click)="openCreateDialog()">
+      <span translate="no" class="material-symbols-outlined">add</span>
+      Nova sala
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="empty-card">
+      <p>A carregar...</p>
+    </div>
+  } @else if (rooms().length === 0) {
+    <div class="empty-card">
+      <span translate="no" class="material-symbols-outlined empty-icon">meeting_room</span>
+      <p>Ainda não criou nenhuma sala.</p>
+    </div>
+  } @else {
+    <div class="room-grid">
+      @for (room of rooms(); track room.id) {
+        <div class="room-card" [class.expired]="statusOf(room) === 'expirada'">
+          <div class="room-card-top">
+            <span class="status-chip" [class]="'status-' + statusOf(room)">{{ statusLabel(statusOf(room)) }}</span>
+            <button class="icon-btn danger" (click)="deleteRoom(room)" aria-label="Apagar sala">
+              <span translate="no" class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+
+          <h3>{{ room.name || 'Sala sem nome' }}</h3>
+          <p class="window">{{ formatWindow(room) }}</p>
+
+          <div class="meta-row">
+            <span class="meta">
+              <span translate="no" class="material-symbols-outlined">
+                {{ room.accessMode === 'ANYONE_WITH_LINK' ? 'link' : 'group' }}
+              </span>
+              {{ accessLabel(room) }}
+            </span>
+            @if (room.maxParticipants) {
+              <span class="meta">
+                <span translate="no" class="material-symbols-outlined">groups</span>
+                Até {{ room.maxParticipants }} pessoas
+              </span>
+            }
+          </div>
+
+          @if (room.accessMode === 'SPECIFIC_USERS' && room.allowedUsers.length) {
+            <div class="invitees">
+              @for (u of room.allowedUsers; track u.id) {
+                <span class="invitee-pill">{{ u.name }}</span>
+              }
+            </div>
+          }
+
+          <button class="btn-copy" (click)="copyLink(room)">
+            <span translate="no" class="material-symbols-outlined">content_copy</span>
+            Copiar link
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+</div>

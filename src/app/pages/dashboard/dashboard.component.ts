@@ -38,6 +38,7 @@ import {
   SessionCounterpart as DashSessionProfessional,
   buildSessions,
   canJoinSession,
+  isUpcomingOrOngoing,
   toDateKey,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
@@ -164,9 +165,8 @@ export class DashboardPageComponent implements OnInit {
    * a próxima, o que enganava quem já não tem nada agendado.
    */
   readonly nextSession = computed(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return this.sessions().find(s => s.date >= today) ?? null;
+    const now = new Date();
+    return this.sessions().find(s => isUpcomingOrOngoing(s, now)) ?? null;
   });
 
   /** Verdadeiro quando existe alguma sessão além da de destaque. */

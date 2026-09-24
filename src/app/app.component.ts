@@ -40,7 +40,7 @@ export class AppComponent {
   private readonly currentUrl = signal(this.router.url);
 
   /** A chamada de vídeo é de ecrã inteiro de propósito - o header fixo (e o menu nele) só lhe ficava por cima. */
-  readonly hideChrome = computed(() => /^\/appointments\/\d+\/room(\/|$)/.test(this.currentUrl()));
+  readonly hideChrome = computed(() => /^\/(appointments|rooms)\/\d+\/room(\/|$)/.test(this.currentUrl()));
 
   constructor() {
     this.router.events.subscribe((event) => {
