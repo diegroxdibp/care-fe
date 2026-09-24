@@ -107,16 +107,6 @@
       &:hover { background: none; color: var(--fg-3); }
     }
 
-    /* Sinaliza "Salas" como a ferramenta premium, sem inventar cor nova — só o gradiente da marca aplicado ao ícone. */
-    &.sidebar-link-premium span.material-symbols-outlined {
-      background: linear-gradient(135deg, var(--color-primary-blue), var(--color-primary-purple));
-      color: var(--color-white);
-      border-radius: var(--radius-sm);
-      padding: 3px;
-      font-size: 16px;
-      box-sizing: content-box;
-    }
-
     &.logout-link {
       color: var(--fg-3);
       &:hover { color: var(--fg-1); background: var(--color-surface-tint); }

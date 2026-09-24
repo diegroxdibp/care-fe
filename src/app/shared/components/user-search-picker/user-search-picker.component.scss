@@ -90,10 +90,20 @@ input {
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-floating);
+  filter: var(--shadow-floating);
   max-height: 260px;
   overflow-y: auto;
   padding: 6px;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-blue) transparent;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-primary-blue);
+    border-radius: var(--radius-pill);
+  }
 }
 
 .results-hint {

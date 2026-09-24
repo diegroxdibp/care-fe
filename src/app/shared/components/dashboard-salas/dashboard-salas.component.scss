@@ -16,6 +16,17 @@
   padding: 24px;
   gap: 24px;
   box-sizing: border-box;
+
+  // Mesma barra fina do resto da app (ver .care-dialog .mdc-dialog__surface em styles.scss).
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-blue) transparent;
+
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-primary-blue);
+    border-radius: var(--radius-pill);
+  }
 }
 
 /* ── Hero premium: mesma paleta da marca, sem cor nova ── */

@@ -1,4 +1,4 @@
-<div class="dialog" mat-dialog-content>
+<div class="dialog">
   <h3>Nova sala</h3>
   <p class="sub">Crie uma sala de videochamada avulsa e partilhe o link com quem precisar.</p>
 
@@ -13,31 +13,76 @@
     (input)="name.set($any($event.target).value)"
   />
 
-  <label class="field-label">Quando fica disponível</label>
+  <label class="control-label">Quando fica disponível</label>
   <div class="segmented">
     <button type="button" [class.on]="startsNow()" (click)="startsNow.set(true)">Agora</button>
     <button type="button" [class.on]="!startsNow()" (click)="startsNow.set(false)">Agendar</button>
   </div>
 
   @if (!startsNow()) {
-    <div class="schedule-row">
-      <input
-        type="date"
-        class="text-field"
-        [min]="minDate"
-        [value]="scheduledDate()"
-        (input)="scheduledDate.set($any($event.target).value)"
-      />
-      <input
-        type="time"
-        class="text-field"
-        [value]="scheduledTime()"
-        (input)="scheduledTime.set($any($event.target).value)"
-      />
+    <div class="field-wrap" (mousedown)="$event.stopPropagation()">
+      <button type="button" class="field date-field" [class.open]="calOpen()" (mousedown)="toggleCalendar()">
+        <div class="field-inner">
+          <span class="field-label">Data</span>
+          <span class="field-value" [class.placeholder]="!scheduledDate()">
+            {{ scheduledDate() ? fmtDate(scheduledDate()) : 'dd/mm/aaaa' }}
+          </span>
+        </div>
+        <span translate="no" class="material-symbols-outlined field-icon">calendar_today</span>
+      </button>
+
+      @if (calOpen()) {
+        <div class="calendar-popover">
+          <div class="cal-header">
+            <button type="button" class="cal-nav" (click)="prevMonth()">
+              <span translate="no" class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <span class="cal-month-label">{{ monthLabel() }}</span>
+            <button type="button" class="cal-nav" (click)="nextMonth()">
+              <span translate="no" class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+
+          <div class="cal-weekdays">
+            @for (wd of weekdays; track $index) {
+              <span class="cal-wd">{{ wd }}</span>
+            }
+          </div>
+
+          <div class="cal-grid">
+            @for (cell of calendarDays(); track cell.key) {
+              <button
+                type="button"
+                class="cal-day"
+                [class.other-month]="!cell.inMonth"
+                [class.today]="isToday(cell.date)"
+                [class.selected]="scheduledDate() === cell.key"
+                [disabled]="isPast(cell.date) || !cell.inMonth"
+                (click)="selectDate(cell.key)"
+              >
+                {{ cell.date.getDate() }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="time-field">
+      <span class="field-label">Hora</span>
+      <div class="time-value">
+        <span translate="no" class="material-symbols-outlined">schedule</span>
+        <app-styled-select
+          inputId="room-scheduled-time"
+          [options]="timeOptions"
+          [value]="scheduledTime()"
+          (valueChange)="scheduledTime.set($event)"
+        />
+      </div>
     </div>
   }
 
-  <label class="field-label">Duração</label>
+  <label class="control-label">Duração</label>
   <div class="segmented">
     @for (p of presets; track p.minutes) {
       <button type="button" [class.on]="durationMinutes() === p.minutes" (click)="setPreset(p.minutes)">
@@ -58,7 +103,7 @@
     <span>minutos</span>
   </div>
 
-  <label class="field-label">Quem pode entrar</label>
+  <label class="control-label">Quem pode entrar</label>
   <div class="segmented">
     <button type="button" [class.on]="accessMode() === 'SPECIFIC_USERS'" (click)="accessMode.set('SPECIFIC_USERS')">
       <span translate="no" class="material-symbols-outlined">group</span>
@@ -90,10 +135,11 @@
       type="number"
       class="text-field small"
       min="2"
-      max="50"
+      [max]="maxParticipantsCap"
       [value]="maxParticipants()"
       (input)="maxParticipants.set(+$any($event.target).value)"
     />
+    <p class="hint compact">Máximo de {{ maxParticipantsCap }} pessoas por sala.</p>
   }
 
   <div class="btns">
