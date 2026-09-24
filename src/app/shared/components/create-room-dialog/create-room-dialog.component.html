@@ -100,6 +100,7 @@
     <input
       type="number"
       class="text-field small"
+      [class.has-error]="durationMinutes() < 5"
       min="5"
       max="480"
       [value]="durationMinutes()"
@@ -107,6 +108,9 @@
     />
     <span>minutos</span>
   </div>
+  @if (durationMinutes() < 5) {
+    <span class="field-error">A duração mínima é de 5 minutos.</span>
+  }
 
   <label class="control-label">Quem pode entrar</label>
   <div class="segmented">

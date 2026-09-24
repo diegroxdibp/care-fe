@@ -221,9 +221,21 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: -8px 0 18px;
+  margin: -8px 0 8px;
   font-size: 13px;
   color: var(--color-muted);
+}
+
+.field-error {
+  display: block;
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #c0392b;
+}
+
+.text-field.has-error {
+  border-color: #c0392b;
 }
 
 .hint {
