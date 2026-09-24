@@ -170,6 +170,12 @@ export class CreateRoomDialogComponent {
     this.durationMinutes.set(minutes);
   }
 
+  // Não limitamos o mínimo aqui para não impedir o aviso de "duração mínima" -
+  // só o máximo é imposto, já que não há aviso equivalente para ultrapassar as 8h.
+  setCustomDuration(minutes: number): void {
+    this.durationMinutes.set(Math.min(minutes, 480));
+  }
+
   setAllowedUsers(users: RoomAllowedUser[]): void {
     this.allowedUsers.set(users);
   }

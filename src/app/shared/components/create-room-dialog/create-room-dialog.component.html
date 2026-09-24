@@ -104,7 +104,7 @@
       min="5"
       max="480"
       [value]="durationMinutes()"
-      (input)="durationMinutes.set(+$any($event.target).value)"
+      (input)="setCustomDuration(+$any($event.target).value)"
     />
     <span>minutos</span>
   </div>

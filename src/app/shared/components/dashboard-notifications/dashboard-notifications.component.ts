@@ -25,6 +25,7 @@ export class DashboardNotificationsComponent {
       case 'RESCHEDULE_REQUEST_RECEIVED':    return 'event_repeat';
       case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'check_circle';
       case 'RESCHEDULE_REQUEST_DECLINED':    return 'cancel';
+      case 'ROOM_ACCESS_GRANTED':     return 'videocam';
       default:                        return 'notifications';
     }
   }
@@ -41,6 +42,7 @@ export class DashboardNotificationsComponent {
       case 'RESCHEDULE_REQUEST_RECEIVED':    return 'type-proposal';
       case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'type-rescheduled';
       case 'RESCHEDULE_REQUEST_DECLINED':    return 'type-cancelled';
+      case 'ROOM_ACCESS_GRANTED':     return 'type-booked';
       default:                         return 'type-general';
     }
   }

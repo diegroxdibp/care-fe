@@ -9,6 +9,7 @@ export type NotificationType =
   | 'RESCHEDULE_REQUEST_RECEIVED'
   | 'RESCHEDULE_REQUEST_ACCEPTED'
   | 'RESCHEDULE_REQUEST_DECLINED'
+  | 'ROOM_ACCESS_GRANTED'
   | 'GENERAL';
 
 export type Role =
