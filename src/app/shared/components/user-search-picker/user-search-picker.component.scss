@@ -74,10 +74,11 @@ input {
   border-radius: var(--radius-lg);
   padding: 12px 14px 12px 42px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--color-primary-blue);
 
-  &::placeholder { color: var(--color-muted); }
+  &::placeholder { color: var(--color-muted); font-weight: 400; }
   &:hover { border-color: var(--color-border); }
   &:focus { outline: none; border-color: var(--color-primary-blue); }
 }
