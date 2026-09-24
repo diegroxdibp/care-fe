@@ -42,7 +42,8 @@ h3 {
   padding: 12px 18px;
   margin-bottom: 18px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--color-primary-blue);
   transition: border-color 0.2s var(--ease-care);
 
@@ -113,10 +114,22 @@ h3 {
     font-size: 16px;
     font-weight: 600;
     color: var(--color-primary-blue);
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    font-family: var(--font-sans);
 
+    &::placeholder { color: var(--color-muted); font-weight: 400; }
     &.placeholder { color: var(--color-muted); font-weight: 400; }
   }
   .field-icon { color: var(--color-secondary-indigo); font-size: 22px; flex-shrink: 0; }
+}
+
+/* O campo do nome é texto livre, não um botão que abre um popover. */
+.name-field {
+  cursor: text;
+  margin-bottom: 18px;
 }
 
 .calendar-popover {
@@ -230,7 +243,7 @@ h3 {
   font-size: 14px;
   color: var(--color-primary-blue);
   font-weight: 600;
-  margin: 4px 0 12px;
+  margin: 6px 0 16px;
   cursor: pointer;
 
   input {

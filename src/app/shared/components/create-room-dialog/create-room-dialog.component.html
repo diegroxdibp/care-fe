@@ -2,16 +2,21 @@
   <h3>Nova sala</h3>
   <p class="sub">Crie uma sala de videochamada avulsa e partilhe o link com quem precisar.</p>
 
-  <label class="field-label" for="room-name">Nome da sala (opcional)</label>
-  <input
-    id="room-name"
-    class="text-field"
-    type="text"
-    maxlength="200"
-    placeholder="Ex.: Supervisão de equipa"
-    [value]="name()"
-    (input)="name.set($any($event.target).value)"
-  />
+  <div class="field name-field">
+    <div class="field-inner">
+      <span class="field-label">Nome da sala (opcional)</span>
+      <input
+        id="room-name"
+        class="field-value"
+        type="text"
+        maxlength="200"
+        placeholder="Ex.: Supervisão de equipa"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+    </div>
+    <span translate="no" class="material-symbols-outlined field-icon">badge</span>
+  </div>
 
   <label class="control-label">Quando fica disponível</label>
   <div class="segmented">

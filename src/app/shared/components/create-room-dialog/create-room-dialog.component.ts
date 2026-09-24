@@ -15,6 +15,7 @@ const DURATION_PRESETS: DurationPreset[] = [
   { label: '1 h', minutes: 60 },
   { label: '2 h', minutes: 120 },
   { label: '4 h', minutes: 240 },
+  { label: '8 h', minutes: 480 },
 ];
 
 const MAX_PARTICIPANTS_CAP = 10;
