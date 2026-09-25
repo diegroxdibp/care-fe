@@ -8,6 +8,13 @@
       <div class="group-label">Conta</div>
       <nav>
         <a
+          [routerLink]="['profile']"
+          routerLinkActive="active"
+        >
+          <span translate="no" class="material-symbols-outlined">person</span>
+          <span>Perfil</span>
+        </a>
+        <a
           [routerLink]="'/dashboard'"
           [routerLinkActiveOptions]="{ exact: true }"
           routerLinkActive="active"
@@ -35,13 +42,6 @@
             <span class="badge">{{ notificationService.unreadCount() }}</span>
           }
         </a>
-        <a
-          [routerLink]="['profile']"
-          routerLinkActive="active"
-        >
-          <span translate="no" class="material-symbols-outlined">person</span>
-          <span>Perfil</span>
-        </a>
         @if (isProfessional()) {
           <a
             [routerLink]="['my-appointments']"
@@ -54,7 +54,7 @@
             [routerLink]="['salas']"
             routerLinkActive="active"
           >
-            <span translate="no" class="material-symbols-outlined">videocam</span>
+            <span translate="no" class="material-symbols-outlined">sensor_door</span>
             <span>Salas</span>
           </a>
         }
@@ -428,6 +428,13 @@
   <!-- ══════════════════ MOBILE BOTTOM NAV ══════════════════ -->
   <nav class="bottombar">
     <a
+      [routerLink]="['profile']"
+      routerLinkActive="active"
+    >
+      <span translate="no" class="material-symbols-outlined">person</span>
+      <span>Perfil</span>
+    </a>
+    <a
       [routerLink]="'/dashboard'"
       [routerLinkActiveOptions]="{ exact: true }"
       routerLinkActive="active"
@@ -455,13 +462,6 @@
       }
       <span>Notificações</span>
     </a>
-    <a
-      [routerLink]="['profile']"
-      routerLinkActive="active"
-    >
-      <span translate="no" class="material-symbols-outlined">person</span>
-      <span>Perfil</span>
-    </a>
     @if (isProfessional()) {
       <a
         [routerLink]="['my-appointments']"
@@ -474,7 +474,7 @@
         [routerLink]="['salas']"
         routerLinkActive="active"
       >
-        <span translate="no" class="material-symbols-outlined">videocam</span>
+        <span translate="no" class="material-symbols-outlined">sensor_door</span>
         <span>Salas</span>
       </a>
     }

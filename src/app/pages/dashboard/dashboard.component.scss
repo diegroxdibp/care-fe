@@ -423,9 +423,9 @@
 }
 
 .row3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
   margin-top: 12px;
 
   .row3-item {

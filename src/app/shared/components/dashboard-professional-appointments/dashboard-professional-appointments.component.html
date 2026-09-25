@@ -199,6 +199,11 @@
                     }
 
                     <div class="panel-actions">
+                      <span class="ad-av c0">{{ s.professionals[0].initials }}</span>
+                      <div class="panel-who">
+                        <div class="ad-k">Cliente</div>
+                        <div class="ad-v">{{ s.professionals[0].name }}</div>
+                      </div>
                       @if (canJoin(s)) {
                         <button class="btn-join" (click)="joinSession(s)">
                           <span translate="no" class="material-symbols-outlined">videocam</span>
