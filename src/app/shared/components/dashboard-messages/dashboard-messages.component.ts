@@ -5,6 +5,7 @@ import { MessageService } from '../../../core/services/message.service';
 import { SessionService } from '../../services/session.service';
 import { ChatMessage, Thread } from '../../models/message.model';
 import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
 
 interface DayGroup {
   label: string;
@@ -117,8 +118,17 @@ export class DashboardMessagesComponent implements OnInit, OnDestroy {
     return [translated, ...rest].join(' · ');
   }
 
+  /** Fuso de exibição: o do perfil, com o do navegador como recurso — igual ao UserTimePipe. */
+  private displayZone(): string {
+    return this.sessionService.user()?.timeZone || detectBrowserTimezone();
+  }
+
   timeLabel(iso: string): string {
-    return new Date(iso).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString('pt-PT', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: this.displayZone(),
+    });
   }
 
   goToSession(thread: Thread): void {
@@ -126,17 +136,27 @@ export class DashboardMessagesComponent implements OnInit, OnDestroy {
     this.router.navigate(['/dashboard'], { state: { openAppointmentId: thread.appointmentId } });
   }
 
+  /** Chave 'yyyy-mm-dd' de uma data no fuso indicado, para comparar dias sem depender do fuso do aparelho. */
+  private dateKeyInZone(date: Date, timeZone: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+
   private dayLabel(iso: string): string {
+    const zone = this.displayZone();
     const date = new Date(iso);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const sameDay = (a: Date, b: Date) =>
-      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-    if (sameDay(date, today)) return 'Hoje';
-    if (sameDay(date, yesterday)) return 'Ontem';
-    return date.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+    const dateKey = this.dateKeyInZone(date, zone);
+    if (dateKey === this.dateKeyInZone(now, zone)) return 'Hoje';
+    if (dateKey === this.dateKeyInZone(yesterday, zone)) return 'Ontem';
+    return date.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', timeZone: zone });
   }
 }

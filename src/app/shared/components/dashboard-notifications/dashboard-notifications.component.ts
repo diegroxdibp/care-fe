@@ -2,6 +2,8 @@ import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NotificationService } from '../../../core/services/notification.service';
 import { NotificationResponse, NotificationType } from '../../models/notification.types';
+import { SessionService } from '../../services/session.service';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
 
 @Component({
   selector: 'app-dashboard-notifications',
@@ -12,6 +14,7 @@ import { NotificationResponse, NotificationType } from '../../models/notificatio
 export class DashboardNotificationsComponent {
   readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly sessionService = inject(SessionService);
 
   typeIcon(type: NotificationType): string {
     switch (type) {
@@ -56,7 +59,8 @@ export class DashboardNotificationsComponent {
     if (hrs < 24)  return `há ${hrs}h`;
     const days = Math.floor(hrs / 24);
     if (days < 7)  return `há ${days} dia${days > 1 ? 's' : ''}`;
-    return new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+    const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    return new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', timeZone });
   }
 
   markAsRead(n: NotificationResponse): void {

@@ -15,7 +15,7 @@ import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styl
 import { BirthdateCalendarComponent } from '../birthdate-calendar/birthdate-calendar.component';
 import { CurrencyToggleComponent } from '../currency-toggle/currency-toggle.component';
 import { currencyForCountry } from '../../enums/currency.enum';
-import { detectBrowserTimezone } from '../../utils/timezones.util';
+import { allTimezones, detectBrowserTimezone, timezoneOffsetLabel } from '../../utils/timezones.util';
 
 @Component({
   selector: 'app-onboarding',
@@ -42,6 +42,12 @@ export class OnboardingComponent implements OnInit {
   readonly genderOptions: StyledSelectOption[] = Object.values(Genders).map(g => ({
     value: g,
     label: g,
+  }));
+
+  readonly timezoneOptions: StyledSelectOption[] = allTimezones().map(t => ({
+    value: t.value,
+    label: t.city,
+    meta: timezoneOffsetLabel(t.value),
   }));
 
   get nameCtrl(): FormControl {

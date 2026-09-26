@@ -386,7 +386,7 @@ export class SchedulingComponent implements OnDestroy {
         );
         const date = this.fmtDate(this.selectedDay);
         this.showToast(
-          `Sessão agendada · ${slot.professionalName} · ${date} · ${this.fmtTime(slot.startTime)} · ${modality}.`
+          `Sessão agendada · ${slot.professionalName} · ${date} · ${this.fmtTime(slot.startTime, slot.timeZone)} · ${modality}.`
         );
       },
       error: () => {},

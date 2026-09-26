@@ -87,6 +87,24 @@
       }
     </div>
 
+    <div class="field">
+      <label id="ob-timezone-label">Fuso horário:</label>
+      <app-styled-select
+        inputId="ob-timezone"
+        searchPlaceholder="Pesquisar fuso..."
+        [options]="timezoneOptions"
+        [value]="timezoneCtrl.value"
+        (valueChange)="timezoneCtrl.setValue($event)"
+      />
+      <span class="info-note">
+        <span translate="no" class="material-symbols-outlined">info</span>
+        <span>
+          Detectamos este fuso automaticamente — confirme se está certo. Todos os horários da CARE
+          aparecem nele. Pode alterá-lo depois em <strong>Perfil › Preferências</strong>.
+        </span>
+      </span>
+    </div>
+
     @if (error) {
       <div class="error-msg">{{ error }}</div>
     }
