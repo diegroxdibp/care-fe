@@ -10,6 +10,7 @@ import { ProfessionalService } from '../../models/professional-service.model';
 import { PatientSummary } from '../../models/patient.model';
 import { Currency } from '../../enums/currency.enum';
 import { BuiltSession, buildSessions, canJoinSession, isUpcomingOrOngoing } from '../../utils/session-list.util';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 
 const ALL_CLIENTS_VALUE = '';
@@ -57,6 +58,7 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
       perspective: 'PROFESSIONAL',
       currency: this.sessionService.user()?.currency ?? Currency.EUR,
       paymentsEnabled: this.featureFlagService.paymentsEnabled(),
+      viewerTimeZone: this.sessionService.user()?.timeZone || detectBrowserTimezone(),
     }),
   );
 

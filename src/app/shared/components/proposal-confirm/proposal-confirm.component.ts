@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../../core/services/api.service';
+import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { Appointment } from '../../models/appointment.model';
@@ -9,6 +10,26 @@ import { normalizeModality } from '../../utils/modality-compatibility.util';
 import { normalizeRecurrenceFrequency } from '../../utils/recurrence.util';
 import { DayOfWeek } from '../../enums/day-of-week.enum';
 import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { detectBrowserTimezone, wallTimeInZone, zonedWallTimeToInstant } from '../../utils/timezones.util';
+
+const DOW_ORDER: DayOfWeek[] = [
+  DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+  DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY,
+];
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function addDaysKey(dateKey: string, days: number): string {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 @Component({
   selector: 'app-proposal-confirm',
@@ -22,6 +43,7 @@ export class ProposalConfirmComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly dialog = inject(MatDialog);
+  private readonly sessionService = inject(SessionService);
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -30,11 +52,50 @@ export class ProposalConfirmComponent implements OnInit {
   readonly appt = signal<Appointment | null>(null);
   readonly serviceName = signal<string>('');
 
-  readonly dayLabel = computed(() => {
+  /**
+   * Dia e hora no fuso de quem decide aceitar/recusar — a pessoa profissional
+   * combinou isto no relógio dela (appt.timeZone), e sem reler aqui no fuso
+   * de quem vê, quem está do outro lado do mundo decide sobre uma hora que
+   * não é a sua.
+   */
+  private readonly resolvedOccurrence = computed(() => {
     const a = this.appt();
-    if (!a) return '';
-    return DayOfWeek[a.dayOfWeek as unknown as keyof typeof DayOfWeek] ?? String(a.dayOfWeek);
+    if (!a) return null;
+
+    const rawDow = DayOfWeek[a.dayOfWeek as unknown as keyof typeof DayOfWeek] ?? String(a.dayOfWeek);
+    const rawTime = `${a.startTime.slice(0, 5)}–${a.endTime.slice(0, 5)}`;
+
+    if (!a.timeZone || !a.startDate) {
+      return { dow: rawDow, time: rawTime };
+    }
+
+    const viewerZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    const startInstant = zonedWallTimeToInstant(a.startDate, a.startTime.slice(0, 5), a.timeZone);
+    if (!startInstant) {
+      return { dow: rawDow, time: rawTime };
+    }
+
+    const startWall = wallTimeInZone(startInstant, viewerZone);
+    const displayDate = new Date(startWall.year, startWall.month - 1, startWall.day);
+    const dow = DOW_ORDER[displayDate.getDay()];
+    const startLabel = `${String(startWall.hour).padStart(2, '0')}:${String(startWall.minute).padStart(2, '0')}`;
+
+    // Sessão que atravessa a meia-noite: o fim cai no dia seguinte.
+    const startMinutes = timeToMinutes(a.startTime.slice(0, 5));
+    const endMinutes = timeToMinutes(a.endTime.slice(0, 5));
+    const endDateKey = endMinutes <= startMinutes ? addDaysKey(a.startDate, 1) : a.startDate;
+    const endInstant = zonedWallTimeToInstant(endDateKey, a.endTime.slice(0, 5), a.timeZone);
+    const endLabel = endInstant
+      ? (() => {
+        const endWall = wallTimeInZone(endInstant, viewerZone);
+        return `${String(endWall.hour).padStart(2, '0')}:${String(endWall.minute).padStart(2, '0')}`;
+      })()
+      : a.endTime.slice(0, 5);
+
+    return { dow, time: `${startLabel}–${endLabel}` };
   });
+
+  readonly dayLabel = computed(() => this.resolvedOccurrence()?.dow ?? '');
 
   readonly modalityLabel = computed(() => {
     const a = this.appt();
@@ -46,11 +107,7 @@ export class ProposalConfirmComponent implements OnInit {
     return normalizeRecurrenceFrequency(a?.recurrenceFrequency);
   });
 
-  readonly timeLabel = computed(() => {
-    const a = this.appt();
-    if (!a) return '';
-    return `${a.startTime.slice(0, 5)}–${a.endTime.slice(0, 5)}`;
-  });
+  readonly timeLabel = computed(() => this.resolvedOccurrence()?.time ?? '');
 
   readonly alreadyResolved = computed(() => {
     const a = this.appt();

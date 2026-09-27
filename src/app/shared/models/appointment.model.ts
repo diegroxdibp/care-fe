@@ -16,6 +16,12 @@ export interface Appointment {
   isRecurring: boolean;
   dayOfWeek: DayOfWeek;
   recurrenceFrequency?: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  /**
+   * Fuso IANA em que startTime/endTime foram combinados, congelado na
+   * marcação. Sem ele a hora de parede não é convertível para quem a vê —
+   * ver session-list.util.ts.
+   */
+  timeZone?: string;
   clientName?: string;
   clientEmail?: string;
   platform?: string;

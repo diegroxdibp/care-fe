@@ -17,12 +17,16 @@ export interface RescheduleRequest {
   occurrenceDate: string;
   currentStartTime: string;
   currentEndTime: string;
+  /** Fuso em que a sessão atual foi combinada — congelado na marcação. */
+  currentTimeZone?: string;
   /** Numa série, só esta ocorrência muda. */
   appointmentIsRecurring: boolean;
   proposedAvailabilityId: number;
   proposedDate: string;
   proposedStartTime: string;
   proposedEndTime: string;
+  /** Fuso em que a vaga de destino foi criada. */
+  proposedTimeZone?: string;
   proposedModality: string;
   reason: string;
   requestedById: number;

@@ -7,6 +7,7 @@ import { RecurrenceFrequency } from '../enums/recurrence-frequency.enum';
 import { Currency, formatPrice } from '../enums/currency.enum';
 import { generateOccurrences } from './recurrence.util';
 import { normalizeModality } from './modality-compatibility.util';
+import { wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
 
 /** 'A combinar' cobre ANY e qualquer modalidade não resolvível — nunca um palpite. */
 export type SessionMode = 'Presencial' | 'Remoto' | 'A combinar';
@@ -37,6 +38,15 @@ export interface BuiltSession {
   /** Id do cliente da marcação — usado para filtrar a lista por pessoa cliente. */
   clientId: number;
   date: Date;
+  /**
+   * Chave (yyyy-MM-dd) da ocorrência no fuso em que a marcação foi
+   * combinada — não no fuso de quem vê. `date` já vem ajustada para
+   * exibição (pode cair no dia seguinte, ver `resolveOccurrenceDisplay`); é
+   * esta chave, e não `date`, que identifica a ocorrência para o backend
+   * (reagendar, cancelar) e para o `excludedDates` local — ambos combinados
+   * e guardados em termos do fuso de origem.
+   */
+  occurrenceKey: string;
   dow: string;
   fullDow: string;
   day: number;
@@ -66,27 +76,18 @@ export interface BuildSessionsOptions {
   perspective: SessionViewerPerspective;
   currency: Currency;
   paymentsEnabled: boolean;
+  /**
+   * Fuso de quem está a ver a lista. startTime/endTime chegam na hora de
+   * parede combinada na marcação (fuso de quem a autorou, em appt.timeZone)
+   * — sem reler neste fuso, quem vê do outro lado do mundo via a hora de
+   * quem marcou, não a sua.
+   */
+  viewerTimeZone: string;
 }
 
-const DOW_ABR: Record<string, string> = {
-  SUNDAY: 'Dom',    [DayOfWeek.SUNDAY]: 'Dom',
-  MONDAY: 'Seg',    [DayOfWeek.MONDAY]: 'Seg',
-  TUESDAY: 'Ter',   [DayOfWeek.TUESDAY]: 'Ter',
-  WEDNESDAY: 'Qua', [DayOfWeek.WEDNESDAY]: 'Qua',
-  THURSDAY: 'Qui',  [DayOfWeek.THURSDAY]: 'Qui',
-  FRIDAY: 'Sex',    [DayOfWeek.FRIDAY]: 'Sex',
-  SATURDAY: 'Sáb',  [DayOfWeek.SATURDAY]: 'Sáb',
-};
-
-const DOW_FULL: Record<string, string> = {
-  SUNDAY: 'Domingo',    [DayOfWeek.SUNDAY]: 'Domingo',
-  MONDAY: 'Segunda',    [DayOfWeek.MONDAY]: 'Segunda',
-  TUESDAY: 'Terça',     [DayOfWeek.TUESDAY]: 'Terça',
-  WEDNESDAY: 'Quarta',  [DayOfWeek.WEDNESDAY]: 'Quarta',
-  THURSDAY: 'Quinta',   [DayOfWeek.THURSDAY]: 'Quinta',
-  FRIDAY: 'Sexta',      [DayOfWeek.FRIDAY]: 'Sexta',
-  SATURDAY: 'Sábado',   [DayOfWeek.SATURDAY]: 'Sábado',
-};
+/** Indexados por Date.getDay() — usados quando a data foi ajustada de fuso, e o dayOfWeek cru do backend já não serve. */
+const DOW_ABR_BY_JS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const DOW_FULL_BY_JS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 const DOW_JS: Record<string, number> = {
   SUNDAY: 0,    [DayOfWeek.SUNDAY]: 0,
@@ -235,6 +236,77 @@ function recurringDates(appt: Appointment, from: Date, limit: Date): Date[] {
   return generateOccurrences(appt.recurrenceFrequency, start, base, finalLimit, 10);
 }
 
+function minutesOf(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function nextDateKey(dateKey: string): string {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  return toDateKey(d);
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * Recompõe (data, hora de início, hora de fim, dia da semana) de uma
+ * ocorrência no fuso de quem a vê, a partir da hora de parede + fuso de
+ * quem a combinou. Sem `timeZone` (marcações antigas, de antes desta coluna)
+ * não há como converter — fica tal como veio, igual ao comportamento anterior.
+ */
+function resolveOccurrenceDisplay(
+  date: Date,
+  startTime: string,
+  endTime: string,
+  originTimeZone: string | undefined,
+  viewerTimeZone: string,
+): { date: Date; dow: string; fullDow: string; startTime: string; endTime: string } {
+  if (!originTimeZone || !startTime) {
+    return {
+      date,
+      dow: DOW_ABR_BY_JS[date.getDay()],
+      fullDow: DOW_FULL_BY_JS[date.getDay()],
+      startTime,
+      endTime,
+    };
+  }
+
+  const dateKey = toDateKey(date);
+  const startInstant = zonedWallTimeToInstant(dateKey, startTime, originTimeZone);
+  if (!startInstant) {
+    return {
+      date,
+      dow: DOW_ABR_BY_JS[date.getDay()],
+      fullDow: DOW_FULL_BY_JS[date.getDay()],
+      startTime,
+      endTime,
+    };
+  }
+
+  // Uma sessão pode atravessar a meia-noite — mesma regra da durationLabel.
+  const endDateKey = endTime && minutesOf(endTime) <= minutesOf(startTime)
+    ? nextDateKey(dateKey)
+    : dateKey;
+  const endInstant = endTime ? zonedWallTimeToInstant(endDateKey, endTime, originTimeZone) : null;
+
+  const startWall = wallTimeInZone(startInstant, viewerTimeZone);
+  const displayDate = new Date(startWall.year, startWall.month - 1, startWall.day);
+
+  return {
+    date: displayDate,
+    dow: DOW_ABR_BY_JS[displayDate.getDay()],
+    fullDow: DOW_FULL_BY_JS[displayDate.getDay()],
+    startTime: `${pad2(startWall.hour)}:${pad2(startWall.minute)}`,
+    endTime: endInstant
+      ? (() => {
+        const endWall = wallTimeInZone(endInstant, viewerTimeZone);
+        return `${pad2(endWall.hour)}:${pad2(endWall.minute)}`;
+      })()
+      : endTime,
+  };
+}
+
 function oneTimeDates(appt: Appointment): Date[] {
   if (!appt.startDate) return [];
   const d = new Date(appt.startDate);
@@ -296,22 +368,33 @@ export function buildSessions(
     const payment = paymentLabel(appt, options.paymentsEnabled);
 
     for (const date of dates) {
+      const occurrenceKey = toDateKey(date);
+      const key = `${appt.id}@${occurrenceKey}`;
+      const resolved = resolveOccurrenceDisplay(
+        date,
+        appt.startTime?.slice(0, 5) ?? '',
+        appt.endTime?.slice(0, 5) ?? '',
+        appt.timeZone,
+        options.viewerTimeZone,
+      );
+
       sessions.push({
         appointmentId: appt.id,
-        key: `${appt.id}@${toDateKey(date)}`,
+        key,
         professionalId: appt.professionalId,
         professionalServiceId: appt.professionalServiceId,
         availabilityId: appt.availabilityId,
         clientId: appt.clientId,
-        date,
-        dow: DOW_ABR[appt.dayOfWeek] ?? '?',
-        fullDow: DOW_FULL[appt.dayOfWeek] ?? '?',
-        day: date.getDate(),
-        month: MONTHS[date.getMonth()],
+        date: resolved.date,
+        occurrenceKey,
+        dow: resolved.dow,
+        fullDow: resolved.fullDow,
+        day: resolved.date.getDate(),
+        month: MONTHS[resolved.date.getMonth()],
         who,
         service: serviceName,
-        startTime: appt.startTime?.slice(0, 5) ?? '',
-        endTime: appt.endTime?.slice(0, 5) ?? '',
+        startTime: resolved.startTime,
+        endTime: resolved.endTime,
         mode,
         modality: normalized,
         address: appt.address,

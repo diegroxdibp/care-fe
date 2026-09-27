@@ -138,7 +138,7 @@ export interface RescheduleDialogResult {
                 [class.on]="isChosen(slot)"
                 (click)="chosen.set(slot)"
               >
-                {{ slot.startTime }}–{{ slot.endTime }}
+                {{ slotTimeLabel(slot) }}
               </button>
             }
           </div>
@@ -512,6 +512,13 @@ export class RescheduleDialogComponent {
   isChosen(slot: RescheduleSlotOption): boolean {
     const c = this.chosen();
     return !!c && c.availabilityId === slot.availabilityId && c.startTime === slot.startTime;
+  }
+
+  /** Hora já no fuso de quem escolhe, quando disponível — nunca a da vaga. */
+  slotTimeLabel(slot: RescheduleSlotOption): string {
+    const start = slot.displayStartTime ?? slot.startTime;
+    const end = slot.displayEndTime ?? slot.endTime;
+    return `${start}–${end}`;
   }
 
   cancel(): void {

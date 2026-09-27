@@ -32,6 +32,7 @@ import { ProfessionalService } from '../../shared/models/professional-service.mo
 import { Currency } from '../../shared/enums/currency.enum';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { toApiTime } from '../../shared/utils/session-time.util';
+import { detectBrowserTimezone } from '../../shared/utils/timezones.util';
 import { toBackendModality } from '../../shared/utils/modality-compatibility.util';
 import {
   BuiltSession as DashSession,
@@ -156,6 +157,7 @@ export class DashboardPageComponent implements OnInit {
       perspective: 'CLIENT',
       currency: this.sessionService.user()?.currency ?? Currency.EUR,
       paymentsEnabled: this.featureFlagService.paymentsEnabled(),
+      viewerTimeZone: this.sessionService.user()?.timeZone || detectBrowserTimezone(),
     }),
   );
 
@@ -423,7 +425,10 @@ export class DashboardPageComponent implements OnInit {
   rescheduleSession(session: DashSession): void {
     // A ocorrência a mover é a desta linha, não a âncora da série: numa sessão
     // semanal a âncora pode ser de há meses, e mandá-la libertaria a semana errada.
-    const occurrenceDate = toDateKey(session.date);
+    // occurrenceKey, não session.date: o backend e as vagas identificam a
+    // ocorrência no fuso em que a marcação foi combinada, e session.date já
+    // vem ajustada para o fuso de quem vê (pode cair no dia seguinte).
+    const occurrenceDate = session.occurrenceKey;
 
     this.apiService.getAvailabilitiesByProfessionalId(session.professionalId).subscribe({
       next: (avails) => {
@@ -442,6 +447,7 @@ export class DashboardPageComponent implements OnInit {
               {
                 moving: { availabilityId: session.availabilityId, date: occurrenceDate },
                 preferredModality: session.modality,
+                viewerTimeZone: this.sessionService.user()?.timeZone || detectBrowserTimezone(),
               },
             ),
           } satisfies RescheduleDialogData,
@@ -512,7 +518,8 @@ export class DashboardPageComponent implements OnInit {
   }
 
   cancelSession(session: DashSession): void {
-    const occurrenceDate = toDateKey(session.date);
+    // Ver o mesmo comentário em rescheduleSession.
+    const occurrenceDate = session.occurrenceKey;
 
     // Numa série recorrente há duas coisas diferentes que "cancelar" pode
     // querer dizer, e só a pessoa sabe qual - perguntar. Numa sessão única
@@ -580,7 +587,10 @@ export class DashboardPageComponent implements OnInit {
       return;
     }
 
-    const newEnd = new Date(session.date);
+    // A partir de occurrenceKey (fuso de origem), não de session.date (fuso
+    // de quem vê) — endDate compara-se com startDate no mesmo fuso em que a
+    // série foi combinada.
+    const newEnd = new Date(session.occurrenceKey + 'T00:00:00');
     newEnd.setDate(newEnd.getDate() - 1);
     const newEndKey = toDateKey(newEnd);
     this.appointments.update((list) =>

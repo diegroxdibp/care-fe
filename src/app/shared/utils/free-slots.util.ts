@@ -4,13 +4,23 @@ import { Modality } from '../enums/modality.enum';
 import { normalizeModality } from './modality-compatibility.util';
 import { occursOnDate } from './recurrence.util';
 import { fromApiEndTime, stripSec, timeToMin } from './session-time.util';
+import { wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
 
 /** Uma vaga livre numa data concreta. */
 export interface FreeSlot {
   availabilityId: number;
+  /** Hora de parede no fuso de origem da vaga — é isto que segue para a API ao reagendar. */
   startTime: string;
   endTime: string;
   modality: Modality;
+  /**
+   * Mesma hora, já convertida para o fuso de quem escolhe (quando um
+   * `viewerTimeZone` foi indicado) — só para mostrar. `startTime`/`endTime`
+   * continuam crus de propósito: reagendar envia-os tal como estão, no fuso
+   * da vaga de destino, não no de quem os vê.
+   */
+  displayStartTime?: string;
+  displayEndTime?: string;
 }
 
 /**
@@ -37,6 +47,14 @@ export interface FreeSlotsOptions {
    * como presencial — a pessoa mudava de hora e ficava com outra sessão.
    */
   preferredModality?: Modality;
+  /**
+   * Fuso de quem está a escolher a vaga nova. Sem isto, o diálogo de
+   * reagendamento mostra a hora crua da vaga (fuso de quem a criou) — o
+   * mesmo erro que a lista de sessões tinha antes de reler no fuso de quem
+   * vê. Só afeta `displayStartTime`/`displayEndTime`; o que segue para a API
+   * continua a ser `startTime`/`endTime`, no fuso da vaga.
+   */
+  viewerTimeZone?: string;
 }
 
 // O backend serializa dayOfWeek como o nome cru do enum Java ('MONDAY'); o
@@ -94,7 +112,7 @@ export function freeSlotsOn(
   serviceId: number,
   options: FreeSlotsOptions = {},
 ): FreeSlot[] {
-  const { moving, preferredModality } = options;
+  const { moving, preferredModality, viewerTimeZone } = options;
   const slots: FreeSlot[] = [];
 
   for (const av of availabilities) {
@@ -106,15 +124,63 @@ export function freeSlotsOn(
       && moving.date === dateKey;
     if (!isMovingItself && (av.bookedDates ?? []).includes(dateKey)) continue;
 
+    const startTime = stripSec(av.startTime);
+    const endTime = fromApiEndTime(av.endTime);
+    const display = displayTimeFor(dateKey, startTime, endTime, av.timeZone, viewerTimeZone);
+
     slots.push({
       availabilityId: av.id,
-      startTime: stripSec(av.startTime),
-      endTime: fromApiEndTime(av.endTime),
+      startTime,
+      endTime,
       modality: resolveModality(av.modality, preferredModality),
+      displayStartTime: display.start,
+      displayEndTime: display.end,
     });
   }
 
   return slots.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function addDaysKey(dateKey: string, days: number): string {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/**
+ * Hora de início/fim da vaga já no fuso de quem escolhe — só para exibição.
+ * Sem `viewerTimeZone` ou sem o fuso de origem da vaga (marcações antigas)
+ * não há como converter, e o diálogo cai na hora crua, como sempre mostrou.
+ */
+function displayTimeFor(
+  dateKey: string,
+  startTime: string,
+  endTime: string,
+  originTimeZone: string | undefined,
+  viewerTimeZone: string | undefined,
+): { start?: string; end?: string } {
+  if (!viewerTimeZone || !originTimeZone) return {};
+
+  const startInstant = zonedWallTimeToInstant(dateKey, startTime, originTimeZone);
+  if (!startInstant) return {};
+  const startWall = wallTimeInZone(startInstant, viewerTimeZone);
+  const start = `${pad2(startWall.hour)}:${pad2(startWall.minute)}`;
+
+  // Vaga que atravessa a meia-noite: o fim cai no dia seguinte.
+  const endDateKey = timeToMin(endTime) <= timeToMin(startTime) ? addDaysKey(dateKey, 1) : dateKey;
+  const endInstant = zonedWallTimeToInstant(endDateKey, endTime, originTimeZone);
+  const end = endInstant
+    ? (() => {
+      const endWall = wallTimeInZone(endInstant, viewerTimeZone);
+      return `${pad2(endWall.hour)}:${pad2(endWall.minute)}`;
+    })()
+    : undefined;
+
+  return { start, end };
 }
 
 /**

@@ -107,6 +107,35 @@ export function zonedWallTimeToInstant(
 }
 
 /**
+ * Decompõe um instante nas partes de hora de parede num fuso — o inverso de
+ * `zonedWallTimeToInstant`. Usado para reler uma marcação já feita (data +
+ * hora + fuso de quem a autorou, tudo congelado) no fuso de quem a vê agora.
+ */
+export function wallTimeInZone(
+  instant: Date,
+  timeZone: string,
+): { year: number; month: number; day: number; hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(instant);
+
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour') % 24,
+    minute: get('minute'),
+  };
+}
+
+/**
  * Verdadeiro quando esta hora de parede (numa data e, se souber, fuso) já
  * passou em relação a `now`.
  *

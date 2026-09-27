@@ -1,10 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ApiService } from '../../../core/services/api.service';
+import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { CreateRoomDialogComponent } from '../create-room-dialog/create-room-dialog.component';
 import { CreateRoomPayload, Room } from '../../models/room.model';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
 
 type RoomStatus = 'agora' | 'agendada' | 'expirada';
 
@@ -16,6 +18,7 @@ type RoomStatus = 'agora' | 'agendada' | 'expirada';
 })
 export class DashboardSalasComponent implements OnInit {
   private readonly apiService = inject(ApiService);
+  private readonly sessionService = inject(SessionService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly dialog = inject(MatDialog);
 
@@ -107,7 +110,14 @@ export class DashboardSalasComponent implements OnInit {
   }
 
   formatWindow(room: Room): string {
-    const fmt = new Intl.DateTimeFormat('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    const fmt = new Intl.DateTimeFormat('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone,
+    });
     return `${fmt.format(new Date(room.opensAt))} – ${fmt.format(new Date(room.closesAt))}`;
   }
 }

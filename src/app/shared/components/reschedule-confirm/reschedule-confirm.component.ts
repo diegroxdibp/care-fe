@@ -2,11 +2,13 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../../core/services/api.service';
+import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { RescheduleRequest } from '../../models/reschedule-request.model';
 import { normalizeModality } from '../../utils/modality-compatibility.util';
 import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { detectBrowserTimezone, wallTimeInZone, zonedWallTimeToInstant } from '../../utils/timezones.util';
 
 const PT_MONTHS = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -15,6 +17,20 @@ const PT_MONTHS = [
 const PT_DOW = [
   'Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado',
 ];
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function addDaysKey(dateKey: string, days: number): string {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 /**
  * Onde a pessoa cliente responde a um pedido de reagendamento.
@@ -34,6 +50,7 @@ export class RescheduleConfirmComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly dialog = inject(MatDialog);
+  private readonly sessionService = inject(SessionService);
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -45,13 +62,13 @@ export class RescheduleConfirmComponent implements OnInit {
   readonly currentLabel = computed(() => {
     const r = this.request();
     if (!r) return '';
-    return `${this.fmtDate(r.occurrenceDate)} · ${this.fmtTime(r.currentStartTime)}–${this.fmtTime(r.currentEndTime)}`;
+    return this.occurrenceLabel(r.occurrenceDate, r.currentStartTime, r.currentEndTime, r.currentTimeZone);
   });
 
   readonly proposedLabel = computed(() => {
     const r = this.request();
     if (!r) return '';
-    return `${this.fmtDate(r.proposedDate)} · ${this.fmtTime(r.proposedStartTime)}–${this.fmtTime(r.proposedEndTime)}`;
+    return this.occurrenceLabel(r.proposedDate, r.proposedStartTime, r.proposedEndTime, r.proposedTimeZone);
   });
 
   readonly modalityLabel = computed(() => {
@@ -107,15 +124,54 @@ export class RescheduleConfirmComponent implements OnInit {
     return ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key;
   }
 
+  /**
+   * 'Terça, 12 de agosto · 14:00–15:00', já no fuso de quem decide — a
+   * pessoa profissional combinou isto no relógio dela (originTimeZone), e
+   * sem reler aqui no fuso de quem vê, quem decide aceitar vê a hora errada.
+   * Sem fuso de origem (dados antigos) cai na hora crua, como sempre mostrou.
+   */
+  private occurrenceLabel(
+    dateKey: string,
+    startTime: string,
+    endTime: string,
+    originTimeZone?: string,
+  ): string {
+    const rawStart = (startTime ?? '').slice(0, 5);
+    const rawEnd = (endTime ?? '').slice(0, 5);
+    const rawDate = this.fmtDate(dateKey);
+    if (!dateKey || !originTimeZone || !rawStart) {
+      return `${rawDate} · ${rawStart}–${rawEnd}`;
+    }
+
+    const viewerZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    const startInstant = zonedWallTimeToInstant(dateKey, rawStart, originTimeZone);
+    if (!startInstant) {
+      return `${rawDate} · ${rawStart}–${rawEnd}`;
+    }
+
+    const startWall = wallTimeInZone(startInstant, viewerZone);
+    const displayDate = new Date(startWall.year, startWall.month - 1, startWall.day);
+    const startLabel = `${String(startWall.hour).padStart(2, '0')}:${String(startWall.minute).padStart(2, '0')}`;
+
+    const endMinutes = timeToMinutes(rawEnd);
+    const startMinutes = timeToMinutes(rawStart);
+    const endDateKey = rawEnd && endMinutes <= startMinutes ? addDaysKey(dateKey, 1) : dateKey;
+    const endInstant = rawEnd ? zonedWallTimeToInstant(endDateKey, rawEnd, originTimeZone) : null;
+    const endLabel = endInstant
+      ? (() => {
+        const endWall = wallTimeInZone(endInstant, viewerZone);
+        return `${String(endWall.hour).padStart(2, '0')}:${String(endWall.minute).padStart(2, '0')}`;
+      })()
+      : rawEnd;
+
+    return `${PT_DOW[displayDate.getDay()]}, ${displayDate.getDate()} de ${PT_MONTHS[displayDate.getMonth()]} · ${startLabel}–${endLabel}`;
+  }
+
   /** 'yyyy-MM-dd' → 'Terça, 12 de agosto'. */
-  fmtDate(key: string): string {
+  private fmtDate(key: string): string {
     if (!key) return '';
     const d = new Date(key + 'T00:00:00');
     return `${PT_DOW[d.getDay()]}, ${d.getDate()} de ${PT_MONTHS[d.getMonth()]}`;
-  }
-
-  private fmtTime(t: string): string {
-    return (t ?? '').slice(0, 5);
   }
 
   accept(): void {
