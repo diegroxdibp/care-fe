@@ -13,7 +13,8 @@
     "purge:cache": "node scripts/purge-cloudflare-cache.mjs",
     "deploy:prod": "npm run build && npx wrangler deploy && npm run purge:cache",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "private": true,
   "dependencies": {
@@ -42,7 +43,11 @@
     "@angular/build": "^20.3.17",
     "@angular/cli": "^20.3.17",
     "@angular/compiler-cli": "^20.3.16",
+    "@types/jest": "^30.0.0",
     "autoprefixer": "^10.4.20",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
+    "jest-preset-angular": "^17.0.1",
     "postcss": "^8.4.49",
     "supabase": "^2.110.0",
     "typescript": "~5.9.3",
