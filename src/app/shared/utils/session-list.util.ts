@@ -8,6 +8,7 @@ import { Currency, formatPrice } from '../enums/currency.enum';
 import { generateOccurrences } from './recurrence.util';
 import { normalizeModality } from './modality-compatibility.util';
 import { wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
+import { REMOTE_SESSION_INFO } from './remote-session.util';
 
 /** 'A combinar' cobre ANY e qualquer modalidade não resolvível — nunca um palpite. */
 export type SessionMode = 'Presencial' | 'Remoto' | 'A combinar';
@@ -59,6 +60,7 @@ export interface BuiltSession {
   /** A modalidade crua — `mode` já é rótulo e não serve para voltar à API. */
   modality: Modality;
   address?: string;
+  /** Sempre REMOTE_SESSION_INFO numa sessão remota — não há mais plataforma escolhida por quem atende. */
   platform?: string;
   price?: string;
   recurrence: string;
@@ -398,7 +400,7 @@ export function buildSessions(
         mode,
         modality: normalized,
         address: appt.address,
-        platform: appt.platform,
+        platform: mode === 'Remoto' ? REMOTE_SESSION_INFO : undefined,
         price,
         recurrence,
         isRecurring: !!appt.isRecurring,

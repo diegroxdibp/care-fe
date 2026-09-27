@@ -17,6 +17,7 @@ import {
   zonedWallTimeToInstant,
 } from '../../../../shared/utils/timezones.util';
 import { ProfessionalSessionService } from '../../../../shared/enums/professional-session-service.enum';
+import { REMOTE_SESSION_INFO } from '../../../../shared/utils/remote-session.util';
 
 /**
  * Textos que mudam quando o pagamento entrar. Ficam todos aqui para que ligar
@@ -138,7 +139,7 @@ export class SchedulingConfirmComponent {
     return {
       icon: 'videocam',
       label: 'Plataforma',
-      body: b.availability.platform?.trim() || 'a combinar',
+      body: REMOTE_SESSION_INFO,
     };
   });
 

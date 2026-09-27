@@ -38,6 +38,7 @@ import {
   toApiTime,
 } from '../../shared/utils/session-time.util';
 import { Modality } from '../../shared/enums/modality.enum';
+import { REMOTE_SESSION_INFO } from '../../shared/utils/remote-session.util';
 import { isModalityCompatible, normalizeModality, toBackendModality } from '../../shared/utils/modality-compatibility.util';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { RecurrenceFrequency } from '../../shared/enums/recurrence-frequency.enum';
@@ -226,7 +227,6 @@ interface TherapistBlock {
   endTime: string;
   sessionDuration: 30 | 60 | 90;
   local?: string;
-  platform?: string;
   price?: number;
   priceBRL?: number;
 }
@@ -284,6 +284,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   readonly ROW_H = ROW_H;
   readonly MOB_ROW_H = MOB_ROW_H;
   readonly Modality = Modality;
+  readonly remoteSessionInfo = REMOTE_SESSION_INFO;
   readonly DayOfWeek = DayOfWeek;
   readonly RecurrenceFrequency = RecurrenceFrequency;
   readonly RECURRENCE_PATTERNS: RecurrenceFrequency[] = [
@@ -363,7 +364,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   editorEndTime = signal<string>('13:00');
   editorSessionDuration = signal<30 | 60 | 90>(60);
   editorLocal = signal<string>('');
-  editorPlatform = signal<string>('');
   editorPrice = signal<string>('');
   editorPriceBRL = signal<string>('');
 
@@ -380,12 +380,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
     if (this.editorModality() === Modality.REMOTE) return null;
     return this.editorLocal().trim() === '' ? 'Indique o local do atendimento.' : null;
-  });
-
-  readonly platformErrorMessage = computed<string | null>(() => {
-    if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
-    if (this.editorModality() === Modality.LOCAL) return null;
-    return this.editorPlatform().trim() === '' ? 'Indique a plataforma a usar.' : null;
   });
 
   readonly weekdayErrorMessage = computed<string | null>(() => {
@@ -550,7 +544,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.blocks().find(b => b.id === this.selectedBlockId()) ?? null,
   );
 
-  // Once a block has bookings, Local/Plataforma/Valor are locked and disabled - their
+  // Once a block has bookings, Local/Valor are locked and disabled - their
   // validation must not fire (or show as errors) since the user has no way to fix them.
   readonly isEditingLockedBlock = computed<boolean>(() => {
     const block = this.selectedBlock();
@@ -932,7 +926,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorEndTime.set(block.endTime);
     this.editorSessionDuration.set(block.sessionDuration);
     this.editorLocal.set(block.local ?? '');
-    this.editorPlatform.set(block.platform ?? '');
     this.editorPrice.set(formatPriceForEditor(block.price, this.decimalSeparator));
     this.editorPriceBRL.set(formatPriceForEditor(block.priceBRL, this.decimalSeparator));
   }
@@ -1039,7 +1032,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const slotStart = slotTimes[i] ?? s.slotTime;
           const slotEnd = minToTime(timeToMin(slotStart) + dur);
           return this.apiService.updateAvailability(s.backendId,
-            this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.platform, block.local, block.price, block.priceBRL, block.recurrenceFrequency),
+            this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency),
           );
         });
         forkJoin(updateOps).subscribe({
@@ -1180,7 +1173,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorEndTime.set('13:00');
     this.editorSessionDuration.set(60);
     this.editorLocal.set('');
-    this.editorPlatform.set('');
     this.editorPrice.set('');
     this.editorPriceBRL.set('');
     this.attemptedSave.set(false);
@@ -1298,7 +1290,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const isLockedByBookings = this.isEditingLockedBlock();
 
     const formError = this.serviceErrorMessage() || this.localErrorMessage()
-      || this.platformErrorMessage() || this.priceErrorMessage() || this.priceBRLErrorMessage()
+      || this.priceErrorMessage() || this.priceBRLErrorMessage()
       || this.weekdayErrorMessage() || this.dateErrorMessage();
     if (formError) {
       this.snackbarService.openSnackBar({ message: formError });
@@ -1329,9 +1321,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         local: isLockedByBookings
           ? existing.local
           : (this.editorModality() !== Modality.REMOTE ? this.editorLocal() : undefined),
-        platform: isLockedByBookings
-          ? existing.platform
-          : (this.editorModality() !== Modality.LOCAL ? this.editorPlatform() : undefined),
         price: isLockedByBookings ? existing.price : parsePriceInput(this.editorPrice(), this.decimalSeparator),
         priceBRL: isLockedByBookings ? existing.priceBRL : parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
       };
@@ -1496,7 +1485,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(b.endTime, newEnd, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.platform, b.local, b.price, b.priceBRL, b.recurrenceFrequency,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1609,7 +1598,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(newStart, b.startTime, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.platform, b.local, b.price, b.priceBRL, b.recurrenceFrequency,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1792,7 +1781,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       endTime: this.editorEndTime(),
       sessionDuration: dur,
       local: this.editorModality() !== Modality.REMOTE ? this.editorLocal() : undefined,
-      platform: this.editorModality() !== Modality.LOCAL ? this.editorPlatform() : undefined,
       price: parsePriceInput(this.editorPrice(), this.decimalSeparator),
       priceBRL: parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
     };
@@ -1804,7 +1792,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.apiService.createAvailability(
         this.buildSlotPayload(
           services, this.editorModality(), isRecurring, date, t, minToTime(timeToMin(t) + dur),
-          this.editorModality() !== Modality.LOCAL ? this.editorPlatform() : undefined,
           this.editorModality() !== Modality.REMOTE ? this.editorLocal() : undefined,
           parsePriceInput(this.editorPrice(), this.decimalSeparator),
           parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
@@ -1849,7 +1836,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     date: string,
     slotStart: string,
     slotEnd: string,
-    platform?: string,
     address?: string,
     price?: number,
     priceBRL?: number,
@@ -1859,7 +1845,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       professionalServiceIds: services.map(s => s.id),
       startDate: date,
       startTime: slotStart,
-      platform: modality !== Modality.LOCAL ? platform : undefined,
       // O campo 'Local' do editor era recolhido e validado, mas nunca chegava a
       // ser enviado — a morada perdia-se ao guardar. Agora vai como 'address'.
       address: modality !== Modality.REMOTE ? address : undefined,
@@ -1992,7 +1977,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       startTime: firstStart,
       endTime: fromApiEndTime(last.endTime),
       sessionDuration,
-      platform: first.platform,
       local: first.address,
       price: first.price,
       priceBRL: first.priceBRL,
@@ -2049,7 +2033,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return settleAll(slotTimes.map(t =>
       this.apiService.createAvailability(this.buildSlotPayload(
         block.services, block.modality, block.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-        block.platform, block.local, block.price, block.priceBRL, block.recurrenceFrequency,
+        block.local, block.price, block.priceBRL, block.recurrenceFrequency,
       )),
     ));
   }
@@ -2087,7 +2071,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (toAddTimes.length > 0) {
       const createOps = toAddTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
-          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.platform, existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency,
+          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency,
         ))
       );
       forkJoin(createOps).subscribe({
@@ -2140,7 +2124,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       const createOps = slotTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
           updated.services, updated.modality, updated.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-          updated.platform, updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency,
+          updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency,
         )),
       );
 
@@ -2552,7 +2536,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
             // Termos a que a vaga está anunciada: são o ponto de partida do
             // diálogo, para que enviar sem mexer em nada proponha a vaga tal como está.
-            slotPlatform: block.platform,
             slotAddress: block.local,
             slotPrice: block.price,
             slotPriceBRL: block.priceBRL,
@@ -2576,7 +2559,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       clientId: result.clientId,
       modality: toBackendModality(result.modality),
       recurrenceFrequency: toBackendRecurrenceFrequency(result.recurrenceFrequency),
-      platform: result.platform,
       address: result.address,
       price: result.price,
       priceBRL: result.priceBRL,
@@ -2647,7 +2629,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             dayLabel,
             timeLabel: `${appt.startTime}–${appt.endTime}`,
             slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
-            slotPlatform: appt.platform ?? block.platform,
             slotAddress: appt.address ?? block.local,
             slotPrice: appt.price ?? block.price,
             slotPriceBRL: appt.priceBRL ?? block.priceBRL,

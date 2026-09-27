@@ -12,7 +12,6 @@ export interface AvailabilityPayload {
   isRecurring: boolean;
   recurrenceFrequency?: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
   modality: string;
-  platform?: string;
   /** Morada em texto livre para sessões presenciais. */
   address?: string;
   price?: number;

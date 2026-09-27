@@ -24,7 +24,6 @@ export interface Appointment {
   timeZone?: string;
   clientName?: string;
   clientEmail?: string;
-  platform?: string;
   price?: number;
   priceBRL?: number;
   status: 'PENDING' | 'CONFIRMED';

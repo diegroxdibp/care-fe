@@ -12,7 +12,6 @@ export interface RecurringProposalPayload {
 
   /** Pode ser mais espaçada do que a da vaga (semanal → quinzenal), nunca o contrário. */
   recurrenceFrequency?: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
-  platform?: string;
   address?: string;
   price?: number;
   priceBRL?: number;

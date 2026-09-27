@@ -702,23 +702,10 @@
       }
     }
     @if (editorModality() !== Modality.LOCAL) {
-      <div class="field field-textarea" style="margin-top: 12px;" [class.has-error]="platformErrorMessage()" @revealSection>
-        <div class="field-inner">
-          <span class="field-label">Plataforma</span>
-          <textarea
-            class="field-value"
-            rows="3"
-            [value]="editorPlatform()"
-            [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
-            (input)="editorPlatform.set($any($event.target).value)"
-            placeholder="Partilhe orientações sobre a plataforma a usar, o envio do link e outros procedimentos."
-          ></textarea>
-        </div>
-        <span translate="no" class="material-symbols-outlined field-icon">videocam</span>
+      <div class="hint" style="margin-top: 12px;" @revealSection>
+        <span translate="no" class="material-symbols-outlined">videocam</span>
+        <span>{{ remoteSessionInfo }}</span>
       </div>
-      @if (platformErrorMessage(); as err) {
-        <span class="field-error">{{ err }}</span>
-      }
     }
   </div>
 
@@ -1018,10 +1005,10 @@
         }
       </div></div>
     </div>
-    @if (appt.platform) {
+    @if (apptModalityLabel(appt) === 'remoto') {
       <div class="ad-row">
         <span translate="no" class="material-symbols-outlined">videocam</span>
-        <div><div class="ad-k">Plataforma</div><div class="ad-v">{{ appt.platform }}</div></div>
+        <div><div class="ad-k">Plataforma</div><div class="ad-v">{{ remoteSessionInfo }}</div></div>
       </div>
     }
     @if (appt.price != null) {

@@ -6,6 +6,7 @@ import { RecurrenceFrequency } from '../../enums/recurrence-frequency.enum';
 import { AvailabilityModel } from '../../models/availability.model';
 import { availabilityOccursOn } from '../../utils/free-slots.util';
 import { getBookableModalities } from '../../utils/modality-compatibility.util';
+import { REMOTE_SESSION_INFO } from '../../utils/remote-session.util';
 import {
   decimalSeparatorFor,
   formatPriceForEditor,
@@ -49,7 +50,6 @@ export interface ProposeRecurringDialogData {
    * Termos a que a vaga está anunciada. Servem de valor inicial: propor sem
    * mexer em nada tem de dar exatamente a vaga.
    */
-  slotPlatform?: string;
   slotAddress?: string;
   slotPrice?: number;
   slotPriceBRL?: number;
@@ -73,7 +73,6 @@ export interface ProposeRecurringDialogResult {
   clientId: number;
   modality: Modality;
   recurrenceFrequency: RecurrenceFrequency;
-  platform?: string;
   address?: string;
   price?: number;
   priceBRL?: number;
@@ -219,19 +218,7 @@ export interface ProposeRecurringDialogResult {
       }
 
       @if (selectedModality() !== Modality.LOCAL) {
-        <div class="field field-textarea">
-          <div class="field-inner">
-            <span class="field-label">Plataforma</span>
-            <textarea
-              class="field-value"
-              rows="3"
-              [value]="platform()"
-              (input)="platform.set($any($event.target).value)"
-              placeholder="Partilhe orientações sobre a plataforma a usar, o envio do link e outros procedimentos."
-            ></textarea>
-          </div>
-          <span translate="no" class="material-symbols-outlined field-icon">videocam</span>
-        </div>
+        <p class="hint">{{ remoteSessionInfo }}</p>
       }
 
       <label class="field-label">Valor</label>
@@ -661,8 +648,8 @@ export class ProposeRecurringDialogComponent implements OnInit {
     this.selectedStartDate() ? new Date(this.selectedStartDate() + 'T00:00:00') : new Date(),
   );
 
-  readonly platform = signal<string>(this.data.slotPlatform ?? '');
   readonly address = signal<string>(this.data.slotAddress ?? '');
+  readonly remoteSessionInfo = REMOTE_SESSION_INFO;
   readonly price = signal<string>(formatPriceForEditor(this.data.slotPrice, this.separator));
   readonly priceBRL = signal<string>(formatPriceForEditor(this.data.slotPriceBRL, this.separator));
 
@@ -846,17 +833,14 @@ export class ProposeRecurringDialogComponent implements OnInit {
 
     const modality = this.selectedModality();
     const address = this.address().trim();
-    const platform = this.platform().trim();
 
     const result: ProposeRecurringDialogResult = {
       professionalServiceId,
       clientId,
       modality,
       recurrenceFrequency: this.selectedFrequency(),
-      // Um campo que a modalidade escolhida não usa não deve seguir: uma
-      // sessão remota não tem morada, e uma presencial não tem plataforma.
+      // Uma sessão remota não tem morada.
       address: modality !== Modality.REMOTE && address ? address : undefined,
-      platform: modality !== Modality.LOCAL && platform ? platform : undefined,
       price: parsePriceInput(this.price(), this.separator),
       priceBRL: parsePriceInput(this.priceBRL(), this.separator),
       startDate,

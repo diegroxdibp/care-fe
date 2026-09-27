@@ -129,8 +129,8 @@
                   </span>
                   <div class="row2-body">
                     <div class="ad-k">{{ s.mode === 'Remoto' ? 'Plataforma' : 'Endereço' }}</div>
-                    <div class="ad-v row2-value" [class.to-agree]="!(s.mode === 'Remoto' ? s.platform : s.address)">
-                      {{ (s.mode === 'Remoto' ? s.platform : s.address) || 'a combinar' }}
+                    <div class="ad-v row2-value" [class.to-agree]="s.mode !== 'Remoto' && !s.address">
+                      {{ s.mode === 'Remoto' ? s.platform : (s.address || 'a combinar') }}
                     </div>
                   </div>
                 </div>
@@ -328,7 +328,7 @@
                           @if (s.mode === 'Remoto') {
                             <div class="ad-row">
                               <span translate="no" class="material-symbols-outlined">videocam</span>
-                              <div><div class="ad-k">Plataforma</div><div class="ad-v" [class.to-agree]="!s.platform">{{ s.platform || 'a combinar' }}</div></div>
+                              <div><div class="ad-k">Plataforma</div><div class="ad-v">{{ s.platform }}</div></div>
                             </div>
                           }
                           <div class="ad-row">

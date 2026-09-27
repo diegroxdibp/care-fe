@@ -27,6 +27,7 @@ import { Router } from '@angular/router';
 import { Currency, formatPrice } from '../../../shared/enums/currency.enum';
 import { Pages } from '../../../shared/enums/pages.enum';
 import { getBookableModalities } from '../../../shared/utils/modality-compatibility.util';
+import { REMOTE_SESSION_INFO } from '../../../shared/utils/remote-session.util';
 
 const PT_MONTHS = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -337,7 +338,7 @@ export class SchedulingComponent implements OnDestroy {
     if (modality === Modality.LOCAL) {
       return { icon: 'place', label: 'Endereço', body: slot.address?.trim() || 'a combinar' };
     }
-    return { icon: 'videocam', label: 'Plataforma', body: slot.platform?.trim() || 'a combinar' };
+    return { icon: 'videocam', label: 'Plataforma', body: REMOTE_SESSION_INFO };
   }
 
   canContinue(): boolean {

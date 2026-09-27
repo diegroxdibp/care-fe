@@ -22,7 +22,6 @@ export interface AvailabilityModel {
    */
   bookedDates: string[];
   modality: string;
-  platform?: string;
   /** Morada em texto livre para sessões presenciais. */
   address?: string;
   /**
