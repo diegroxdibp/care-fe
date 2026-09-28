@@ -236,6 +236,26 @@ export const routes: Routes = [
                 './shared/components/dashboard-salas/dashboard-salas.component'
               ).then((m) => m.DashboardSalasComponent),
           },
+
+          {
+            // Prontuário - o acesso a cada pessoa cliente é decidido no backend
+            // (tem de haver marcação); o guard só esconde a área a quem não atende.
+            path: 'clientes',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/dashboard-clients/dashboard-clients.component'
+              ).then((m) => m.DashboardClientsComponent),
+          },
+
+          {
+            path: 'clientes/:clientId',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/dashboard-client-record/dashboard-client-record.component'
+              ).then((m) => m.DashboardClientRecordComponent),
+          },
         ],
       },
 

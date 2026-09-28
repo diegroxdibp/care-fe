@@ -14,6 +14,7 @@ export enum Pages {
   APPOINTMENTS = 'appointments',
   APPOINTMENT_ROOM = `${Pages.APPOINTMENTS}/:id/room`,
   DASHBOARD_SALAS = `${Pages.DASHBOARD}/salas`,
+  DASHBOARD_CLIENTS = `${Pages.DASHBOARD}/clientes`,
   ROOMS = 'rooms',
   ROOM_JOIN = `${Pages.ROOMS}/:id/room`,
   ABOUT = 'about',

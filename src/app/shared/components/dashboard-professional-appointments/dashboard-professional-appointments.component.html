@@ -199,10 +199,10 @@
                     }
 
                     <div class="panel-actions">
-                      <span class="ad-av c0">{{ s.professionals[0].initials }}</span>
+                      <span class="ad-av c0">{{ s.whoInitials }}</span>
                       <div class="panel-who">
                         <div class="ad-k">Cliente</div>
-                        <div class="ad-v">{{ s.professionals[0].name }}</div>
+                        <div class="ad-v">{{ s.who }}</div>
                       </div>
                       @if (canJoin(s)) {
                         <button class="btn-join" (click)="joinSession(s)">
@@ -214,6 +214,12 @@
                         <span translate="no" class="material-symbols-outlined">forum</span>
                         Mensagem
                       </button>
+                      @if (s.clientId) {
+                        <a class="btn-message" [routerLink]="['/', Pages.DASHBOARD_CLIENTS, s.clientId]">
+                          <span translate="no" class="material-symbols-outlined">clinical_notes</span>
+                          Prontuário
+                        </a>
+                      }
                     </div>
                   </div>
                 }

@@ -28,6 +28,7 @@ import { ProfessionalService } from '../../shared/models/professional-service.mo
 import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
 import { Professional } from '../../shared/models/get-professional-by-service-response.model';
 import { Appointment } from '../../shared/models/appointment.model';
+import { ClientRecord, ClientRecordSummary, CreateClientRecordNotePayload } from '../../shared/models/client-record.model';
 import { ContactPayload } from '../../shared/models/contact-payload';
 import { PatientSummary } from '../../shared/models/patient.model';
 import { RecurringProposalPayload } from '../../shared/models/recurring-proposal-payload.model';
@@ -257,6 +258,37 @@ export class ApiService {
     return this.http.post<Room>(
       `${environment.apiUrl}/api/rooms`,
       payload,
+      { withCredentials: true },
+    );
+  }
+
+  getMyClientRecords(): Observable<ClientRecordSummary[]> {
+    return this.http.get<ClientRecordSummary[]>(
+      `${environment.apiUrl}/api/client-records`,
+      { withCredentials: true },
+    );
+  }
+
+  getClientRecord(clientId: number): Observable<ClientRecord> {
+    return this.http.get<ClientRecord>(
+      `${environment.apiUrl}/api/client-records/${clientId}`,
+      { withCredentials: true },
+    );
+  }
+
+  /** Devolve o prontuário inteiro já atualizado — notas, intake e pendentes. */
+  addClientRecordNote(clientId: number, payload: CreateClientRecordNotePayload): Observable<ClientRecord> {
+    return this.http.post<ClientRecord>(
+      `${environment.apiUrl}/api/client-records/${clientId}/notes`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  addClientRecordAddendum(clientId: number, noteId: number, body: string): Observable<ClientRecord> {
+    return this.http.post<ClientRecord>(
+      `${environment.apiUrl}/api/client-records/${clientId}/notes/${noteId}/addenda`,
+      { body },
       { withCredentials: true },
     );
   }

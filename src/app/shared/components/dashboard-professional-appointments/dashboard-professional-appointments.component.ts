@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { MessageService } from '../../../core/services/message.service';
 import { SessionService } from '../../services/session.service';
@@ -9,6 +9,7 @@ import { Appointment } from '../../models/appointment.model';
 import { ProfessionalService } from '../../models/professional-service.model';
 import { PatientSummary } from '../../models/patient.model';
 import { Currency } from '../../enums/currency.enum';
+import { Pages } from '../../enums/pages.enum';
 import { BuiltSession, buildSessions, canJoinSession, isUpcomingOrOngoing } from '../../utils/session-list.util';
 import { detectBrowserTimezone } from '../../utils/timezones.util';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
@@ -17,7 +18,7 @@ const ALL_CLIENTS_VALUE = '';
 
 @Component({
   selector: 'app-dashboard-professional-appointments',
-  imports: [StyledSelectComponent],
+  imports: [StyledSelectComponent, RouterLink],
   templateUrl: './dashboard-professional-appointments.component.html',
   styleUrl: './dashboard-professional-appointments.component.scss',
 })
@@ -29,6 +30,8 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
   private readonly featureFlagService = inject(FeatureFlagService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  protected readonly Pages = Pages;
 
   private readonly appointments = signal<Appointment[]>([]);
   private readonly services = signal<ProfessionalService[]>([]);

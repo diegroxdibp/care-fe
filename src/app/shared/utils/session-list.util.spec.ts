@@ -262,3 +262,36 @@ describe('isUpcomingOrOngoing / sessionBounds — coerentes com a hora já conve
     expect(isUpcomingOrOngoing(session, justAfterEnd)).toBe(false);
   });
 });
+
+/**
+ * sessionBounds reconstruía o instante a partir dos rótulos (`date` +
+ * `startTime`, já no fuso do perfil) com `setHours` — ou seja, no fuso do
+ * navegador. Com o perfil em São Paulo e o navegador noutro fuso (aqui, o do
+ * processo do Jest, que não é São Paulo), a "próxima sessão" e a janela do
+ * botão "Entrar" ficavam deslocadas pela diferença entre os dois.
+ */
+describe('sessionBounds — instante real, independente do fuso do navegador', () => {
+  it('sessão das 22:00 em São Paulo, vista por quem tem o perfil em São Paulo, começa às 01:00 UTC', () => {
+    const appt = makeAppointment({ startDate: '2026-01-15', startTime: '22:00', endTime: '23:00' });
+    const [session] = buildSessions([appt], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(session.startTime).toBe('22:00');
+    expect(sessionBounds(session)?.start.toISOString()).toBe('2026-01-16T01:00:00.000Z');
+    expect(sessionBounds(session)?.end.toISOString()).toBe('2026-01-16T02:00:00.000Z');
+  });
+
+  it('às 20:30 em São Paulo a sessão das 22:00 ainda está por vir', () => {
+    const appt = makeAppointment({ startDate: '2026-01-15', startTime: '22:00', endTime: '23:00' });
+    const [session] = buildSessions([appt], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(isUpcomingOrOngoing(session, new Date('2026-01-15T23:30:00Z'))).toBe(true);
+  });
+
+  it('em julho, a mesma sessão vista de Lisboa começa às 01:00 UTC (02:00 em Lisboa)', () => {
+    const appt = makeAppointment({ startDate: '2026-07-16', endDate: '2026-07-16', startTime: '22:00', endTime: '23:00' });
+    const [session] = buildSessions([appt], [SERVICE], options({ viewerTimeZone: LISBON }));
+
+    expect(session.startTime).toBe('02:00');
+    expect(sessionBounds(session)?.start.toISOString()).toBe('2026-07-17T01:00:00.000Z');
+  });
+});

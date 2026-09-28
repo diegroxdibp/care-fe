@@ -1,0 +1,46 @@
+<div class="panel">
+
+  <div class="panel-header">
+    <h2>Clientes</h2>
+    <p class="subtle">Abra o prontuário de uma pessoa cliente para consultar a evolução e acrescentar notas.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="card empty-card"><p>A carregar...</p></div>
+  } @else if (clients().length === 0) {
+    <div class="card empty-card">
+      <span translate="no" class="material-symbols-outlined empty-icon">clinical_notes</span>
+      <p>Ainda não tem pessoas clientes. Quando alguém marcar uma sessão consigo, aparece aqui.</p>
+    </div>
+  } @else {
+    <div class="search">
+      <span translate="no" class="material-symbols-outlined">search</span>
+      <input type="search" [value]="query()" (input)="onQuery($event)"
+        placeholder="Procurar por nome ou email" aria-label="Procurar pessoa cliente" />
+    </div>
+
+    @if (filtered().length === 0) {
+      <p class="subtle">Nenhuma pessoa cliente corresponde à pesquisa.</p>
+    } @else {
+      <ul class="client-list">
+        @for (c of filtered(); track c.id) {
+          <li>
+            <a class="client-row" [routerLink]="[c.id]">
+              @if (c.picture) {
+                <img class="avatar" [src]="c.picture" alt="" />
+              } @else {
+                <span class="avatar">{{ initials(c.name) }}</span>
+              }
+              <span class="who">
+                <span class="name">{{ c.name }}</span>
+                <span class="email">{{ c.email }}</span>
+              </span>
+              <span translate="no" class="material-symbols-outlined chevron">chevron_right</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  }
+
+</div>

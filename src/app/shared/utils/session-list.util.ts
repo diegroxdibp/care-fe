@@ -53,6 +53,8 @@ export interface BuiltSession {
   day: number;
   month: string;
   who: string;
+  /** Iniciais de `who` — o avatar da pessoa do outro lado da sessão. */
+  whoInitials: string;
   service: string;
   startTime: string;
   endTime: string;
@@ -69,6 +71,14 @@ export interface BuiltSession {
   payment: string;
   notes?: string;
   professionals: SessionCounterpart[];
+  /**
+   * Instantes reais da ocorrência, quando a marcação traz o fuso de origem.
+   * `date` + `startTime` são rótulos no fuso de quem vê e não servem para
+   * reconstruir o instante: `setHours` usa o fuso do navegador, que pode não
+   * ser o do perfil.
+   */
+  startInstant?: Date;
+  endInstant?: Date;
 }
 
 /** Do ponto de vista de quem vê a lista: a pessoa cliente vê a(s) profissional(is); a profissional vê a pessoa cliente. */
@@ -142,6 +152,11 @@ const JOIN_WINDOW_AFTER_MIN = 30;
 
 /** Início/fim reais (data + hora) de uma ocorrência — null quando não há horas (não devia acontecer numa sessão marcada). */
 export function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
+  if (session.startInstant && session.endInstant) {
+    return { start: session.startInstant, end: session.endInstant };
+  }
+  // Marcações antigas sem fuso de origem: a hora de parede é a única coisa
+  // que há, lida no fuso do navegador.
   if (!session.startTime || !session.endTime) return null;
   const [sh, sm] = session.startTime.split(':').map(Number);
   const [eh, em] = session.endTime.split(':').map(Number);
@@ -263,7 +278,15 @@ function resolveOccurrenceDisplay(
   endTime: string,
   originTimeZone: string | undefined,
   viewerTimeZone: string,
-): { date: Date; dow: string; fullDow: string; startTime: string; endTime: string } {
+): {
+  date: Date;
+  dow: string;
+  fullDow: string;
+  startTime: string;
+  endTime: string;
+  startInstant?: Date;
+  endInstant?: Date;
+} {
   if (!originTimeZone || !startTime) {
     return {
       date,
@@ -297,6 +320,8 @@ function resolveOccurrenceDisplay(
 
   return {
     date: displayDate,
+    startInstant,
+    endInstant: endInstant ?? undefined,
     dow: DOW_ABR_BY_JS[displayDate.getDay()],
     fullDow: DOW_FULL_BY_JS[displayDate.getDay()],
     startTime: `${pad2(startWall.hour)}:${pad2(startWall.minute)}`,
@@ -394,6 +419,7 @@ export function buildSessions(
         day: resolved.date.getDate(),
         month: MONTHS[resolved.date.getMonth()],
         who,
+        whoInitials: initialsFor(who),
         service: serviceName,
         startTime: resolved.startTime,
         endTime: resolved.endTime,
@@ -408,6 +434,8 @@ export function buildSessions(
         payment,
         notes: appt.notes,
         professionals,
+        startInstant: resolved.startInstant,
+        endInstant: resolved.endInstant,
       });
     }
   }
