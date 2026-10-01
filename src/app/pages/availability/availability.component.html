@@ -248,7 +248,7 @@
                 Voltar ao bloco
               </button>
               <div class="be-title">
-                Sessão reservada
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -477,7 +477,7 @@
             </div>
             <div class="sh-body">
               <div class="be-title" style="margin-bottom:14px">
-                Sessão reservada
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -1052,6 +1052,24 @@
 
 <ng-template #apptDetailActions let-appt>
   <div class="ad-actions">
+    @if (isPendingSeriesChange(appt)) {
+      <p class="ad-series-note">
+        Proposta de alteração a partir de {{ fmtDateKey(appt.startDate) }}. A série atual continua a valer
+        até {{ slotPatientFirstName(appt) }} aceitar.
+      </p>
+    } @else if (canEditSeries(appt)) {
+      @if (pendingChangeOf(appt); as change) {
+        <p class="ad-series-note">
+          Alteração enviada a partir de {{ fmtDateKey(change.startDate) }} — à espera da resposta de
+          {{ slotPatientFirstName(appt) }}.
+        </p>
+      } @else {
+        <button class="btn-invite-recurring" (click)="openEditSeriesDialog($event, appt)">
+          <span translate="no" class="material-symbols-outlined">event_repeat</span>
+          Alterar série
+        </button>
+      }
+    }
     @if (canInviteRecurring(appt)) {
       <button class="btn-invite-recurring" (click)="openInviteRecurringDialog($event, appt)">
         <span translate="no" class="material-symbols-outlined">event_repeat</span>
@@ -1066,7 +1084,7 @@
     }
     <button class="btn-cancel" [disabled]="isApptPast(appt)" (click)="cancelAppointment(appt)">
       <span translate="no" class="material-symbols-outlined">close</span>
-      {{ appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
+      {{ isPendingSeriesChange(appt) ? 'Retirar alteração' : appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
     </button>
   </div>
 </ng-template>

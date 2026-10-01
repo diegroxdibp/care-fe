@@ -9,6 +9,7 @@ import { generateOccurrences } from './recurrence.util';
 import { normalizeModality } from './modality-compatibility.util';
 import { wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
 import { REMOTE_SESSION_INFO } from './remote-session.util';
+import { isPendingSeriesChange } from './series-change.util';
 
 /** 'A combinar' cobre ANY e qualquer modalidade não resolvível — nunca um palpite. */
 export type SessionMode = 'Presencial' | 'Remoto' | 'A combinar';
@@ -240,9 +241,13 @@ function recurringDates(appt: Appointment, from: Date, limit: Date): Date[] {
   const targetDay = DOW_JS[appt.dayOfWeek];
   if (targetDay === undefined) return [];
 
-  const start = appt.startDate ? new Date(appt.startDate) : new Date(from);
+  // 'T00:00:00' faz a data ser lida como meia-noite local. Sem isso
+  // new Date('yyyy-MM-dd') é meia-noite UTC — num browser a oeste de UTC
+  // (São Paulo) isso é ainda o dia anterior: a série acabava uma sessão mais
+  // cedo e a âncora quinzenal podia saltar para a semana errada.
+  const start = appt.startDate ? new Date(appt.startDate + 'T00:00:00') : new Date(from);
   start.setHours(0, 0, 0, 0);
-  const end = appt.endDate ? new Date(appt.endDate) : new Date(limit);
+  const end = appt.endDate ? new Date(appt.endDate + 'T00:00:00') : new Date(limit);
   end.setHours(23, 59, 59, 999);
 
   const base = from > start ? new Date(from) : new Date(start);
@@ -336,7 +341,8 @@ function resolveOccurrenceDisplay(
 
 function oneTimeDates(appt: Appointment): Date[] {
   if (!appt.startDate) return [];
-  const d = new Date(appt.startDate);
+  // Meia-noite local, não UTC — ver a mesma nota em recurringDates.
+  const d = new Date(appt.startDate + 'T00:00:00');
   d.setHours(0, 0, 0, 0);
   return [d];
 }
@@ -358,6 +364,11 @@ export function buildSessions(
   const sessions: BuiltSession[] = [];
 
   for (const appt of appointments) {
+    // Uma alteração de série por responder não é uma sessão: a série original
+    // continua a valer até haver resposta, e mostrar as duas duplicaria as
+    // datas a partir do dia da alteração.
+    if (isPendingSeriesChange(appt)) continue;
+
     const excluded = new Set(appt.excludedDates ?? []);
     const dates = (appt.isRecurring
       ? recurringDates(appt, today, limit)

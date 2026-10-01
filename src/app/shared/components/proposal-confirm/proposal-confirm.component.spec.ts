@@ -103,4 +103,83 @@ describe('ProposalConfirmComponent', () => {
 
     expect(component.timeLabel()).toBe('22:00–23:00');
   });
+
+  describe('alteração de série', () => {
+    function makeSeries(overrides: Partial<Appointment> = {}): Appointment {
+      return makeProposal({
+        id: 1,
+        startDate: '2026-01-06', // terça
+        endDate: '2100-01-01',
+        startTime: '10:00:00',
+        endTime: '11:00:00',
+        dayOfWeek: 'TUESDAY' as unknown as DayOfWeek,
+        timeZone: LISBON,
+        status: 'CONFIRMED',
+        ...overrides,
+      });
+    }
+
+    function makeChange(overrides: Partial<Appointment> = {}): Appointment {
+      return makeProposal({
+        id: 99,
+        replacesAppointmentId: 1,
+        startTime: '15:00:00',
+        endTime: '16:00:00',
+        dayOfWeek: 'THURSDAY' as unknown as DayOfWeek,
+        timeZone: LISBON,
+        recurrenceFrequency: 'BIWEEKLY',
+        ...overrides,
+      });
+    }
+
+    async function setupChange(change: Appointment, original: Appointment, viewerTimeZone: string) {
+      await setup(change, viewerTimeZone);
+      // setup() só conhece uma marcação; aqui há duas — a alteração e a série que substitui.
+      apiService.getAppointmentById.mockImplementation((id: number) => of(id === change.id ? change : original));
+      component.ngOnInit();
+      fixture.detectChanges();
+    }
+
+    it('mostra como está e como passa a ser no fuso da pessoa cliente (São Paulo, inverno europeu)', async () => {
+      await setupChange(makeChange({ startDate: '2027-01-14' }), makeSeries(), SAO_PAULO);
+
+      expect(component.isSeriesChange()).toBe(true);
+      // Lisboa UTC+0 → São Paulo UTC-3.
+      expect(component.replacedOccurrence()).toEqual({ dow: 'Terça-feira', time: '07:00–08:00', date: '19/01/2027' });
+      expect(component.dayLabel()).toBe('Quinta-feira');
+      expect(component.timeLabel()).toBe('12:00–13:00');
+      expect(component.effectiveFromLabel()).toBe('14/01/2027');
+      expect(component.frequencyLabel()).toBe('Quinzenal');
+      expect(component.replacedFrequencyLabel()).toBe('Semanal');
+    });
+
+    it('no verão europeu a diferença passa a 4h', async () => {
+      await setupChange(makeChange({ startDate: '2027-07-15' }), makeSeries(), SAO_PAULO);
+
+      expect(component.replacedOccurrence()?.time).toBe('06:00–07:00');
+      expect(component.timeLabel()).toBe('11:00–12:00');
+    });
+
+    it('série de São Paulo vista de Lisboa no verão: o novo horário cai já na sexta', async () => {
+      await setupChange(
+        makeChange({ startDate: '2027-07-15', startTime: '20:00:00', endTime: '21:00:00', timeZone: SAO_PAULO }),
+        makeSeries({ timeZone: SAO_PAULO }),
+        LISBON,
+      );
+
+      expect(component.dayLabel()).toBe('Sexta-feira');
+      expect(component.timeLabel()).toBe('00:00–01:00');
+      expect(component.effectiveFromLabel()).toBe('16/07/2027');
+      expect(component.replacedOccurrence()?.time).toBe('14:00–15:00');
+    });
+
+    it('mostra o título e o comparativo de alteração no ecrã', async () => {
+      await setupChange(makeChange({ startDate: '2027-01-14' }), makeSeries(), LISBON);
+
+      const text: string = fixture.nativeElement.textContent;
+      expect(text).toContain('Alteração da sessão recorrente');
+      expect(text).toContain('Como está');
+      expect(text).toContain('A partir de 14/01/2027');
+    });
+  });
 });

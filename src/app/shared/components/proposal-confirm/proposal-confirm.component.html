@@ -1,6 +1,6 @@
 <div class="panel">
   <div class="panel-header">
-    <h2>Proposta de agendamento recorrente</h2>
+    <h2>{{ isSeriesChange() ? 'Alteração da sessão recorrente' : 'Proposta de agendamento recorrente' }}</h2>
   </div>
 
   <div class="body">
@@ -15,6 +15,59 @@
       </div>
     } @else if (appt(); as a) {
       <div class="card">
+        @if (isSeriesChange()) {
+          <p class="lead">
+            <strong>{{ a.professionalName }}</strong> propôs alterar a sua sessão recorrente a partir de
+            <strong>{{ effectiveFromLabel() }}</strong>. As sessões antes dessa data mantêm-se como estão, e nada muda até aceitar.
+          </p>
+
+          <div class="compare">
+            @if (replacedOccurrence(); as before) {
+              <div class="compare-col">
+                <div class="compare-title">Como está</div>
+                <div class="rows">
+                  <div class="row">
+                    <span translate="no" class="material-symbols-outlined">event_repeat</span>
+                    <div><div class="k">Dia e horário</div><div class="v">{{ before.dow }} · {{ before.time }}</div></div>
+                  </div>
+                  <div class="row">
+                    <span translate="no" class="material-symbols-outlined">update</span>
+                    <div><div class="k">Periodicidade</div><div class="v">{{ replacedFrequencyLabel() }}</div></div>
+                  </div>
+                  <div class="row">
+                    <span translate="no" class="material-symbols-outlined">medical_services</span>
+                    <div><div class="k">Serviço</div><div class="v">{{ replacedServiceName() }}</div></div>
+                  </div>
+                  <div class="row">
+                    <span translate="no" class="material-symbols-outlined">location_on</span>
+                    <div><div class="k">Modalidade</div><div class="v">{{ replacedModalityLabel() }}</div></div>
+                  </div>
+                </div>
+              </div>
+            }
+            <div class="compare-col next">
+              <div class="compare-title">A partir de {{ effectiveFromLabel() }}</div>
+              <div class="rows">
+                <div class="row">
+                  <span translate="no" class="material-symbols-outlined">event_repeat</span>
+                  <div><div class="k">Dia e horário</div><div class="v">{{ dayLabel() }} · {{ timeLabel() }}</div></div>
+                </div>
+                <div class="row">
+                  <span translate="no" class="material-symbols-outlined">update</span>
+                  <div><div class="k">Periodicidade</div><div class="v">{{ frequencyLabel() }}</div></div>
+                </div>
+                <div class="row">
+                  <span translate="no" class="material-symbols-outlined">medical_services</span>
+                  <div><div class="k">Serviço</div><div class="v">{{ serviceName() }}</div></div>
+                </div>
+                <div class="row">
+                  <span translate="no" class="material-symbols-outlined">location_on</span>
+                  <div><div class="k">Modalidade</div><div class="v">{{ modalityLabel() }}</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
         <p class="lead">
           <strong>{{ a.professionalName }}</strong> propôs uma sessão {{ frequencyLabel().toLowerCase() }} recorrente consigo.
         </p>
@@ -33,6 +86,7 @@
             <div><div class="k">Modalidade</div><div class="v">{{ modalityLabel() }}</div></div>
           </div>
         </div>
+        }
 
         @if (alreadyResolved()) {
           <p class="already">{{ respondError() ?? 'Esta proposta já foi respondida.' }}</p>

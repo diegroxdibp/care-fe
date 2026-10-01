@@ -36,4 +36,10 @@ export interface Appointment {
   excludedDates?: string[];
   /** Hoje sempre um elemento — a única pessoa profissional da marcação. */
   professionals?: { id: number; name: string; role?: string }[];
+  /**
+   * Série que esta substitui a partir do seu startDate. PENDING + preenchido
+   * é uma alteração de série por responder — ainda não é uma sessão, e por isso
+   * não entra nas listas de sessões (ver series-change.util.ts).
+   */
+  replacesAppointmentId?: number | null;
 }

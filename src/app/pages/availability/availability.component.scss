@@ -1981,6 +1981,15 @@ input[type="number"].field-value {
 }
 .av .appt-detail .ad-actions .btn-invite-recurring:active { transform: translateY(0); }
 .av .appt-detail .ad-actions .btn-invite-recurring .material-symbols-outlined { font-size: 16px; }
+.av .appt-detail .ad-actions .ad-series-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-tint);
+  color: var(--color-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
+}
 .av .appt-detail .ad-actions .btn-cancel {
   background: #fff; color: var(--color-primary-purple); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
   padding: 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.6px;

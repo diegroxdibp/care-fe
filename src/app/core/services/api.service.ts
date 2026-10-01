@@ -33,6 +33,7 @@ import { ContactPayload } from '../../shared/models/contact-payload';
 import { PatientSummary } from '../../shared/models/patient.model';
 import { RecurringProposalPayload } from '../../shared/models/recurring-proposal-payload.model';
 import { ReschedulePayload } from '../../shared/models/reschedule-payload.model';
+import { SeriesChangePayload } from '../../shared/models/series-change-payload.model';
 import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
 import { VideoSession } from '../../shared/models/video-session.model';
 import { CreateRoomPayload, Room, RoomAllowedUser } from '../../shared/models/room.model';
@@ -181,6 +182,20 @@ export class ApiService {
   proposeRecurringAppointment(payload: RecurringProposalPayload): Observable<Appointment> {
     return this.http.post<Appointment>(
       `${environment.apiUrl}/api/appointments/propose-recurring`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Propõe alterar uma série recorrente a partir de `effectiveFrom`. Nada
+   * muda até a pessoa cliente aceitar: a resposta é uma marcação PENDING com
+   * `replacesAppointmentId`, que se aceita/recusa por respondToProposal e se
+   * retira por deleteAppointment.
+   */
+  proposeSeriesChange(id: number, payload: SeriesChangePayload): Observable<Appointment> {
+    return this.http.post<Appointment>(
+      `${environment.apiUrl}/api/appointments/${id}/series-change`,
       payload,
       { withCredentials: true },
     );

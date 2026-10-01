@@ -14,7 +14,8 @@
     "deploy:prod": "npm run build && npx wrangler deploy && npm run purge:cache",
     "watch": "ng build --watch --configuration development",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:browser-zone": "jest -c jest.browser-zone.config.ts --runInBand"
   },
   "private": true,
   "dependencies": {

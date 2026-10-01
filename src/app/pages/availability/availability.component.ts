@@ -29,7 +29,14 @@ import {
   RescheduleDialogData,
   RescheduleDialogResult,
 } from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
+import {
+  EditSeriesDialogComponent,
+  EditSeriesDialogData,
+  EditSeriesDialogResult,
+} from '../../shared/components/edit-series-dialog/edit-series-dialog.component';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
+import { isPendingSeriesChange, nextSeriesOccurrence, pendingSeriesChangeFor } from '../../shared/utils/series-change.util';
+import { detectBrowserTimezone } from '../../shared/utils/timezones.util';
 import {
   fromApiEndTime,
   minToTime,
@@ -2202,6 +2209,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       // semana volta a estar livre e tem de poder ser reutilizada.
       if ((a.excludedDates ?? []).includes(dateKey)) return false;
 
+      // Fora da janela da série não há sessão: uma série encurtada (cancelar
+      // "esta e as seguintes", ou uma alteração de série aceite) continuava a
+      // aparecer nas semanas depois do fim, por cima da série que a substitui.
+      if (a.startDate && dateKey < a.startDate) return false;
+      if (a.endDate && dateKey > a.endDate) return false;
+
       // Uma marcação pontual só ocupa a sua própria data. Sem isto, uma única
       // sessão numa vaga semanal aparecia ocupada em todas as semanas.
       if (!a.isRecurring || !a.startDate) return a.startDate === dateKey;
@@ -2399,6 +2412,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   cancelAppointment(appt: Appointment): void {
+    if (isPendingSeriesChange(appt)) {
+      this.withdrawSeriesChange(appt);
+      return;
+    }
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '440px',
       panelClass: 'care-dialog',
@@ -2425,6 +2442,94 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         this.snackbarService.openSnackBar({ message: 'Erro ao cancelar a sessão. Tente novamente.' });
       },
     });
+  }
+
+  // ─ Alteração de série recorrente ─────────────────────────────────────────────
+
+  readonly isPendingSeriesChange = isPendingSeriesChange;
+
+  /** A alteração que esta série tem à espera de resposta, se houver. */
+  pendingChangeOf(appt: Appointment): Appointment | undefined {
+    return pendingSeriesChangeFor(this.appointments(), appt.id);
+  }
+
+  /**
+   * Só uma série confirmada e com sessões ainda por vir se altera. Uma
+   * proposta por responder cancela-se e propõe-se de novo.
+   */
+  canEditSeries(appt: Appointment): boolean {
+    if (!appt.isRecurring || appt.status !== 'CONFIRMED') return false;
+    return nextSeriesOccurrence(appt, toKey(new Date())) !== null;
+  }
+
+  openEditSeriesDialog(event: Event, appt: Appointment): void {
+    event.stopPropagation();
+    const professionalId = this.sessionService.user()?.id;
+    if (!professionalId) return;
+
+    // Vagas com as datas ocupadas vêm do servidor no momento de abrir — ver a
+    // mesma nota em openRescheduleDialog.
+    this.apiService.getAvailabilitiesByProfessionalId(professionalId).subscribe({
+      next: (avails) => {
+        const ref = this.dialog.open(EditSeriesDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            series: appt,
+            counterpartName: this.slotPatientName(appt),
+            currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime.slice(0, 5)}–${appt.endTime.slice(0, 5)} · `
+              + this.recurrenceLabel(appt.isRecurring, appt.recurrenceFrequency),
+            slots: avails.filter(a => a.isRecurring),
+            serviceName: (key: string) => this.serviceDisplayName(key),
+            viewerTimeZone: this.sessionService.user()?.timeZone || detectBrowserTimezone(),
+          } satisfies EditSeriesDialogData,
+        });
+
+        ref.afterClosed().subscribe((result: EditSeriesDialogResult | null) => {
+          if (!result) return;
+          this.apiService.proposeSeriesChange(appt.id, result).subscribe({
+            next: (change) => {
+              this.appointments.update(list => [...list, change]);
+              this.snackbarService.openSnackBar({
+                message: 'Alteração enviada. A série só muda depois de a pessoa cliente aceitar.',
+              });
+            },
+            // O interceptor já mostra a recusa concreta do backend (vaga ocupada
+            // numa data, alteração já pendente).
+            error: () => {},
+          });
+        });
+      },
+      error: () => {},
+    });
+  }
+
+  private withdrawSeriesChange(change: Appointment): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '440px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Retirar alteração',
+        message: 'A série continua como estava, e a pessoa cliente é avisada de que a alteração foi retirada.',
+        confirmLabel: 'Retirar',
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.apiService.deleteAppointment(change.id).subscribe({
+        next: () => {
+          this.appointments.update(list => list.filter(a => a.id !== change.id));
+          this.selectedAppointment.set(null);
+          this.snackbarService.openSnackBar({ message: 'Alteração retirada.' });
+        },
+        error: () => {},
+      });
+    });
+  }
+
+  fmtDateKey(key: string): string {
+    const [y, m, d] = key.split('-');
+    return `${d}/${m}/${y}`;
   }
 
   removeSlot(event: Event, block: TherapistBlock, slotIndex: number): void {
