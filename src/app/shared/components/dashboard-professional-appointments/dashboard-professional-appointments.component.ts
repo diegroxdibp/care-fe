@@ -67,7 +67,8 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
 
   readonly nextSession = computed(() => {
     const now = new Date();
-    return this.sessions().find(s => isUpcomingOrOngoing(s, now)) ?? null;
+    // Uma proposta por responder não é o próximo atendimento.
+    return this.sessions().find(s => !s.pending && isUpcomingOrOngoing(s, now)) ?? null;
   });
 
   readonly upcomingSessions = computed(() => {

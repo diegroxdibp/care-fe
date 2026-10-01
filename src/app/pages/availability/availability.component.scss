@@ -622,7 +622,7 @@ input[type="number"].field-value {
       &.presencial { background: var(--color-primary-purple); }
       &.remoto { background: var(--color-secondary-green); }
       &.any { background: var(--color-secondary-cyan); }
-      &.pending-ring { background: #fff; box-shadow: inset 0 0 0 2.5px #f0a500; }
+      &.pending-ring { background: var(--color-white); box-shadow: inset 0 0 0 2.5px var(--color-pending); }
     }
 
     .material-symbols-outlined {
@@ -1033,8 +1033,8 @@ input[type="number"].field-value {
         font-size: 11px;
         letter-spacing: 0.3px;
         text-transform: uppercase;
-        color: #b25e00;
-        background: #fff3e0;
+        color: var(--color-pending-ink);
+        background: var(--color-pending-soft);
         border-radius: var(--radius-pill);
         padding: 3px 10px;
       }
@@ -1704,8 +1704,17 @@ input[type="number"].field-value {
 // Uma proposta por aceitar é de uma sessão, não do bloco: o anel amarelo
 // contorna a faixa daquele horário. Contornar o bloco inteiro dava a entender
 // que as outras sessões dentro dele também estavam por responder.
-.av .block .b-band.pending {
-  box-shadow: inset 0 0 0 2px #f0a500;
+//
+// Outline e não box-shadow inset: numa vaga "Qualquer" a cor da sessão
+// (presencial/remoto) é pintada num ::before posicionado por cima da faixa, e
+// uma sombra inset fica por baixo dos descendentes posicionados — o anel
+// desaparecia exatamente nas propostas sobre vagas "Qualquer". O outline é
+// pintado depois de todo o conteúdo, por cima do preenchimento e do
+// escurecimento de sel-slot.
+.av .block .b-band.pending,
+.av .m-block .mb-band.pending {
+  outline: 2px solid var(--color-pending);
+  outline-offset: -2px;
   border-radius: 4px;
 }
 
@@ -1776,14 +1785,14 @@ input[type="number"].field-value {
 .av .slot-row.booked:hover { background: rgba(86,176,147,0.16); }
 
 .av .slot-row.pending {
-  background: rgba(178,94,0,0.08);
+  background: var(--color-pending-soft);
 }
-.av .slot-row.pending:hover { background: rgba(178,94,0,0.16); }
+.av .slot-row.pending:hover { background: color-mix(in srgb, var(--color-pending-soft), var(--color-pending-ink) 10%); }
 
 .pending-tag {
   display: inline-flex; align-items: center;
   padding: 1px 7px; border-radius: var(--radius-pill);
-  background: #fff3e0; color: #b25e00;
+  background: var(--color-pending-soft); color: var(--color-pending-ink);
   font-size: 10px; font-weight: 700; letter-spacing: 0.2px;
 }
 
@@ -1899,8 +1908,8 @@ input[type="number"].field-value {
   font-size: 11px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  color: #b25e00;
-  background: #fff3e0;
+  color: var(--color-pending-ink);
+  background: var(--color-pending-soft);
   border-radius: var(--radius-pill);
   padding: 3px 10px;
 }

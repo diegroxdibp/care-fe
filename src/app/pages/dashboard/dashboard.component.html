@@ -262,7 +262,7 @@
                         <div class="week-dow">{{ dowAbr(day) }}</div>
                         <div class="week-daynum" [class.today]="isToday(day)">{{ day.getDate() }}</div>
                         @for (s of sessionsForDay(dateKey(day)); track s.key) {
-                          <div class="day-session" [class.remoto]="s.mode === 'Remoto'">
+                          <div class="day-session" [class.remoto]="s.mode === 'Remoto'" [class.pending]="s.pending">
                             <div class="s-time">{{ s.startTime }}</div>
                             <div class="s-service">{{ s.service }}</div>
                             <div class="s-who">{{ s.who }}</div>
@@ -276,6 +276,7 @@
                 <div class="week-legend">
                   <span class="legend-item"><span class="dot presencial"></span>Presencial</span>
                   <span class="legend-item"><span class="dot remoto"></span>Remoto</span>
+                  <span class="legend-item"><span class="dot pending"></span>Proposta pendente</span>
                   <span class="legend-hint">Escolha um dia para ver os detalhes em baixo.</span>
                 </div>
               </div>
@@ -305,6 +306,9 @@
                         {{ s.who }}
                         <small>{{ s.service }}</small>
                       </div>
+                      @if (s.pending) {
+                        <span class="pending-pill">Proposta pendente</span>
+                      }
                       <span class="mode-pill" [class.remoto]="s.mode === 'Remoto'">
                         {{ s.mode }}
                       </span>
@@ -386,6 +390,17 @@
                           </div>
                         }
 
+                        @if (s.pending) {
+                          <div class="panel-actions">
+                            <p class="pending-note">
+                              Esta sessão {{ s.recurrence.toLowerCase() }} só fica marcada depois de responder à proposta.
+                            </p>
+                            <a class="btn-respond" [routerLink]="['/dashboard/proposals', s.appointmentId]">
+                              <span translate="no" class="material-symbols-outlined">task_alt</span>
+                              Ver e responder
+                            </a>
+                          </div>
+                        } @else {
                         <div class="panel-actions">
                           @if (canJoin(s)) {
                             <button class="btn-join" (click)="joinSession(s)">
@@ -403,6 +418,7 @@
                             </button>
                           </span>
                         </div>
+                        }
                       </div>
                     }
                   </div>

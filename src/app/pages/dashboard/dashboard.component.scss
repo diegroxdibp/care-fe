@@ -1093,6 +1093,11 @@
   text-align: left;
 
   &.remoto { border-left-color: var(--color-secondary-green); }
+  // Proposta por responder: o mesmo amarelo da agenda de quem atende.
+  &.pending {
+    border-left-color: var(--color-pending);
+    background: var(--color-pending-soft);
+  }
 
   .s-time { font-size: 12px; font-weight: 700; color: var(--fg-1); line-height: 1.25; }
   .s-service { font-size: 11.5px; font-weight: 600; color: var(--fg-2); line-height: 1.25; }
@@ -1124,10 +1129,53 @@
   }
 
   .dot.remoto { background: var(--color-secondary-green); }
+  .dot.pending { background: var(--color-pending); }
 }
 
 .legend-hint {
   margin-left: auto;
   font-size: 13px;
   color: var(--fg-3);
+}
+
+/* ---- Proposta recorrente por responder ---- */
+.pending-pill {
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: var(--color-pending-soft);
+  color: var(--color-pending-ink);
+  white-space: nowrap;
+}
+
+.pending-note {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--fg-2);
+  line-height: var(--lh-body);
+}
+
+.btn-respond {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-primary-blue);
+  border: 1px solid var(--color-primary-blue);
+  border-radius: var(--radius-lg);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-white);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur-fast);
+
+  span.material-symbols-outlined { font-size: 17px; }
+  &:hover { background: var(--color-secondary-indigo); }
 }

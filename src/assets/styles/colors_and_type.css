@@ -155,6 +155,9 @@
   --color-muted: #8897ad;            /* placeholder grey */
   --color-success: #23a25b;          /* password rule check */
   --color-error: #c0392b;            /* form validation errors */
+  --color-pending: #f0a500;          /* awaiting an answer — the agenda's yellow ring */
+  --color-pending-ink: #b25e00;      /* text on a pending badge */
+  --color-pending-soft: #fff3e0;     /* pending badge / row wash */
 
   /* ---- Semantic foreground ---- */
   --fg-1: var(--color-primary-blue);     /* primary text */

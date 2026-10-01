@@ -8,6 +8,7 @@ import { ProfessionalServiceModality } from '../enums/professional-service-modal
 import {
   BuildSessionsOptions,
   buildSessions,
+  canJoinSession,
   isUpcomingOrOngoing,
   sessionBounds,
 } from './session-list.util';
@@ -295,3 +296,48 @@ describe('sessionBounds — instante real, independente do fuso do navegador', (
     expect(sessionBounds(session)?.start.toISOString()).toBe('2026-07-17T01:00:00.000Z');
   });
 });
+
+describe('buildSessions — proposta recorrente por responder', () => {
+  beforeAll(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-01T12:00:00Z'));
+  });
+  afterAll(() => jest.useRealTimers());
+
+  const proposal = makeAppointment({
+    isRecurring: true,
+    recurrenceFrequency: 'BIWEEKLY',
+    startDate: '2026-10-06',
+    endDate: '2100-01-01',
+    dayOfWeek: 'TUESDAY' as unknown as DayOfWeek,
+    startTime: '10:00',
+    endTime: '11:00',
+    timeZone: LISBON,
+    status: 'PENDING',
+  });
+
+  it('aparece uma vez só, na primeira data proposta, marcada como pendente', () => {
+    const sessions = buildSessions([proposal], [SERVICE], options());
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].occurrenceKey).toBe('2026-10-06');
+    expect(sessions[0].pending).toBe(true);
+  });
+
+  it('a mesma série, confirmada, expande-se em todas as ocorrências', () => {
+    const sessions = buildSessions([{ ...proposal, status: 'CONFIRMED' }], [SERVICE], options());
+    expect(sessions.length).toBeGreaterThan(1);
+    expect(sessions.every(s => !s.pending)).toBe(true);
+    // Quinzenal: de duas em duas semanas.
+    expect(sessions.slice(0, 3).map(s => s.occurrenceKey)).toEqual(['2026-10-06', '2026-10-20', '2026-11-03']);
+  });
+
+  it('nunca abre a sala, mesmo dentro da janela de entrada', () => {
+    const [session] = buildSessions([proposal], [SERVICE], options());
+    // 2026-10-06 10:00 em Lisboa (UTC+1) = 09:00 UTC; 2 min antes já está na janela.
+    const inWindow = new Date('2026-10-06T08:58:00Z');
+    expect(canJoinSession(session, inWindow)).toBe(false);
+
+    const [confirmed] = buildSessions([{ ...proposal, status: 'CONFIRMED' }], [SERVICE], options());
+    expect(canJoinSession(confirmed, inWindow)).toBe(true);
+  });
+});
+

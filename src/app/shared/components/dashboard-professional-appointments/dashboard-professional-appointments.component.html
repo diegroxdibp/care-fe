@@ -138,6 +138,9 @@
                   </div>
                   <div class="what">
                     {{ s.who }}
+                    @if (s.pending) {
+                      <span class="pending-pill">Proposta pendente</span>
+                    }
                     <small>{{ s.service }}</small>
                   </div>
                   <span class="mode-pill" [class.remoto]="s.mode === 'Remoto'">

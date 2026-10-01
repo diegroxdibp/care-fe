@@ -415,6 +415,7 @@
                     [class.booked]="slot.booked"
                     [class.free]="!slot.booked"
                     [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
+                    [class.pending]="slot.appointment?.status === 'PENDING'"
                     [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                     [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
                     (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"

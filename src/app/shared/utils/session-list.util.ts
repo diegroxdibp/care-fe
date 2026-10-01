@@ -73,6 +73,12 @@ export interface BuiltSession {
   notes?: string;
   professionals: SessionCounterpart[];
   /**
+   * Proposta recorrente por responder (status PENDING). Ainda não é uma
+   * sessão: aparece uma vez só — na primeira data proposta —, marcada, e nunca
+   * conta como "próxima sessão" nem abre a sala.
+   */
+  pending: boolean;
+  /**
    * Instantes reais da ocorrência, quando a marcação traz o fuso de origem.
    * `date` + `startTime` são rótulos no fuso de quem vê e não servem para
    * reconstruir o instante: `setHours` usa o fuso do navegador, que pode não
@@ -178,7 +184,7 @@ export function sessionBounds(session: BuiltSession): { start: Date; end: Date }
  * relógio do servidor.
  */
 export function canJoinSession(session: BuiltSession, now: Date = new Date()): boolean {
-  if (session.mode !== 'Remoto') return false;
+  if (session.pending || session.mode !== 'Remoto') return false;
   const bounds = sessionBounds(session);
   if (!bounds) return false;
   const opensAt = new Date(bounds.start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60_000);
@@ -370,10 +376,14 @@ export function buildSessions(
     if (isPendingSeriesChange(appt)) continue;
 
     const excluded = new Set(appt.excludedDates ?? []);
-    const dates = (appt.isRecurring
+    const pending = appt.status === 'PENDING';
+    const allDates = (appt.isRecurring
       ? recurringDates(appt, today, limit)
       : oneTimeDates(appt)
     ).filter(d => !excluded.has(toDateKey(d)));
+    // Uma proposta semanal ainda por aceitar não são 52 sessões — é um pedido
+    // com uma data de início.
+    const dates = pending ? allDates.slice(0, 1) : allDates;
 
     const rawServiceName = services.find(s => s.id === appt.professionalServiceId)?.name ?? '';
     const serviceName = ProfessionalSessionService[rawServiceName as keyof typeof ProfessionalSessionService] ?? rawServiceName;
@@ -445,6 +455,7 @@ export function buildSessions(
         payment,
         notes: appt.notes,
         professionals,
+        pending,
         startInstant: resolved.startInstant,
         endInstant: resolved.endInstant,
       });

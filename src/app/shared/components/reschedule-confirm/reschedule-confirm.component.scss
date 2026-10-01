@@ -117,8 +117,8 @@
 
 .already {
   font-size: var(--fs-label);
-  color: #b25e00;
-  background: #fff3e0;
+  color: var(--color-pending-ink);
+  background: var(--color-pending-soft);
   border-radius: var(--radius-md);
   padding: 12px 14px;
   margin: 0 0 16px;

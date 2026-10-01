@@ -540,3 +540,18 @@
     .btn-message, .btn-join { flex: 1; justify-content: center; }
   }
 }
+
+/* ---- Proposta recorrente por responder: o mesmo amarelo da agenda ---- */
+.pending-pill {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: var(--color-pending-soft);
+  color: var(--color-pending-ink);
+}

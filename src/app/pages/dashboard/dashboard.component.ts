@@ -168,7 +168,8 @@ export class DashboardPageComponent implements OnInit {
    */
   readonly nextSession = computed(() => {
     const now = new Date();
-    return this.sessions().find(s => isUpcomingOrOngoing(s, now)) ?? null;
+    // Uma proposta por responder não é a próxima sessão — ainda pode não haver sessão nenhuma.
+    return this.sessions().find(s => !s.pending && isUpcomingOrOngoing(s, now)) ?? null;
   });
 
   /** Verdadeiro quando existe alguma sessão além da de destaque. */

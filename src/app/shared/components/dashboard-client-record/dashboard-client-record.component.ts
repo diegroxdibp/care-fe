@@ -98,7 +98,8 @@ export class DashboardClientRecordComponent implements OnInit {
 
   readonly sessionStats = computed(() => {
     const now = new Date();
-    const all = this.sessions();
+    // Propostas por responder não são sessões feitas nem marcadas.
+    const all = this.sessions().filter(s => !s.pending);
     const next = all.find(s => isUpcomingOrOngoing(s, now));
     const first = all[0];
     return {

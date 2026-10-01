@@ -105,7 +105,7 @@
   &.type-booked      { background: #e8f5f0; color: #2a7a5a; }
   &.type-cancelled   { background: #ffebee; color: #c62828; }
   &.type-rescheduled { background: #fff8e1; color: #e65100; }
-  &.type-proposal    { background: #fff3e0; color: #b25e00; }
+  &.type-proposal    { background: var(--color-pending-soft); color: var(--color-pending-ink); }
   &.type-general     { background: #eef0fb; color: var(--color-primary-blue); }
 }
 
