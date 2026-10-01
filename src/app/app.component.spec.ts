@@ -14,16 +14,16 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have the 'care-fe' title`, () => {
+  it('has the clinic name as its title', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('care-fe');
+    expect(fixture.componentInstance.title).toEqual('CARE - Clínica Ampliada Resignificações');
   });
 
-  it('should render title', () => {
+  it('shows the header and footer outside the video room', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, care-fe');
+    expect(compiled.querySelector('app-header')).not.toBeNull();
+    expect(compiled.querySelector('app-footer')).not.toBeNull();
   });
 });

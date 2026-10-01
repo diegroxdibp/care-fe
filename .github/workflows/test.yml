@@ -1,0 +1,42 @@
+name: Tests
+
+# Runs the whole Jest suite and a production build on every push and pull
+# request. Nothing else runs the tests — the Cloudflare deploys
+# (deploy:staging / deploy:prod) are run by hand and only build — so this is
+# what keeps a failing test from going unnoticed. Make it a required check on
+# main/staging in the repo's branch protection for it to block merges.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Jest + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      # The *.browser-zone.spec.ts files only run with the process in São
+      # Paulo (they self-skip in the run above) — see jest.browser-zone.config.ts.
+      - name: Unit tests (browser in São Paulo)
+        run: npm run test:browser-zone -- --ci
+
+      # Template type-checking only happens in the AOT build, not in Jest.
+      - name: Production build
+        run: npm run build
