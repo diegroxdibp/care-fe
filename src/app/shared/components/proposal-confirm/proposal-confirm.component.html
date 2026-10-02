@@ -79,7 +79,8 @@
           </div>
           <div class="row">
             <span translate="no" class="material-symbols-outlined">event_repeat</span>
-            <div><div class="k">Dia e horário</div><div class="v">{{ dayLabel() }} · {{ timeLabel() }}</div></div>
+            <!-- Data da primeira sessão (effectiveFromLabel), também no fuso de quem vê. -->
+            <div><div class="k">Dia e horário</div><div class="v">{{ dayLabel() }}, {{ effectiveFromLabel() }} · {{ timeLabel() }}</div></div>
           </div>
           <div class="row">
             <span translate="no" class="material-symbols-outlined">location_on</span>
