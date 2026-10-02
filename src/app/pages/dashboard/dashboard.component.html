@@ -129,7 +129,19 @@
                   </div>
                 </div>
 
-                <!-- Row 2: Endereço / Plataforma -->
+                <!-- Duração + Valor, logo a seguir ao título -->
+                <div class="row3">
+                  <div class="row3-item">
+                    <span translate="no" class="material-symbols-outlined">schedule</span>
+                    <div><div class="ad-k">Duração</div><div class="ad-v">{{ s.duration }}</div></div>
+                  </div>
+                  <div class="row3-item">
+                    <span translate="no" class="material-symbols-outlined">payments</span>
+                    <div><div class="ad-k">Valor</div><div class="ad-v" [class.to-agree]="!s.price">{{ s.price || 'a combinar' }}</div></div>
+                  </div>
+                </div>
+
+                <!-- Endereço / Plataforma -->
                 <div class="row2">
                   <span translate="no" class="material-symbols-outlined row2-icon">
                     {{ s.mode === 'Remoto' ? 'videocam' : 'place' }}
@@ -139,18 +151,6 @@
                     <div class="ad-v row2-value" [class.to-agree]="s.mode !== 'Remoto' && !s.address">
                       {{ s.mode === 'Remoto' ? s.platform : (s.address || 'a combinar') }}
                     </div>
-                  </div>
-                </div>
-
-                <!-- Row 3: Duração + Valor -->
-                <div class="row3">
-                  <div class="row3-item">
-                    <span translate="no" class="material-symbols-outlined">schedule</span>
-                    <div><div class="ad-k">Duração</div><div class="ad-v">{{ s.duration }}</div></div>
-                  </div>
-                  <div class="row3-item">
-                    <span translate="no" class="material-symbols-outlined">payments</span>
-                    <div><div class="ad-k">Valor</div><div class="ad-v" [class.to-agree]="!s.price">{{ s.price || 'a combinar' }}</div></div>
                   </div>
                 </div>
 
