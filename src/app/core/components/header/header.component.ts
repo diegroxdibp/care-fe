@@ -153,6 +153,16 @@ export class HeaderComponent {
   }
 
   private checkScroll() {
+    // Com um diálogo aberto (Alterar série, Reagendar...) o Material bloqueia
+    // o scroll fixando o <html> em `top: -<scroll>px`, e o scroll da janela
+    // passa a ler 0. Tratar isso como "voltou ao topo" tirava o fundo ao
+    // header, e o conteúdo da página, deslocado para cima, aparecia por baixo
+    // dele. Enquanto o bloqueio durar, o header fica como estava; ao fechar, o
+    // Material repõe a posição real e o scroll seguinte volta a decidir.
+    if (document.documentElement.classList.contains('cdk-global-scrollblock')) {
+      return;
+    }
+
     const scrollPosition =
       window.pageYOffset || document.documentElement.scrollTop;
     const isHeroPage = document.querySelector('.hero-section') !== null;
