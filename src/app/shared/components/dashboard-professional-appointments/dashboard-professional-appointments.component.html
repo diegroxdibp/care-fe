@@ -218,7 +218,7 @@
                         Mensagem
                       </button>
                       @if (s.clientId) {
-                        <a class="btn-message" [routerLink]="['/', Pages.DASHBOARD_CLIENTS, s.clientId]">
+                        <a class="btn-message" [routerLink]="['/' + Pages.DASHBOARD_CLIENTS, s.clientId]">
                           <span translate="no" class="material-symbols-outlined">clinical_notes</span>
                           Prontuário
                         </a>

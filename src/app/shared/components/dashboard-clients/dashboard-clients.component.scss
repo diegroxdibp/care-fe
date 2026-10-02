@@ -86,11 +86,27 @@
   margin: 0;
   padding: 0;
   display: grid;
+  // O `ul` global traz justify-content: center, que numa grelha centra a
+  // coluna. Cada cartão fica à largura do seu conteúdo, alinhado à esquerda.
+  justify-content: start;
+  justify-items: start;
   gap: 8px;
 }
 
+// O styles.scss global faz de todo o <li> um flex centrado, em itálico e a
+// 18px (pensado para a navegação do site institucional): cada linha encolhia
+// ao seu conteúdo e ficava ao centro. Aqui o <li> é só um contentor.
+.client-list > li {
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: normal;
+  text-align: left;
+}
+
 .client-row {
-  display: flex;
+  text-align: left;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;

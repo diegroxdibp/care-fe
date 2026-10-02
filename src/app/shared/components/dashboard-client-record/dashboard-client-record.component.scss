@@ -50,6 +50,14 @@
 }
 
 .card {
+  // Os cartões são <section>, e o styles.scss global faz de toda a <section>
+  // uma coluna flex centrada com largura máxima (pensado para o site
+  // institucional). Tudo o que não tinha width: 100% — cabeçalho e dados da
+  // pessoa cliente, o bloco de Motivo/Historial, a lista da Evolução —
+  // encolhia ao conteúdo e ficava ao centro. Aqui o cartão é um bloco normal.
+  display: block;
+  max-width: none;
+  text-align: left;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-xl);
@@ -167,7 +175,10 @@
   .k { margin-top: 8px; }
 }
 
+// O <p> global é justificado — numa nota, com quebras de linha do próprio
+// texto, isso só abre buracos entre as palavras.
 .text {
+  text-align: left;
   margin: 4px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -220,7 +231,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  // Visibilidade e "Guardar nota" juntos à direita, por baixo da Nota.
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 12px;
 }
@@ -308,13 +320,24 @@
   gap: 16px;
 }
 
+// Cada nota é um <li>, e o styles.scss global faz de todo o <li> um flex
+// centrado (em linha), em itálico e a 18px — autor, data, texto, adendas e
+// botões ficavam todos lado a lado. Aqui a nota volta a ser um bloco.
 .note {
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: normal;
+  text-align: left;
   padding: 16px 16px 16px 18px;
   border-left: 3px solid var(--color-primary-blue);
   border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
 
   &.private { border-left-color: var(--color-primary-purple); }
+
+  // Mais folga entre a linha de autor/data e o texto da nota.
+  > .text { margin-top: 10px; }
 }
 
 .byline {

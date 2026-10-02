@@ -1,8 +1,15 @@
 <div class="panel">
 
-  <a class="back-link" [routerLink]="['/', Pages.DASHBOARD_CLIENTS]">
+  <!--
+    Antes era [routerLink]="['/', Pages.DASHBOARD_CLIENTS]": 'dashboard/clientes'
+    como um só segmento de um array é codificado (dashboard%2Fclientes), não
+    bate com nenhuma rota e o '**' mandava para a página inicial. Não é
+    routerLink de propósito: o routerLink navega no clique mesmo com
+    preventDefault, e aqui o clique decide entre voltar e ir para a lista.
+  -->
+  <a class="back-link" [href]="clientsListUrl" (click)="goBack($event)">
     <span translate="no" class="material-symbols-outlined">arrow_back</span>
-    Clientes
+    Voltar
   </a>
 
   @if (loading()) {

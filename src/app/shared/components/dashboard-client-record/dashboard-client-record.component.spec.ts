@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Navigation, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
 import { ageFrom, DashboardClientRecordComponent } from './dashboard-client-record.component';
@@ -189,3 +190,63 @@ describe('ageFrom', () => {
     expect(ageFrom(null)).toBeNull();
   });
 });
+
+describe('DashboardClientRecordComponent — Voltar', () => {
+  let fixture: ComponentFixture<DashboardClientRecordComponent>;
+
+  async function setup() {
+    await TestBed.configureTestingModule({
+      imports: [DashboardClientRecordComponent],
+      providers: [
+        {
+          provide: ApiService,
+          useValue: {
+            getClientRecord: jest.fn().mockReturnValue(of(makeRecord())),
+            getProfessionalAppointments: jest.fn().mockReturnValue(of([])),
+            getServices: jest.fn().mockReturnValue(of([])),
+          },
+        },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ clientId: String(CLIENT_ID) }) } } },
+      ],
+    }).compileComponents();
+    TestBed.inject(SessionService).setUser({
+      id: ME, email: 'luane@example.com', roles: ['PROFESSIONAL'], profileCompleted: true, timeZone: LISBON,
+    });
+    fixture = TestBed.createComponent(DashboardClientRecordComponent);
+    fixture.detectChanges();
+  }
+
+  const backLink = () => fixture.nativeElement.querySelector('.back-link') as HTMLAnchorElement;
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('aponta para a lista de Clientes — e não para dashboard%2Fclientes, que caía na página inicial', async () => {
+    await setup();
+    expect(backLink().getAttribute('href')).toBe('/dashboard/clientes');
+  });
+
+  it('aberto diretamente (sem página anterior na app), segue para a lista', async () => {
+    await setup();
+    const back = jest.spyOn(TestBed.inject(Location), 'back');
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+    backLink().click();
+
+    expect(back).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalled();
+    expect(String(navigate.mock.calls[0][0])).toBe('/dashboard/clientes');
+  });
+
+  it('vindo de outra página da app, volta para ela', async () => {
+    jest.spyOn(Router.prototype, 'lastSuccessfulNavigation', 'get').mockReturnValue({} as Navigation);
+    await setup();
+    const back = jest.spyOn(TestBed.inject(Location), 'back').mockImplementation(() => {});
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+    backLink().click();
+
+    expect(back).toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+});
+

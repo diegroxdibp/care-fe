@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
@@ -23,7 +24,7 @@ const MAX_TEXT_LENGTH = 10_000;
 
 @Component({
   selector: 'app-dashboard-client-record',
-  imports: [RouterLink, UserTimePipe],
+  imports: [UserTimePipe],
   templateUrl: './dashboard-client-record.component.html',
   styleUrl: './dashboard-client-record.component.scss',
 })
@@ -33,6 +34,20 @@ export class DashboardClientRecordComponent implements OnInit {
   private readonly snackbarService = inject(SnackbarService);
   private readonly featureFlagService = inject(FeatureFlagService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+
+  /**
+   * Se se chegou aqui a partir de outra página da app (a lista de Clientes ou
+   * "Prontuário" em Meus atendimentos). Lido ao construir, antes de esta
+   * navegação terminar: nesse momento lastSuccessfulNavigation ainda é a da
+   * página anterior — null só quando o prontuário foi aberto diretamente
+   * (link colado, refresh), e aí não há "para trás" dentro da app.
+   */
+  private readonly cameFromApp = this.router.lastSuccessfulNavigation != null;
+
+  /** URL da lista — o destino do "Voltar" quando não há página anterior na app. */
+  protected readonly clientsListUrl = '/' + Pages.DASHBOARD_CLIENTS;
 
   protected readonly Pages = Pages;
   protected readonly maxLength = MAX_TEXT_LENGTH;
@@ -114,6 +129,22 @@ export class DashboardClientRecordComponent implements OnInit {
   readonly isFirstNote = computed(() => !(this.record()?.notes.some(n => n.mine) ?? false));
 
   readonly canSaveNote = computed(() => this.noteBody().trim().length > 0 && !this.savingNote());
+
+  /**
+   * Volta para onde se estava. O href continua a ser a lista de Clientes
+   * (para abrir num separador novo); sem página anterior na app o clique vai
+   * para ela, com histórico faz o mesmo que o "para trás" do browser.
+   */
+  goBack(event: MouseEvent): void {
+    // Ctrl/Cmd/Shift/botão do meio: deixar o browser abrir o href noutro separador.
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    if (this.cameFromApp) {
+      this.location.back();
+    } else {
+      this.router.navigateByUrl(this.clientsListUrl);
+    }
+  }
 
   ngOnInit(): void {
     this.clientId = Number(this.route.snapshot.paramMap.get('clientId'));
