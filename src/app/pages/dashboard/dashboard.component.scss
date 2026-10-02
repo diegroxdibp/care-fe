@@ -851,8 +851,10 @@
 
   @media (min-width: breakpoint.$breakpoint-sm) { display: none; }
 
-  a {
+  a,
+  .bottombar-more {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -867,6 +869,16 @@
     transition: color var(--dur-fast);
 
     span.material-symbols-outlined { font-size: 22px; }
+
+    // Rótulo numa linha só — com cinco itens cabe em 320px, mas se alguma
+    // vez não couber corta com reticências em vez de sobrepor o vizinho.
+    > span:last-child {
+      max-width: 100%;
+      padding: 0 2px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
 
     &.active { color: var(--color-primary-blue); }
 
@@ -892,6 +904,104 @@
       align-items: center;
       justify-content: center;
       border: 2px solid var(--color-white);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile "Mais" sheet
+═══════════════════════════════════════════════ */
+.bottombar-more {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+
+  .dot {
+    position: absolute;
+    top: 10px;
+    right: calc(50% - 14px);
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-blue);
+    border: 2px solid var(--color-white);
+  }
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: color-mix(in srgb, var(--color-primary-blue) 32%, transparent);
+
+  @media (min-width: breakpoint.$breakpoint-sm) { display: none; }
+}
+
+.more-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 301;
+  background: var(--color-white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-primary-blue) 18%, transparent);
+  padding: 8px 8px calc(16px + env(safe-area-inset-bottom));
+
+  @media (min-width: breakpoint.$breakpoint-sm) { display: none; }
+
+  .more-sheet-handle {
+    width: 36px;
+    height: 4px;
+    margin: 4px auto 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-border-soft);
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 0 16px;
+    border-radius: var(--radius-lg);
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: background var(--dur-fast) var(--ease-care),
+                color var(--dur-fast) var(--ease-care);
+
+    span.material-symbols-outlined { font-size: 22px; flex-shrink: 0; }
+
+    &:active { background: var(--color-surface-tint); }
+
+    &.active {
+      color: var(--color-primary-blue);
+      font-weight: var(--fw-semibold);
+      background: var(--color-surface-tint);
+    }
+
+    .badge {
+      margin-left: auto;
+      background: var(--color-primary-blue);
+      color: var(--color-white);
+      font-size: var(--fs-micro);
+      font-weight: var(--fw-bold);
+      border-radius: var(--radius-pill);
+      padding: 0 7px;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 }

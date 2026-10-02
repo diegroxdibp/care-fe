@@ -449,43 +449,18 @@
   </div>
 
   <!-- ══════════════════ MOBILE BOTTOM NAV ══════════════════ -->
+  <!-- Profissionais têm sete destinos: só os quatro de uso diário ficam na
+       barra, o resto vai para a folha "Mais" (ver isMoreSheetOpen). -->
   <nav class="bottombar">
-    <a
-      [routerLink]="['profile']"
-      routerLinkActive="active"
-    >
-      <span translate="no" class="material-symbols-outlined">person</span>
-      <span>Perfil</span>
-    </a>
-    <a
-      [routerLink]="'/dashboard'"
-      [routerLinkActiveOptions]="{ exact: true }"
-      routerLinkActive="active"
-    >
-      <span translate="no" class="material-symbols-outlined">event_note</span>
-      <span>Agendamentos</span>
-    </a>
-    <a
-      [routerLink]="['messages']"
-      routerLinkActive="active"
-    >
-      <span translate="no" class="material-symbols-outlined">forum</span>
-      @if (messageService.unreadCount() > 0) {
-        <span class="badge">{{ messageService.unreadCount() }}</span>
-      }
-      <span>Mensagens</span>
-    </a>
-    <a
-      [routerLink]="['notifications']"
-      routerLinkActive="active"
-    >
-      <span translate="no" class="material-symbols-outlined">notifications</span>
-      @if (notificationService.unreadCount() > 0) {
-        <span class="badge">{{ notificationService.unreadCount() }}</span>
-      }
-      <span>Notificações</span>
-    </a>
     @if (isProfessional()) {
+      <a
+        [routerLink]="'/dashboard'"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">event_note</span>
+        <span>Agendamentos</span>
+      </a>
       <a
         [routerLink]="['my-appointments']"
         routerLinkActive="active"
@@ -494,21 +469,118 @@
         <span>Atendimentos</span>
       </a>
       <a
-        [routerLink]="['salas']"
-        routerLinkActive="active"
-      >
-        <span translate="no" class="material-symbols-outlined">sensor_door</span>
-        <span>Salas</span>
-      </a>
-      <a
         [routerLink]="['clientes']"
         routerLinkActive="active"
       >
         <span translate="no" class="material-symbols-outlined">clinical_notes</span>
         <span>Clientes</span>
       </a>
+      <a
+        [routerLink]="['messages']"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">forum</span>
+        @if (messageService.unreadCount() > 0) {
+          <span class="badge">{{ messageService.unreadCount() }}</span>
+        }
+        <span>Mensagens</span>
+      </a>
+      <button
+        type="button"
+        class="bottombar-more"
+        [class.active]="isMoreSectionActive() || isMoreSheetOpen()"
+        [attr.aria-expanded]="isMoreSheetOpen()"
+        aria-controls="more-sheet"
+        [attr.aria-label]="'Mais' + (notificationService.unreadCount() > 0 ? ' (notificações por ler)' : '')"
+        (click)="toggleMoreSheet()"
+      >
+        <span translate="no" class="material-symbols-outlined">menu</span>
+        @if (notificationService.unreadCount() > 0) {
+          <span class="dot" aria-hidden="true"></span>
+        }
+        <span>Mais</span>
+      </button>
+    } @else {
+      <a
+        [routerLink]="['profile']"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">person</span>
+        <span>Perfil</span>
+      </a>
+      <a
+        [routerLink]="'/dashboard'"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">event_note</span>
+        <span>Agendamentos</span>
+      </a>
+      <a
+        [routerLink]="['messages']"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">forum</span>
+        @if (messageService.unreadCount() > 0) {
+          <span class="badge">{{ messageService.unreadCount() }}</span>
+        }
+        <span>Mensagens</span>
+      </a>
+      <a
+        [routerLink]="['notifications']"
+        routerLinkActive="active"
+      >
+        <span translate="no" class="material-symbols-outlined">notifications</span>
+        @if (notificationService.unreadCount() > 0) {
+          <span class="badge">{{ notificationService.unreadCount() }}</span>
+        }
+        <span>Notificações</span>
+      </a>
     }
   </nav>
+
+  @if (isMoreSheetOpen()) {
+    <div class="sheet-backdrop" @backdrop (click)="closeMoreSheet()"></div>
+    <div
+      id="more-sheet"
+      class="more-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mais opções"
+      @sheet
+    >
+      <div class="more-sheet-handle" aria-hidden="true"></div>
+      <nav>
+        <a
+          [routerLink]="['salas']"
+          routerLinkActive="active"
+          (click)="closeMoreSheet()"
+        >
+          <span translate="no" class="material-symbols-outlined">sensor_door</span>
+          <span>Salas</span>
+        </a>
+        <a
+          [routerLink]="['notifications']"
+          routerLinkActive="active"
+          (click)="closeMoreSheet()"
+        >
+          <span translate="no" class="material-symbols-outlined">notifications</span>
+          <span>Notificações</span>
+          @if (notificationService.unreadCount() > 0) {
+            <span class="badge">{{ notificationService.unreadCount() }}</span>
+          }
+        </a>
+        <a
+          [routerLink]="['profile']"
+          routerLinkActive="active"
+          (click)="closeMoreSheet()"
+        >
+          <span translate="no" class="material-symbols-outlined">person</span>
+          <span>Perfil</span>
+        </a>
+      </nav>
+    </div>
+  }
 
   <!-- Tooltip partilhado dos botões "Reagendar"/"Cancelar" desativados -
        fica fora de .body de propósito, ver o comentário em onTooltipReveal(). -->

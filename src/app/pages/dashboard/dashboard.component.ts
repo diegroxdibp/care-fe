@@ -78,6 +78,26 @@ const PROFESSIONAL_DASHBOARD_ALLOWED_ROLES: string[] = [
         animate('200ms cubic-bezier(0.4,0,0.2,1)', style({ height: 0, opacity: 0 })),
       ]),
     ]),
+    // Folha "Mais" da barra inferior — sobe de baixo, e o fundo escurece
+    // em paralelo; ambos com :leave para não desaparecerem de repente.
+    trigger('sheet', [
+      transition(':enter', [
+        style({ transform: 'translateY(100%)' }),
+        animate('260ms cubic-bezier(0.4,0,0.2,1)', style({ transform: 'translateY(0)' })),
+      ]),
+      transition(':leave', [
+        animate('200ms cubic-bezier(0.4,0,0.2,1)', style({ transform: 'translateY(100%)' })),
+      ]),
+    ]),
+    trigger('backdrop', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('260ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 1 })),
+      ]),
+      transition(':leave', [
+        animate('200ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 0 })),
+      ]),
+    ]),
   ],
 })
 export class DashboardPageComponent implements OnInit {
@@ -113,6 +133,22 @@ export class DashboardPageComponent implements OnInit {
    * começa oculto, nunca preso a uma escolha feita há sessões atrás.
    */
   readonly hidePastSessions = signal<boolean>(true);
+
+  /**
+   * Folha "Mais" da barra inferior (mobile, só profissionais). Com sete
+   * destinos a barra não cabia num telemóvel — fica com os quatro de uso
+   * diário e o resto vai para aqui. Notificações e Perfil também estão no
+   * cabeçalho (sino e avatar), por isso não perdem acesso direto.
+   */
+  readonly isMoreSheetOpen = signal(false);
+
+  /** "Mais" aparece ativo quando a página atual é uma das que estão na folha. */
+  readonly isMoreSectionActive = computed(() => {
+    const path = this.currentUrl().split(/[?#]/)[0];
+    return ['/dashboard/salas', '/dashboard/notifications', '/dashboard/profile'].some(
+      (prefix) => path === prefix || path.startsWith(prefix + '/'),
+    );
+  });
 
   readonly showSchedule = computed(() => {
     const url = this.currentUrl();
@@ -226,7 +262,11 @@ export class DashboardPageComponent implements OnInit {
   ngOnInit(): void {
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe((e: NavigationEnd) => this.currentUrl.set(e.urlAfterRedirects));
+      .subscribe((e: NavigationEnd) => {
+        this.currentUrl.set(e.urlAfterRedirects);
+        // Também cobre navegações que não vêm da folha (ex.: sino do cabeçalho).
+        this.isMoreSheetOpen.set(false);
+      });
 
     // "Ver sessão" nas Mensagens volta para cá pedindo para abrir uma linha específica.
     const openAppointmentId = (history.state as { openAppointmentId?: number } | null)?.openAppointmentId;
@@ -364,6 +404,19 @@ export class DashboardPageComponent implements OnInit {
   @HostListener('window:resize')
   private onWindowScrollOrResize(): void {
     this.onTooltipHide();
+  }
+
+  toggleMoreSheet(): void {
+    this.isMoreSheetOpen.update((open) => !open);
+  }
+
+  closeMoreSheet(): void {
+    this.isMoreSheetOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  private onEscape(): void {
+    this.closeMoreSheet();
   }
 
   toggleSession(id: number): void {
