@@ -1,6 +1,6 @@
 <div class="dialog">
   <h3>Nova sala</h3>
-  <p class="sub">Crie uma sala de videochamada avulsa e partilhe o link com quem precisar.</p>
+  <p class="sub">Crie uma sala de videochamada avulsa e compartilhe o link com quem precisar.</p>
 
   <div class="field name-field">
     <div class="field-inner">
@@ -10,7 +10,7 @@
         class="field-value"
         type="text"
         maxlength="200"
-        placeholder="Ex.: Supervisão de equipa"
+        placeholder="Ex.: Supervisão de equipe"
         [value]="name()"
         (input)="name.set($any($event.target).value)"
       />
@@ -131,7 +131,7 @@
     />
   } @else {
     <p class="hint">
-      Qualquer pessoa com sessão iniciada na Care e o link da sala pode entrar, sem precisar de convite.
+      Qualquer pessoa logada na Care e com o link da sala pode entrar, sem precisar de convite.
     </p>
   }
 

@@ -13,11 +13,11 @@
   </a>
 
   @if (loading()) {
-    <div class="card empty-card"><p>A carregar...</p></div>
+    <div class="card empty-card"><p>Carregando...</p></div>
   } @else if (denied() || !record()) {
     <div class="card empty-card">
       <span translate="no" class="material-symbols-outlined empty-icon">lock</span>
-      <p>Não tem acesso a este prontuário. Só pessoas profissionais com sessões marcadas com esta pessoa cliente o podem consultar.</p>
+      <p>Você não tem acesso a este prontuário. Só pessoas profissionais com sessões agendadas com esta pessoa cliente podem consultá-lo.</p>
     </div>
   } @else {
     @let c = client()!;
@@ -50,15 +50,15 @@
             <div class="v">{{ c.createdAt ? (c.createdAt | userTime: 'date') : '—' }}</div>
           </div>
           <div class="field">
-            <div class="k">Primeira sessão consigo</div>
+            <div class="k">Primeira sessão com você</div>
             <div class="v">{{ sessionStats().firstAt ? (sessionStats().firstAt | userTime: 'date') : '—' }}</div>
           </div>
           <div class="field">
-            <div class="k">Sessões realizadas consigo</div>
+            <div class="k">Sessões realizadas com você</div>
             <div class="v">{{ sessionStats().done }}</div>
           </div>
           <div class="field">
-            <div class="k">Próxima sessão consigo</div>
+            <div class="k">Próxima sessão com você</div>
             <div class="v">{{ sessionStats().nextAt ? (sessionStats().nextAt | userTime: 'full') : 'Sem sessões agendadas' }}</div>
           </div>
         </div>
@@ -70,9 +70,9 @@
     </section>
 
     <div class="layout">
-      <!-- ── Equipa de cuidado e, por baixo, áreas de cuidado (serviços marcados) ── -->
+      <!-- ── Equipe de cuidado e, por baixo, áreas de cuidado (serviços marcados) ── -->
       <section class="card care-card">
-        <h3>Equipa de cuidado</h3>
+        <h3>Equipe de cuidado</h3>
         <div class="team-box">
           <div class="team-count">{{ careTeam().length }}</div>
           <p class="team-caption">
@@ -103,7 +103,7 @@
             }
           </ul>
         } @else {
-          <p class="subtle">Ainda sem serviços marcados.</p>
+          <p class="subtle">Ainda sem serviços agendados.</p>
         }
       </section>
 
@@ -111,7 +111,7 @@
         <!-- ── Motivo da consulta e historial clínico, por profissional ── -->
         @if (record()!.intakes.length) {
           <section class="card">
-            <h3>Motivo da consulta e historial clínico</h3>
+            <h3>Motivo da consulta e histórico clínico</h3>
             <div class="intake-list">
               @for (i of record()!.intakes; track i.professional.id) {
                 <div class="intake">
@@ -124,7 +124,7 @@
                     <p class="text">{{ i.reason }}</p>
                   }
                   @if (i.clinicalHistory) {
-                    <div class="k">Historial clínico <span class="when">· {{ i.clinicalHistoryFilledAt | userTime: 'date' }}</span></div>
+                    <div class="k">Histórico clínico <span class="when">· {{ i.clinicalHistoryFilledAt | userTime: 'date' }}</span></div>
                     <p class="text">{{ i.clinicalHistory }}</p>
                   }
                 </div>
@@ -137,31 +137,6 @@
         <section class="card">
           <h3>Nova nota de evolução</h3>
 
-          @if (pending().reason || pending().clinicalHistory) {
-            <div class="intake-prompt">
-              <p class="subtle">
-                @if (isFirstNote()) {
-                  Esta é a sua primeira nota sobre esta pessoa cliente. Se puder, registe também:
-                } @else {
-                  Ainda não registou estes campos. Pode preenchê-los agora:
-                }
-              </p>
-              @if (pending().reason) {
-                <label class="label" for="cr-reason">Motivo da consulta <span class="optional">(opcional)</span></label>
-                <textarea id="cr-reason" class="field-input" rows="3" [maxLength]="maxLength"
-                  [value]="reasonDraft()" (input)="onInput('reason', $event)"
-                  placeholder="O que levou a pessoa a procurar acompanhamento?"></textarea>
-              }
-              @if (pending().clinicalHistory) {
-                <label class="label" for="cr-history">Historial clínico <span class="optional">(opcional)</span></label>
-                <textarea id="cr-history" class="field-input" rows="4" [maxLength]="maxLength"
-                  [value]="clinicalHistoryDraft()" (input)="onInput('history', $event)"
-                  placeholder="Antecedentes relevantes, medicação atual, alergias…"></textarea>
-              }
-              <p class="hint">Depois de guardados, estes campos não voltam a ser pedidos nem podem ser alterados.</p>
-            </div>
-          }
-
           <label class="label" for="cr-body">Nota</label>
           <textarea id="cr-body" class="field-input" rows="5" [maxLength]="maxLength"
             [value]="noteBody()" (input)="onInput('body', $event)"
@@ -172,7 +147,7 @@
               <button type="button" role="radio" [attr.aria-checked]="noteVisibility() === 'SHARED'"
                 [class.selected]="noteVisibility() === 'SHARED'" (click)="noteVisibility.set('SHARED')">
                 <span translate="no" class="material-symbols-outlined">group</span>
-                Partilhada com a equipa
+                Compartilhada com a equipe
               </button>
               <button type="button" role="radio" [attr.aria-checked]="noteVisibility() === 'PRIVATE'"
                 [class.selected]="noteVisibility() === 'PRIVATE'" (click)="noteVisibility.set('PRIVATE')">
@@ -181,7 +156,7 @@
               </button>
             </div>
             <button class="btn-primary" [disabled]="!canSaveNote()" (click)="saveNote()">
-              {{ savingNote() ? 'A guardar…' : 'Guardar nota' }}
+              {{ savingNote() ? 'Salvando…' : 'Salvar nota' }}
             </button>
           </div>
           <p class="hint">
@@ -191,7 +166,7 @@
             } @else {
               Só você verá esta nota.
             }
-            As notas não podem ser editadas depois de guardadas — para corrigir, acrescente uma adenda.
+            As notas não podem ser editadas depois de salvas — para corrigir, acrescente um adendo.
           </p>
         </section>
 
@@ -234,7 +209,7 @@
                         @for (a of n.addenda; track a.id) {
                           <div class="addendum">
                             <div class="byline">
-                              <span class="addendum-tag">Adenda</span>
+                              <span class="addendum-tag">Adendo</span>
                               <span class="when">{{ a.createdAt | userTime: 'full' }}</span>
                             </div>
                             <p class="text">{{ a.body }}</p>
@@ -251,14 +226,14 @@
                                 <button class="btn-ghost" (click)="cancelAddendum()">Cancelar</button>
                                 <button class="btn-primary" [disabled]="!addendumBody().trim() || savingAddendum()"
                                   (click)="saveAddendum(n)">
-                                  {{ savingAddendum() ? 'A guardar…' : 'Guardar adenda' }}
+                                  {{ savingAddendum() ? 'Salvando…' : 'Salvar adendo' }}
                                 </button>
                               </div>
                             </div>
                           } @else {
                             <button class="btn-link" (click)="startAddendum(n)">
                               <span translate="no" class="material-symbols-outlined">add</span>
-                              Acrescentar adenda
+                              Acrescentar adendo
                             </button>
                           }
                         }

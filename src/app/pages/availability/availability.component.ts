@@ -76,8 +76,8 @@ import {
 // ─── Module-level constants ───────────────────────────────────────────────────
 
 const PT_MONTHS = [
-  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
+  'janeiro','fevereiro','março','abril','maio','junho',
+  'julho','agosto','setembro','outubro','novembro','dezembro',
 ];
 const PT_DOW_SHORT = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 const PT_DOW_LONG = [
@@ -88,6 +88,7 @@ const PT_DOW_PLURAL = [
   'Segundas-feiras','Terças-feiras','Quartas-feiras',
   'Quintas-feiras','Sextas-feiras','Sábados','Domingos',
 ];
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /*
  * Limites do dia de atendimento.
  *
@@ -328,7 +329,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   readonly monthLabel = computed<string>(() => {
     const start = this.weekStart();
-    return PT_MONTHS[start.getMonth()];
+    return capitalize(PT_MONTHS[start.getMonth()]);
   });
 
   readonly weekRangeLabel = computed<string>(() => {
@@ -386,7 +387,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   readonly localErrorMessage = computed<string | null>(() => {
     if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
     if (this.editorModality() === Modality.REMOTE) return null;
-    return this.editorLocal().trim() === '' ? 'Indique o local do atendimento.' : null;
+    return this.editorLocal().trim() === '' ? 'Informe o local do atendimento.' : null;
   });
 
   readonly weekdayErrorMessage = computed<string | null>(() => {
@@ -441,7 +442,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   edCalViewDate = signal<Date>(new Date());
   readonly edCalMonthLabel = computed(() => {
     const d = this.edCalViewDate();
-    return `${PT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    return `${capitalize(PT_MONTHS[d.getMonth()])} ${d.getFullYear()}`;
   });
   readonly edCalDays = computed(() => {
     const view = this.edCalViewDate();
@@ -1334,14 +1335,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
       if (!this.validateHonorsBookings(updated)) {
         this.snackbarService.openSnackBar({
-          message: 'Esta alteração deixaria sessão(ões) reservada(s) sem disponibilidade. Ajuste mantendo as sessões marcadas.',
+          message: 'Esta alteração deixaria sessão(ões) reservada(s) sem disponibilidade. Ajuste mantendo as sessões agendadas.',
         });
         return;
       }
 
       if (this.previewBlocks().some(p => p.hasConflict)) {
         this.snackbarService.openSnackBar({
-          message: 'Existe um conflito de horário. Resolva os conflitos antes de guardar.',
+          message: 'Existe um conflito de horário. Resolva os conflitos antes de salvar.',
         });
         return;
       }
@@ -1361,7 +1362,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
     if (this.previewBlocks().some(p => p.hasConflict)) {
       this.snackbarService.openSnackBar({
-        message: 'Existe um conflito de horário. Resolva os conflitos antes de guardar.',
+        message: 'Existe um conflito de horário. Resolva os conflitos antes de salvar.',
       });
       return;
     }
@@ -2156,8 +2157,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             .subscribe(restored => {
               this._resyncBlocksFromServer(
                 restored.some(r => !r.ok)
-                  ? 'Não foi possível guardar a alteração e parte da disponibilidade anterior não pôde ser reposta. Verifique a agenda.'
-                  : 'Não foi possível guardar a alteração. A disponibilidade anterior foi reposta.',
+                  ? 'Não foi possível salvar a alteração e parte da disponibilidade anterior não pôde ser restaurada. Verifique a agenda.'
+                  : 'Não foi possível salvar a alteração. A disponibilidade anterior foi restaurada.',
               );
             });
         });
@@ -2402,11 +2403,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           cur && cur.id === appt.id ? { ...cur, notes: updated.notes } : cur,
         );
         this.notesSaving.set(false);
-        this.snackbarService.openSnackBar({ message: 'Notas guardadas.' });
+        this.snackbarService.openSnackBar({ message: 'Notas salvas.' });
       },
       error: () => {
         this.notesSaving.set(false);
-        this.snackbarService.openSnackBar({ message: 'Erro ao guardar as notas. Tente novamente.' });
+        this.snackbarService.openSnackBar({ message: 'Erro ao salvar as notas. Tente novamente.' });
       },
     });
   }
@@ -2491,7 +2492,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             next: (change) => {
               this.appointments.update(list => [...list, change]);
               this.snackbarService.openSnackBar({
-                message: 'Alteração enviada. A série só muda depois de a pessoa cliente aceitar.',
+                message: 'Alteração enviada. A série só muda depois que a pessoa cliente aceitar.',
               });
             },
             // O interceptor já mostra a recusa concreta do backend (vaga ocupada
@@ -2821,7 +2822,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     }).subscribe({
       next: () => {
         this.snackbarService.openSnackBar({
-          message: 'Pedido enviado. A sessão só muda depois de a pessoa cliente aceitar.',
+          message: 'Pedido enviado. A sessão só muda depois que a pessoa cliente aceitar.',
         });
         this.clearSelectedAppointment();
       },

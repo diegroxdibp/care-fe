@@ -140,23 +140,23 @@ export class FormService {
     const phone = this.buildPhoneNumber();
 
     if (nameCtrl?.hasError('required')) {
-      throw new Error('Indique o seu nome.');
+      throw new Error('Informe seu nome.');
     }
     if (nameCtrl?.hasError('minlength')) {
       throw new Error('O nome deve ter pelo menos 8 caracteres.');
     }
     if (nameCtrl?.hasError('maxlength')) {
-      throw new Error('O nome é demasiado longo.');
+      throw new Error('O nome é longo demais.');
     }
     if (!birthDate) {
-      throw new Error('Indique a sua data de nascimento.');
+      throw new Error('Informe sua data de nascimento.');
     }
     if (!phone) {
-      throw new Error('Indique o seu número de telefone.');
+      throw new Error('Informe seu número de telefone.');
     }
 
     if (!gender) {
-      throw new Error('Selecione o seu género.');
+      throw new Error('Selecione seu gênero.');
     }
 
     const currency = this.onboardingForm.get(FormControlsNames.CURRENCY)?.value;

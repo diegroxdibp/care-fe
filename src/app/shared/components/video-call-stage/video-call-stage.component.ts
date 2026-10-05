@@ -171,7 +171,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   private messageFor(err: HttpErrorResponse): string {
     const body = err.error as { error?: string } | string | null;
     if (typeof body === 'object' && body?.error) return body.error;
-    if (err.status === 403) return 'Não tem permissão para entrar nesta sala.';
+    if (err.status === 403) return 'Você não tem permissão para entrar nesta sala.';
     if (err.status === 404) return 'Sala não encontrada.';
     if (err.status === 400) return 'Esta sessão não é remota.';
     return 'Ainda não é possível entrar nesta sala.';
@@ -196,7 +196,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     call.on('left-meeting', () => this.onLeftMeeting());
     call.on('error', () => {
       this.state.set('not-available');
-      this.errorMessage.set('A ligação à sala falhou. Tente novamente.');
+      this.errorMessage.set('A conexão com a sala falhou. Tente novamente.');
     });
     call.on('app-message', (e) => this.onAppMessage(e));
 
@@ -211,7 +211,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.scheduleAutoLeave(session.closesAt);
     } catch {
       this.state.set('not-available');
-      this.errorMessage.set('Não foi possível entrar na sala. Verifique a câmara/microfone e tente novamente.');
+      this.errorMessage.set('Não foi possível entrar na sala. Verifique a câmera/microfone e tente novamente.');
     }
   }
 

@@ -64,7 +64,7 @@ export interface RescheduleDialogResult {
           Só esta sessão muda de dia — a recorrência continua como está.
         }
         @if (data.asRequest) {
-          A sessão só muda depois de a pessoa cliente aceitar.
+          A sessão só muda depois que a pessoa cliente aceitar.
         }
       </p>
 
@@ -152,7 +152,7 @@ export interface RescheduleDialogResult {
           class="reason"
           rows="3"
           maxlength="700"
-          placeholder="Explique porque precisa de mudar esta sessão."
+          placeholder="Explique por que precisa mudar esta sessão."
           [value]="reason()"
           (input)="reason.set($any($event.target).value)"
         ></textarea>

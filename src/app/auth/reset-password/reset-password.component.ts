@@ -39,7 +39,7 @@ export class ResetPasswordComponent {
       { ok: p.length >= 8, label: 'Mínimo de 8 caracteres' },
       { ok: /[A-Z]/.test(p), label: 'Pelo menos 1 letra maiúscula' },
       { ok: /[0-9]/.test(p), label: 'Pelo menos 1 número' },
-      { ok: /[^a-zA-Z0-9]/.test(p), label: 'Pelo menos 1 carácter especial' },
+      { ok: /[^a-zA-Z0-9]/.test(p), label: 'Pelo menos 1 caractere especial' },
     ];
   }
 

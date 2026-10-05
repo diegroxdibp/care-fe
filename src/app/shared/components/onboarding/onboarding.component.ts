@@ -142,13 +142,13 @@ export class OnboardingComponent implements OnInit {
             this.submitting.set(false);
             if (!ok) {
               this.error =
-                'O perfil foi guardado, mas não foi possível abrir o painel. Recarregue a página.';
+                'O perfil foi salvo, mas não foi possível abrir o painel. Recarregue a página.';
             }
           });
         },
         error: (err: any) => {
           this.submitting.set(false);
-          this.error = err.error?.error ?? 'Erro ao guardar perfil. Tente novamente.';
+          this.error = err.error?.error ?? 'Erro ao salvar perfil. Tente novamente.';
         },
       });
     } catch (e: any) {

@@ -15,8 +15,8 @@ interface Testimonial {
 export class DepoimentosComponent {
   // ⚠️ Placeholder copy — do not ship without real, consented testimonials.
   readonly testimonials: Testimonial[] = [
-    { quote: 'Encontrei um espaço onde o meu corpo também podia falar.', initials: 'M.S.', who: 'Análise Reichiana' },
+    { quote: 'Encontrei um espaço onde meu corpo também podia falar.', initials: 'M.S.', who: 'Análise Reichiana' },
     { quote: 'Saí de cada sessão com mais chão debaixo dos pés.', initials: 'A.R.', who: 'Somatic Experiencing®' },
-    { quote: 'A supervisão mudou a forma como escuto os meus pacientes.', initials: 'J.L.', who: 'Supervisão' },
+    { quote: 'A supervisão mudou a forma como escuto meus pacientes.', initials: 'J.L.', who: 'Supervisão' },
   ];
 }

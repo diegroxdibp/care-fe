@@ -7,17 +7,17 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
   imports: [ReactiveFormsModule, MatDialogModule],
   template: `
     <div class="dialog">
-      <h3>Encerrar a sua conta</h3>
+      <h3>Encerrar sua conta</h3>
       <p class="body">
-        Tem sessões agendadas com pacientes, por isso não podemos apagar a sua conta de imediato.
-        Explique o motivo abaixo — a equipe Care vai entrar em contacto consigo em breve para combinar a sua saída.
+        Você tem sessões agendadas com pacientes, por isso não podemos apagar sua conta de imediato.
+        Explique o motivo abaixo — a equipe Care vai entrar em contato com você em breve para combinar sua saída.
       </p>
       <p class="confirm-label">Motivo:</p>
       <textarea
         class="reason-input"
         rows="4"
         [formControl]="reasonCtrl"
-        placeholder="Porque quer encerrar a sua conta?"
+        placeholder="Por que você quer encerrar sua conta?"
       ></textarea>
       <div class="btns">
         <button class="btn-ghost" (click)="cancel()">Cancelar</button>

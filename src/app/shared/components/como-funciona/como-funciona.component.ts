@@ -43,7 +43,7 @@ export class ComoFuncionaComponent {
     {
       n: '03',
       title: 'Confirme e acompanhe pelo perfil',
-      description: 'Cancelar, reagendar e rever os seus atendimentos ficam no mesmo lugar.',
+      description: 'Cancelar, reagendar e revisar seus atendimentos ficam no mesmo lugar.',
       needsLogin: true,
       accentColor: 'var(--color-secondary-green)',
     },

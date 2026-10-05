@@ -1,7 +1,7 @@
 <div class="account-page">
 
   <div class="page-head">
-    <h1>A sua conta</h1>
+    <h1>Sua conta</h1>
     <p class="muted">Os dados da conta são acessados apenas pela CARE e a pessoa profissional.</p>
   </div>
 
@@ -138,13 +138,13 @@
         <label id="pf-timezone-label">Fuso horário:</label>
         <app-styled-select
           inputId="pf-timezone"
-          searchPlaceholder="Pesquisar fuso..."
+          searchPlaceholder="Buscar fuso..."
           [options]="timezoneOptions"
           [value]="timezoneCtrl.value"
           (valueChange)="timezoneCtrl.setValue($event)"
         />
         <span class="hint">
-          Detectamos o seu fuso automaticamente. Todos os horários da CARE — agenda, confirmações e
+          Detectamos seu fuso automaticamente. Todos os horários da CARE — agenda, confirmações e
           lembretes — aparecem neste fuso.
         </span>
         @if (nextSessionPreview(); as preview) {
@@ -160,7 +160,7 @@
   <!-- Save bar -->
   <div class="save-bar">
     @if (saveSuccess()) {
-      <span class="success-msg">Alterações guardadas.</span>
+      <span class="success-msg">Alterações salvas.</span>
     }
     @if (saveError) {
       <span class="error-msg">{{ saveError }}</span>
@@ -176,8 +176,8 @@
     <span class="danger-label">Zona de risco</span>
     <div class="danger-row">
       <div>
-        <div class="danger-title">Apagar a sua conta</div>
-        <p class="muted sm">Esta ação é permanente. Não é possível recuperar os seus dados depois.</p>
+        <div class="danger-title">Apagar sua conta</div>
+        <p class="muted sm">Esta ação é permanente. Não é possível recuperar seus dados depois.</p>
       </div>
       <button type="button" class="btn-danger" (click)="openDeleteDialog()">Apagar conta</button>
     </div>

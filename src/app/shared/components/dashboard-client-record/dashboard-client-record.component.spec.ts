@@ -31,7 +31,6 @@ function makeRecord(overrides: Partial<ClientRecord> = {}): ClientRecord {
       timeZone: SAO_PAULO,
     },
     intakes: [],
-    pendingIntake: { reason: true, clinicalHistory: true },
     notes: [{
       id: 1,
       author: { id: ME, name: 'Luane Bastos' },
@@ -164,22 +163,18 @@ describe('DashboardClientRecordComponent — instantes no fuso de quem vê', () 
     expect(component.birthDateLabel()).toBe('16/01/1990');
   });
 
-  it('só envia motivo/historial que ainda estavam pendentes', async () => {
-    await setup(LISBON, [], makeRecord({ pendingIntake: { reason: false, clinicalHistory: true } }));
+  it('a nota envia só o texto e a visibilidade', async () => {
+    await setup(LISBON, [], makeRecord());
     component.noteBody.set('Sessão 2');
-    component.reasonDraft.set('não devia ir');
-    component.clinicalHistoryDraft.set('Asma');
     component.saveNote();
     expect(apiService['addClientRecordNote']).toHaveBeenCalledWith(CLIENT_ID, {
       body: 'Sessão 2',
       visibility: 'SHARED',
-      reason: undefined,
-      clinicalHistory: 'Asma',
     });
   });
 });
 
-describe('DashboardClientRecordComponent — cabeçalho, equipa e linha do tempo', () => {
+describe('DashboardClientRecordComponent — cabeçalho, equipe e linha do tempo', () => {
   let fixture: ComponentFixture<DashboardClientRecordComponent>;
   let component: DashboardClientRecordComponent;
 
@@ -251,7 +246,7 @@ describe('DashboardClientRecordComponent — cabeçalho, equipa e linha do tempo
     expect(component.noteDays().map(d => d.key)).toEqual(['2026-01-16', '2026-01-15']);
   });
 
-  it('equipa de cuidado e áreas de cuidado traduzidas', async () => {
+  it('equipe de cuidado e áreas de cuidado traduzidas', async () => {
     await setup(LISBON, makeRecord({
       careTeam: [{ id: ME, name: 'Luane Bastos' }, { id: 11, name: 'Rui Costa' }],
       careAreas: ['REICHIAN_BODY_ANALYSIS', 'MINDFULNESS'],

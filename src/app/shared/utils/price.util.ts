@@ -73,10 +73,10 @@ export function validatePriceInput(raw: string, options: PriceValidationOptions)
   const { locale, currency, separator, required } = options;
   const isEmpty = raw.trim() === '';
 
-  if (isEmpty) return required ? 'Indique o valor da sessão.' : null;
+  if (isEmpty) return required ? 'Informe o valor da sessão.' : null;
 
   const value = parsePriceInput(raw, separator);
-  if (value === undefined) return required ? 'Indique o valor da sessão.' : 'Indique um valor válido.';
+  if (value === undefined) return required ? 'Informe o valor da sessão.' : 'Informe um valor válido.';
   if (value <= PRICE_MIN) return `O valor deve ser superior a ${formatCurrencyWhole(PRICE_MIN, locale, currency)}`;
   if (value > PRICE_MAX) return `O valor máximo permitido é ${formatCurrencyWhole(PRICE_MAX, locale, currency)}`;
   return null;

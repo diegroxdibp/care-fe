@@ -1,14 +1,14 @@
 <div class="page">
   <div class="card">
     @if (!token) {
-      <h1>Confirme a sua conta</h1>
-      <p class="subtitle">Indique o seu email para receber um novo link de confirmação.</p>
+      <h1>Confirme sua conta</h1>
+      <p class="subtitle">Informe seu email para receber um novo link de confirmação.</p>
     } @else if (loading) {
-      <h1>A confirmar a sua conta...</h1>
+      <h1>Confirmando sua conta...</h1>
       <p class="subtitle">Aguarde um momento.</p>
     } @else if (success) {
       <h1>Conta confirmada</h1>
-      <p class="subtitle">A sua conta foi ativada com sucesso. Vamos continuar de onde tinha ficado.</p>
+      <p class="subtitle">Sua conta foi ativada com sucesso. Vamos continuar de onde você parou.</p>
     } @else {
       <h1>Não foi possível confirmar</h1>
       <div class="error-msg">{{ error }}</div>
@@ -18,7 +18,7 @@
       <form (submit)="resend($event)" novalidate>
         @if (resendSent) {
           <p class="subtitle">
-            Se esta conta existir e ainda não tiver sido confirmada, enviamos um novo link. Verifique o seu email.
+            Se esta conta existir e ainda não tiver sido confirmada, enviamos um novo link. Verifique seu email.
           </p>
         } @else {
           <div class="field">
@@ -32,7 +32,7 @@
               autocomplete="email"
             />
             @if (resendEmailCtrl.touched && resendEmailCtrl.invalid) {
-              <span class="field-error">Indique um email válido.</span>
+              <span class="field-error">Informe um email válido.</span>
             }
           </div>
 
@@ -41,7 +41,7 @@
           }
 
           <button type="submit" class="btn-primary" [disabled]="resendLoading">
-            {{ resendLoading ? 'A enviar...' : 'Reenviar link' }}
+            {{ resendLoading ? 'Enviando...' : 'Reenviar link' }}
           </button>
         }
       </form>

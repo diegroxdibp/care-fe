@@ -9,7 +9,7 @@
     <div class="card-body">
       <div class="field" [class.is-error]="isError('nome')">
         <label for="nome" class="field-label">Nome:</label>
-        <input id="nome" type="text" class="field-input" formControlName="nome" placeholder="O seu nome" />
+        <input id="nome" type="text" class="field-input" formControlName="nome" placeholder="Seu nome" />
       </div>
 
       @if (!isAuthenticated()) {
@@ -50,7 +50,7 @@
 
       <div class="field" [class.is-error]="isError('mensagem')">
         <label for="mensagem" class="field-label">Mensagem:</label>
-        <textarea id="mensagem" class="field-input" formControlName="mensagem" rows="4" placeholder="Escreva a sua mensagem"></textarea>
+        <textarea id="mensagem" class="field-input" formControlName="mensagem" rows="4" placeholder="Escreva sua mensagem"></textarea>
       </div>
 
       @if (error) {
@@ -64,7 +64,7 @@
           </svg>
           <span>Mensagem enviada</span>
         } @else if (sending) {
-          <span>A enviar...</span>
+          <span>Enviando...</span>
         } @else {
           <span>ENVIAR</span>
         }
@@ -77,7 +77,7 @@
           e a
           <a [routerLink]="'/' + Pages.POLITICA_PRIVACIDADE">política de privacidade</a>.
         </p>
-        <p>Se quer agendar algum serviço, clique <button type="button" class="link-btn" (click)="goToScheduling()"><strong>aqui</strong></button>.</p>
+        <p>Se você quer agendar algum serviço, clique <button type="button" class="link-btn" (click)="goToScheduling()"><strong>aqui</strong></button>.</p>
       </div>
     </div>
   </form>

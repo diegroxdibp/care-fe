@@ -88,8 +88,8 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
   /** Mensagem do estado vazio da lista de destaque — varia consoante haja ou não filtro por paciente. */
   readonly emptyStateMessage = computed(() =>
     this.selectedClientId() === ALL_CLIENTS_VALUE
-      ? 'Não tem atendimentos agendados.'
-      : 'Não tem atendimentos agendados com este paciente.',
+      ? 'Você não tem atendimentos agendados.'
+      : 'Você não tem atendimentos agendados com este paciente.',
   );
 
   ngOnInit(): void {

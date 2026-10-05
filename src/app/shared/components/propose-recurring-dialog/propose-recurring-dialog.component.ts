@@ -275,9 +275,9 @@ export interface ProposeRecurringDialogResult {
       } @else {
         <label class="field-label" for="patient-select">Paciente</label>
         @if (loading()) {
-          <p class="hint">A carregar pacientes...</p>
+          <p class="hint">Carregando pacientes...</p>
         } @else if (patients().length === 0) {
-          <p class="hint">Ainda não tem pacientes com sessões consigo.</p>
+          <p class="hint">Ainda não há pacientes com sessões com você.</p>
         } @else {
           <div class="select-wrap">
             <app-styled-select
@@ -299,7 +299,7 @@ export interface ProposeRecurringDialogResult {
       <div class="btns">
         <button class="btn-ghost" (click)="cancel()">Cancelar</button>
         <button class="btn-primary" [disabled]="!canSubmit() || sending()" (click)="submit()">
-          {{ sending() ? 'A enviar...' : 'Enviar Proposta' }}
+          {{ sending() ? 'Enviando...' : 'Enviar Proposta' }}
         </button>
       </div>
     </div>

@@ -186,7 +186,7 @@ export class ProposalConfirmComponent implements OnInit {
           },
           error: () => {
             this.loading.set(false);
-            this.loadError.set('Não foi possível carregar a sua série atual. Tente novamente.');
+            this.loadError.set('Não foi possível carregar sua série atual. Tente novamente.');
           },
         });
       },
@@ -224,7 +224,7 @@ export class ProposalConfirmComponent implements OnInit {
       data: this.isSeriesChange()
         ? {
           title: 'Recusar alteração',
-          message: 'A sua série continua exatamente como está. Deseja recusar esta alteração?',
+          message: 'Sua série continua exatamente como está. Deseja recusar esta alteração?',
           confirmLabel: 'Recusar',
         }
         : {
@@ -247,8 +247,8 @@ export class ProposalConfirmComponent implements OnInit {
     this.apiService.respondToProposal(a.id, accept).subscribe({
       next: () => {
         const message = this.isSeriesChange()
-          ? (accept ? 'Alteração aceite. Enviámos-lhe a confirmação por email.' : 'Alteração recusada. A série continua como estava.')
-          : (accept ? 'Proposta aceite com sucesso.' : 'Proposta recusada.');
+          ? (accept ? 'Alteração aceita. Enviamos a confirmação para seu email.' : 'Alteração recusada. A série continua como estava.')
+          : (accept ? 'Proposta aceita com sucesso.' : 'Proposta recusada.');
         this.snackbarService.openSnackBar({ message });
         this.router.navigateByUrl('/dashboard');
       },

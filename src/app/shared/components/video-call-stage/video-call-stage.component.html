@@ -5,7 +5,7 @@
     @case ('loading') {
       <div class="status-screen">
         <div class="spinner"></div>
-        <p>A ligar à sala...</p>
+        <p>Conectando à sala...</p>
       </div>
     }
 
@@ -125,7 +125,7 @@
               <input
                 #chatInputEl
                 type="text"
-                placeholder="Escrever mensagem..."
+                placeholder="Digite uma mensagem..."
                 (keydown.enter)="sendChat(chatInputEl)"
               />
               <button (click)="sendChat(chatInputEl)" aria-label="Enviar">
@@ -137,16 +137,16 @@
       </div>
 
       <div class="controls">
-        <button class="ctrl" [class.off]="!micOn()" (click)="toggleMic()" [attr.aria-label]="micOn() ? 'Desligar microfone' : 'Ligar microfone'">
+        <button class="ctrl" [class.off]="!micOn()" (click)="toggleMic()" [attr.aria-label]="micOn() ? 'Desativar microfone' : 'Ativar microfone'">
           <span translate="no" class="material-symbols-outlined">{{ micOn() ? 'mic' : 'mic_off' }}</span>
         </button>
-        <button class="ctrl" [class.off]="!camOn()" (click)="toggleCam()" [attr.aria-label]="camOn() ? 'Desligar câmara' : 'Ligar câmara'">
+        <button class="ctrl" [class.off]="!camOn()" (click)="toggleCam()" [attr.aria-label]="camOn() ? 'Desativar câmera' : 'Ativar câmera'">
           <span translate="no" class="material-symbols-outlined">{{ camOn() ? 'videocam' : 'videocam_off' }}</span>
         </button>
         <button class="ctrl" [class.active]="chatOpen()" (click)="toggleChat()" aria-label="Conversa">
           <span translate="no" class="material-symbols-outlined">chat</span>
         </button>
-        <button class="ctrl" [class.active]="isFullscreen()" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Sair do ecrã inteiro' : 'Ecrã inteiro'">
+        <button class="ctrl" [class.active]="isFullscreen()" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Sair da tela cheia' : 'Tela cheia'">
           <span translate="no" class="material-symbols-outlined">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
         </button>
         <button class="ctrl leave" (click)="leave()" aria-label="Sair da sessão">

@@ -308,7 +308,7 @@ export class DashboardProfileComponent implements OnInit {
         setTimeout(() => this.saveSuccess.set(false), 3000);
       },
       error: (err) => {
-        this.saveError = err.error?.error ?? 'Erro ao guardar. Tente novamente.';
+        this.saveError = err.error?.error ?? 'Erro ao salvar. Tente novamente.';
       },
     });
   }
@@ -401,7 +401,7 @@ export class DashboardProfileComponent implements OnInit {
       if (!reason) return;
       this.userService.requestAccountDeletion({ reason }).subscribe({
         next: () => this.snackbarService.openSnackBar({
-          message: 'O seu pedido foi enviado. A nossa equipa entrará em contacto em breve.',
+          message: 'Seu pedido foi enviado. Nossa equipe entrará em contato em breve.',
         }),
         error: (err) => this.snackbarService.openSnackBar({
           message: err.error?.error ?? 'Não foi possível enviar o pedido. Tente novamente.',

@@ -30,7 +30,7 @@
     @if (open() && query().trim().length >= 2) {
       <div class="results">
         @if (loading()) {
-          <p class="results-hint">A pesquisar...</p>
+          <p class="results-hint">Pesquisando...</p>
         } @else if (results().length === 0) {
           <p class="results-hint">Sem resultados.</p>
         } @else {

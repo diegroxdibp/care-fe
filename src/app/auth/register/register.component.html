@@ -1,9 +1,9 @@
 <div [class.page]="!embedded">
   <form (submit)="signUp($event)" novalidate>
     @if (registered) {
-      <h1>Verifique o seu email</h1>
+      <h1>Verifique seu email</h1>
       <p class="subtitle">
-        Enviamos um link de confirmação para o seu email. Clique nele para ativar a sua conta e poder iniciar sessão.
+        Enviamos um link de confirmação para seu email. Clique nele para ativar sua conta e poder entrar.
       </p>
     } @else {
     @if (embedded) {

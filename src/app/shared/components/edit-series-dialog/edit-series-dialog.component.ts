@@ -67,12 +67,12 @@ export type EditSeriesDialogResult = SeriesChangePayload;
       <p class="sub">{{ data.counterpartName }} · {{ data.currentLabel }}</p>
       <p class="note">
         Escolha como a série passa a ser e a partir de quando. As sessões antes dessa data
-        não mudam, e nada muda até {{ data.counterpartName }} aceitar — enviamos-lhe um email para confirmar.
+        não mudam, e nada muda até {{ data.counterpartName }} aceitar — vamos enviar um email para essa pessoa confirmar.
       </p>
 
       <label class="field-label" for="series-slot-select">Dia e horário</label>
       @if (slotOptions().length === 0) {
-        <p class="hint">Não tem vagas periódicas. Crie uma na agenda para poder mudar a série para ela.</p>
+        <p class="hint">Você não tem vagas periódicas. Crie uma na agenda para poder mudar a série para ela.</p>
       } @else {
         <div class="select-wrap">
           <app-styled-select
@@ -175,7 +175,7 @@ export type EditSeriesDialogResult = SeriesChangePayload;
           }
         </div>
         @if (effectiveFrom()) {
-          <p class="hint tight">Até {{ fmtDate(dayBefore(effectiveFrom())) }}, as sessões mantêm-se como estão.</p>
+          <p class="hint tight">Até {{ fmtDate(dayBefore(effectiveFrom())) }}, as sessões continuam como estão.</p>
         } @else {
           <p class="hint tight">Esta vaga não tem datas livres nos próximos meses.</p>
         }
@@ -232,7 +232,7 @@ export type EditSeriesDialogResult = SeriesChangePayload;
       }
 
       @if (!hasChanges() && selectedSlot()) {
-        <p class="hint">Mude pelo menos um campo — tal como está, a série fica igual.</p>
+        <p class="hint">Mude pelo menos um campo — do jeito que está, a série continua igual.</p>
       }
 
       <div class="btns">

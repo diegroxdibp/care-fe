@@ -66,7 +66,7 @@ export class LoginComponent {
         this.submitting = false;
         if (err.status === 403) {
           this.unconfirmed = true;
-          this.error = err.error?.error ?? 'Confirme o seu email antes de iniciar sessão.';
+          this.error = err.error?.error ?? 'Confirme seu email antes de entrar.';
         } else {
           this.error =
             err.status === 401

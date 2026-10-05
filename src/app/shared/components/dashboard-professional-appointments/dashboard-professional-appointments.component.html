@@ -11,7 +11,7 @@
       <app-styled-select
         inputId="pa-client-filter"
         placeholder="Todos os pacientes"
-        searchPlaceholder="Pesquisar paciente..."
+        searchPlaceholder="Buscar paciente..."
         [options]="clientOptions()"
         [value]="selectedClientId()"
         (valueChange)="onClientFilterChange($event)"
@@ -20,7 +20,7 @@
 
     @if (loading()) {
       <div class="empty-card">
-        <p>A carregar...</p>
+        <p>Carregando...</p>
       </div>
     } @else {
 

@@ -211,14 +211,14 @@ export const AppConstants = {
             intro: 'A Política de Privacidade contém informações acerca da utilização e coleta de dados pessoais, além de explicitar o tratamento, a transparência e a segurança dos mesmos.',
             outro: 'O Termo de Uso enuncia as regras de utilização da plataforma, assim como os direitos, deveres e responsabilidades das partes, e define políticas de desistência, suspensão e bloqueio do usuário.',
             links: [
-              { label: 'Aceda a ambos os documentos aqui', url: '/politica-privacidade' },
+              { label: 'Acesse ambos os documentos aqui', url: '/politica-privacidade' },
             ],
           },
         } as FaqTopicItem,
         {
           question: 'Errei um dado pessoal ao me inscrever na plataforma. Como faço para retificar meus dados?',
           answer: {
-            intro: 'É possível corrigir os dados a qualquer momento. Basta fazer Log in, aceder ao “Perfil” e realizar as correções.',
+            intro: 'É possível corrigir os dados a qualquer momento. Basta fazer Log in, acessar o “Perfil” e realizar as correções.',
           },
         } as FaqTopicItem,
         {
@@ -236,7 +236,7 @@ export const AppConstants = {
         {
           question: 'Posso excluir permanentemente minha conta e meus dados?',
           answer: {
-            intro: 'Sim. Basta aceder ao “Perfil” e clicar na opção de “Apagar conta”. Após a exclusão, os seus dados pessoais serão removidos do sistema ativo.',
+            intro: 'Sim. Basta acessar o “Perfil” e clicar na opção de “Apagar conta”. Após a exclusão, seus dados pessoais serão removidos do sistema ativo.',
             outro: 'Importante: atualmente, não há registros clínicos armazenados na plataforma. Caso o profissional mantenha seus próprios registros fora da CARE, a exclusão da sua conta na plataforma não afeta esses arquivos externos.',
           },
         } as FaqTopicItem,
@@ -252,8 +252,8 @@ export const AppConstants = {
         {
           question: 'A plataforma utiliza cookies?',
           answer: {
-            intro: 'Sim. A CARE utiliza cookies apenas para autenticação, ou seja, para manter a sua sessão ativa enquanto navega na área logada. Não usamos cookies para rastreamento de comportamento, anúncios ou marketing.',
-            outro: 'Pode configurar o seu navegador para recusar cookies, mas isso pode comprometer o funcionamento do login e do agendamento.',
+            intro: 'Sim. A CARE utiliza cookies apenas para autenticação, ou seja, para manter sua sessão ativa enquanto navega na área logada. Não usamos cookies para rastreamento de comportamento, anúncios ou marketing.',
+            outro: 'Você pode configurar seu navegador para recusar cookies, mas isso pode comprometer o funcionamento do login e do agendamento.',
           },
         } as FaqTopicItem,
         {

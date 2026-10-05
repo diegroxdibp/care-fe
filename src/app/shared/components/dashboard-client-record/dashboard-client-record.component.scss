@@ -34,7 +34,7 @@
   }
 }
 
-// Equipa e áreas de cuidado num só cartão por baixo dos dados da pessoa,
+// Equipe e áreas de cuidado num só cartão por baixo dos dados da pessoa,
 // e as notas por baixo dele.
 .layout {
   display: flex;
@@ -49,7 +49,16 @@
   min-width: 0;
 }
 
-.care-card .areas-title { margin-top: 24px; }
+// Só ocupa a largura do conteúdo, centrado na coluna e com tudo centrado.
+.care-card {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  text-align: center;
+
+  .areas-title { margin-top: 24px; }
+  .area-list { justify-content: center; }
+}
 
 .visually-hidden {
   position: absolute;
@@ -229,15 +238,6 @@
   text-align: left;
 }
 
-.intake-prompt {
-  padding: 16px;
-  margin-bottom: 16px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-
-  .subtle { margin-bottom: 12px; }
-}
-
 .label {
   display: block;
   margin: 12px 0 6px;
@@ -353,7 +353,7 @@
   &:hover { text-decoration: underline; }
 }
 
-// ── Equipa de cuidado ──
+// ── Equipe de cuidado ──
 .team-box {
   padding: 20px 16px 16px;
   border: 1px solid var(--color-border-soft);

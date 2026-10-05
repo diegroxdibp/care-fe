@@ -2,16 +2,16 @@
   <!-- ─── Shared panel head ─── -->
   <div class="panel-head">
     <div class="kicker">Disponibilidades · Vista semanal</div>
-    <h1>A sua semana de atendimentos</h1>
+    <h1>Sua semana de atendimentos</h1>
     <p class="sub">
-      Toque numa célula para abrir um bloco, ou num bloco existente para o editar. Os detalhes — serviço, modalidade, horas — ficam na coluna à direita.
+      Toque em uma célula para abrir um bloco, ou em um bloco existente para editá-lo. Os detalhes — serviço, modalidade, horas — ficam na coluna à direita.
     </p>
   </div>
 
   @if (loadError()) {
     <div class="load-error-banner">
       <span translate="no" class="material-symbols-outlined">error_outline</span>
-      <span class="error-text">Não foi possível carregar as suas disponibilidades. Tente novamente.</span>
+      <span class="error-text">Não foi possível carregar suas disponibilidades. Tente novamente.</span>
       <button type="button" class="retry-btn" (click)="loadInitialData()">Tentar novamente</button>
     </div>
   }
@@ -235,7 +235,7 @@
 
           <div class="cal-hint">
             <span translate="no" class="material-symbols-outlined">touch_app</span>
-            Clique ou arraste numa célula vazia para criar um bloco. Clique num bloco existente para o editar.
+            Clique ou arraste em uma célula vazia para criar um bloco. Clique em um bloco existente para editá-lo.
           </div>
         </div>
 
@@ -283,7 +283,7 @@
             <div class="be-actions">
               <button class="btn-add" (click)="saveBlock()">
                 <span translate="no" class="material-symbols-outlined">check</span>
-                Guardar disponibilidade
+                Salvar disponibilidade
               </button>
               @if (selectedBlockId() !== null) {
                 @if (selectedBlock() && hasBookings(selectedBlock()!)) {
@@ -512,7 +512,7 @@
               }
               <button class="btn-add" (click)="saveBlock()">
                 <span translate="no" class="material-symbols-outlined">check</span>
-                Guardar disponibilidade
+                Salvar disponibilidade
               </button>
               @if (selectedBlockId() !== null && selectedBlock() && !hasBookings(selectedBlock()!)) {
                 <button class="btn-remove" (click)="removeBlock()">
@@ -536,7 +536,7 @@
     <div class="book-notice">
       <span translate="no" class="material-symbols-outlined">event_available</span>
       <div class="bn-text">
-        <strong>{{ bookedCount(selectedBlock()!) }} sessão(ões) reservada(s)</strong> neste bloco. Para as proteger, os restantes campos ficam fixos - só pode ajustar o Intervalo de horas (Início/Fim), tendo em conta eventuais conflitos.
+        <strong>{{ bookedCount(selectedBlock()!) }} sessão(ões) reservada(s)</strong> neste bloco. Para protegê-las, os demais campos ficam fixos - você só pode ajustar o Intervalo de horas (Início/Fim), considerando eventuais conflitos.
       </div>
     </div>
   }
@@ -807,7 +807,7 @@
 
     @if (editorFrequency() === 'weekly') {
       <div style="margin-top: 14px;" @revealSection>
-        <label class="control-label">Repete-se</label>
+        <label class="control-label">Repetição</label>
         <div class="seg">
           @for (pattern of RECURRENCE_PATTERNS; track pattern) {
             <button
@@ -1027,7 +1027,7 @@
     @if (appt.clientEmail) {
       <div class="ad-row">
         <span translate="no" class="material-symbols-outlined">mail</span>
-        <div><div class="ad-k">Contacto</div><div class="ad-v">{{ appt.clientEmail }}</div></div>
+        <div><div class="ad-k">Contato</div><div class="ad-v">{{ appt.clientEmail }}</div></div>
       </div>
     }
   </div>
@@ -1045,7 +1045,7 @@
     ></textarea>
     <div class="ad-notes-actions">
       <button class="btn-save-notes" [disabled]="notesSaving()" (click)="saveNotes(appt)">
-        {{ notesSaving() ? 'A guardar…' : 'Guardar notas' }}
+        {{ notesSaving() ? 'Salvando…' : 'Salvar notas' }}
       </button>
     </div>
   </div>
@@ -1055,13 +1055,13 @@
   <div class="ad-actions">
     @if (isPendingSeriesChange(appt)) {
       <p class="ad-series-note">
-        Proposta de alteração a partir de {{ fmtDateKey(appt.startDate) }}. A série atual continua a valer
+        Proposta de alteração a partir de {{ fmtDateKey(appt.startDate) }}. A série atual continua valendo
         até {{ slotPatientFirstName(appt) }} aceitar.
       </p>
     } @else if (canEditSeries(appt)) {
       @if (pendingChangeOf(appt); as change) {
         <p class="ad-series-note">
-          Alteração enviada a partir de {{ fmtDateKey(change.startDate) }} — à espera da resposta de
+          Alteração enviada a partir de {{ fmtDateKey(change.startDate) }} — aguardando a resposta de
           {{ slotPatientFirstName(appt) }}.
         </p>
       } @else {

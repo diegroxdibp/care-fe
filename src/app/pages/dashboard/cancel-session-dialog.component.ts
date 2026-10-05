@@ -28,7 +28,7 @@ export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
         <input type="radio" value="SINGLE" [formControl]="scopeCtrl" />
         <span>
           <strong>Apenas esta sessão</strong>
-          <small>{{ data.occurrenceLabel }}. As restantes mantêm-se.</small>
+          <small>{{ data.occurrenceLabel }}. As demais se mantêm.</small>
         </span>
       </label>
 
@@ -36,7 +36,7 @@ export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
         <input type="radio" value="THIS_AND_FOLLOWING" [formControl]="scopeCtrl" />
         <span>
           <strong>Esta e todas as seguintes</strong>
-          <small>Encerra a série a partir desta data. As sessões passadas mantêm-se.</small>
+          <small>Encerra a série a partir desta data. As sessões passadas se mantêm.</small>
         </span>
       </label>
 

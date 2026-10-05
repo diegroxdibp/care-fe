@@ -25,13 +25,13 @@ import { REMOTE_SESSION_INFO } from '../../../../shared/utils/remote-session.uti
  */
 const COPY = {
   withoutPayments: {
-    heading: 'Rever antes de confirmar',
+    heading: 'Revisar antes de confirmar',
     totalLabel: 'Valor da sessão',
     action: 'Confirmar agendamento',
     finePrint: 'Pode cancelar até 24 h antes.',
   },
   withPayments: {
-    heading: 'Rever e pagar',
+    heading: 'Revisar e pagar',
     totalLabel: 'Total',
     action: 'Pagar e confirmar',
     finePrint: 'Reembolso integral até 24 h antes.',

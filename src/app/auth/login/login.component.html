@@ -1,7 +1,7 @@
 <div class="page">
   <form (submit)="signIn($event)" novalidate>
     <h1>Bem-vindo de volta</h1>
-    <p class="subtitle">Acesse sua conta para gerir os seus agendamentos.</p>
+    <p class="subtitle">Acesse sua conta para gerenciar seus agendamentos.</p>
 
     <div class="field">
       <label for="email">Email:</label>
@@ -66,7 +66,7 @@
       </div>
     }
 
-    <button type="submit" class="btn-primary" [disabled]="submitting">{{ submitting ? 'A entrar...' : 'Entrar' }}</button>
+    <button type="submit" class="btn-primary" [disabled]="submitting">{{ submitting ? 'Entrando...' : 'Entrar' }}</button>
 
     <div class="divider"><span>Ou entre com</span></div>
 

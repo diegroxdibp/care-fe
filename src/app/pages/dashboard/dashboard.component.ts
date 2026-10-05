@@ -228,12 +228,12 @@ export class DashboardPageComponent implements OnInit {
   /** Mensagem do estado vazio da lista — varia consoante o motivo de estar vazia. */
   readonly emptyStateMessage = computed(() => {
     if (this.activeView() === 'calendar' && this.selectedDay()) {
-      return 'Não tem outras sessões neste dia.';
+      return 'Você não tem outras sessões neste dia.';
     }
     if (this.hidePastSessions()) {
-      return 'Não tem mais sessões futuras agendadas.';
+      return 'Você não tem mais sessões futuras agendadas.';
     }
-    return 'Não tem outras sessões.';
+    return 'Você não tem outras sessões.';
   });
 
   /** Sessões de um dia específico no calendário — inclui a de destaque. */

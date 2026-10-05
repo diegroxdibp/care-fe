@@ -7,9 +7,9 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
   imports: [ReactiveFormsModule, MatDialogModule],
   template: `
     <div class="dialog">
-      <h3>Apagar a sua conta?</h3>
+      <h3>Apagar sua conta?</h3>
       <p class="body">
-        Esta ação é permanente. Os seus agendamentos serão cancelados e o seu histórico clínico ficará indisponível.
+        Esta ação é permanente. Seus agendamentos serão cancelados e seu histórico clínico ficará indisponível.
       </p>
       <p class="confirm-label">
         Digite <strong>APAGAR</strong> para confirmar:

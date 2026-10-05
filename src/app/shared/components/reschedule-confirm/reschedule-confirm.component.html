@@ -6,7 +6,7 @@
   <div class="body">
     @if (loading()) {
       <div class="state">
-        <p>A carregar pedido...</p>
+        <p>Carregando pedido...</p>
       </div>
     } @else if (loadError()) {
       <div class="state error">
@@ -29,7 +29,7 @@
           </div>
           <div class="row">
             <span translate="no" class="material-symbols-outlined">event_busy</span>
-            <div><div class="k">Está marcada para</div><div class="v">{{ currentLabel() }}</div></div>
+            <div><div class="k">Está agendada para</div><div class="v">{{ currentLabel() }}</div></div>
           </div>
           <div class="row highlight">
             <span translate="no" class="material-symbols-outlined">event_available</span>
@@ -52,12 +52,12 @@
             <p class="already">{{ respondError() }}</p>
           }
           <p class="note">
-            Enquanto não responder, a sessão mantém-se no dia e hora em que está.
+            Enquanto você não responder, a sessão continua no dia e horário em que está.
           </p>
           <div class="actions">
             <button class="btn-decline" [disabled]="responding()" (click)="decline()">Recusar</button>
             <button class="btn-accept" [disabled]="responding()" (click)="accept()">
-              {{ responding() ? 'A processar...' : 'Aceitar' }}
+              {{ responding() ? 'Processando...' : 'Aceitar' }}
             </button>
           </div>
         }

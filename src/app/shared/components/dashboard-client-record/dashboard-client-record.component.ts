@@ -24,7 +24,7 @@ import { UserTimePipe } from '../../pipes/user-time.pipe';
 /** Espelha ClientRecordService.MAX_TEXT_LENGTH no backend. */
 const MAX_TEXT_LENGTH = 10_000;
 
-/** Cores dos pontos da equipa de cuidado, por ordem (repetem-se depois da sexta pessoa). */
+/** Cores dos pontos da equipe de cuidado, por ordem (repetem-se depois da sexta pessoa). */
 const CARE_TEAM_COLORS = [
   'var(--color-primary-blue)',
   'var(--color-secondary-green)',
@@ -102,8 +102,6 @@ export class DashboardClientRecordComponent implements OnInit {
   // Nova nota
   readonly noteBody = signal('');
   readonly noteVisibility = signal<ClientRecordNoteVisibility>('SHARED');
-  readonly reasonDraft = signal('');
-  readonly clinicalHistoryDraft = signal('');
   readonly savingNote = signal(false);
 
   // Adenda em curso (uma de cada vez)
@@ -128,7 +126,7 @@ export class DashboardClientRecordComponent implements OnInit {
   private readonly viewerTimeZone = computed(() =>
     this.sessionService.user()?.timeZone || detectBrowserTimezone());
 
-  /** Equipa de cuidado com a cor de cada pessoa e qual delas é quem está a ver. */
+  /** Equipe de cuidado com a cor de cada pessoa e qual delas é quem está a ver. */
   readonly careTeam = computed(() => {
     const me = this.sessionService.user()?.id;
     return (this.record()?.careTeam ?? []).map((p, i) => ({
@@ -210,10 +208,6 @@ export class DashboardClientRecordComponent implements OnInit {
     };
   });
 
-  readonly pending = computed(() => this.record()?.pendingIntake ?? { reason: false, clinicalHistory: false });
-
-  readonly isFirstNote = computed(() => !(this.record()?.notes.some(n => n.mine) ?? false));
-
   readonly canSaveNote = computed(() => this.noteBody().trim().length > 0 && !this.savingNote());
 
   /**
@@ -280,26 +274,18 @@ export class DashboardClientRecordComponent implements OnInit {
 
   saveNote(): void {
     if (!this.canSaveNote()) return;
-    const pending = this.pending();
-    const reason = this.reasonDraft().trim();
-    const clinicalHistory = this.clinicalHistoryDraft().trim();
 
     this.savingNote.set(true);
     this.apiService.addClientRecordNote(this.clientId, {
       body: this.noteBody(),
       visibility: this.noteVisibility(),
-      // Só se envia o que ainda estava por preencher — o backend também o garante.
-      reason: pending.reason && reason ? reason : undefined,
-      clinicalHistory: pending.clinicalHistory && clinicalHistory ? clinicalHistory : undefined,
     }).subscribe({
       next: (record) => {
         this.record.set(record);
         this.noteBody.set('');
-        this.reasonDraft.set('');
-        this.clinicalHistoryDraft.set('');
         this.noteVisibility.set('SHARED');
         this.savingNote.set(false);
-        this.snackbarService.openSnackBar({ message: 'Nota guardada no prontuário.' });
+        this.snackbarService.openSnackBar({ message: 'Nota salva no prontuário.' });
       },
       // O interceptor já mostra a recusa concreta do backend.
       error: () => this.savingNote.set(false),
@@ -326,7 +312,7 @@ export class DashboardClientRecordComponent implements OnInit {
         this.record.set(record);
         this.cancelAddendum();
         this.savingAddendum.set(false);
-        this.snackbarService.openSnackBar({ message: 'Adenda acrescentada.' });
+        this.snackbarService.openSnackBar({ message: 'Adendo acrescentado.' });
       },
       error: () => this.savingAddendum.set(false),
     });
@@ -395,12 +381,10 @@ export class DashboardClientRecordComponent implements OnInit {
     return initialsFor(name);
   }
 
-  onInput(target: 'body' | 'reason' | 'history' | 'addendum', event: Event): void {
+  onInput(target: 'body' | 'addendum', event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
     switch (target) {
       case 'body': this.noteBody.set(value); break;
-      case 'reason': this.reasonDraft.set(value); break;
-      case 'history': this.clinicalHistoryDraft.set(value); break;
       case 'addendum': this.addendumBody.set(value); break;
     }
   }

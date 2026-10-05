@@ -47,8 +47,6 @@ export interface ClientRecordClientInfo {
 export interface ClientRecord {
   client: ClientRecordClientInfo;
   intakes: ClientRecordIntake[];
-  /** O que quem está a ver ainda não preencheu — pedido na próxima nota. */
-  pendingIntake: { reason: boolean; clinicalHistory: boolean };
   notes: ClientRecordNote[];
   /** Pessoas profissionais com marcações com a pessoa cliente, por nome. */
   careTeam: ClientRecordAuthor[];
@@ -66,6 +64,4 @@ export interface ClientRecordSummary {
 export interface CreateClientRecordNotePayload {
   body: string;
   visibility: ClientRecordNoteVisibility;
-  reason?: string;
-  clinicalHistory?: string;
 }

@@ -10,7 +10,7 @@
           Antes de começar
         </p>
         <p class="login-note-body">
-          Para ver a agenda e confirmar um horário é necessário ter sessão iniciada. Criar conta é gratuito e não há custo para a manter.
+          Para ver a agenda e confirmar um horário é necessário entrar na sua conta. Criar uma conta é gratuito e não há custo para mantê-la.
         </p>
       </div>
       @if (!isAuthenticated()) {
@@ -18,7 +18,7 @@
       } @else {
         <span class="login-note-done">
           <span translate="no" class="material-symbols-outlined">check_circle</span>
-          Sessão iniciada
+          Você já entrou
         </span>
       }
     </div>
@@ -36,7 +36,7 @@
               @if (step.needsLogin) {
                 <span class="step-tag">
                   <span translate="no" class="material-symbols-outlined">lock</span>
-                  Requer sessão
+                  Requer login
                 </span>
               }
             </div>

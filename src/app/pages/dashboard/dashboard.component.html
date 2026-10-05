@@ -97,7 +97,7 @@
 
           <!-- Next session -->
           <div class="section-head">
-            <h2>A sua próxima sessão</h2>
+            <h2>Sua próxima sessão</h2>
           </div>
 
           @if (nextSession(); as s) {
@@ -194,7 +194,7 @@
           } @else {
             <div class="empty-card">
               <span translate="no" class="material-symbols-outlined empty-icon">event_available</span>
-              <p>Não tem sessões agendadas.</p>
+              <p>Você não tem sessões agendadas.</p>
               <a class="cta-schedule" [routerLink]="'/' + Pages.SCHEDULING">
                 <span translate="no" class="material-symbols-outlined">add</span>
                 Agendar sessão
@@ -277,7 +277,7 @@
                   <span class="legend-item"><span class="dot presencial"></span>Presencial</span>
                   <span class="legend-item"><span class="dot remoto"></span>Remoto</span>
                   <span class="legend-item"><span class="dot pending"></span>Proposta pendente</span>
-                  <span class="legend-hint">Escolha um dia para ver os detalhes em baixo.</span>
+                  <span class="legend-hint">Escolha um dia para ver os detalhes abaixo.</span>
                 </div>
               </div>
             }
@@ -393,7 +393,7 @@
                         @if (s.pending) {
                           <div class="panel-actions">
                             <p class="pending-note">
-                              Esta sessão {{ s.recurrence.toLowerCase() }} só fica marcada depois de responder à proposta.
+                              Esta sessão {{ s.recurrence.toLowerCase() }} só fica agendada depois que você responder à proposta.
                             </p>
                             <a class="btn-respond" [routerLink]="['/dashboard/proposals', s.appointmentId]">
                               <span translate="no" class="material-symbols-outlined">task_alt</span>
@@ -436,7 +436,7 @@
 
           <!-- Quote -->
           <p class="quote">
-            Cada jornada tem o seu tempo.
+            Cada jornada tem seu tempo.
           </p>
 
         </div>
@@ -491,7 +491,7 @@
         [class.active]="isMoreSectionActive() || isMoreSheetOpen()"
         [attr.aria-expanded]="isMoreSheetOpen()"
         aria-controls="more-sheet"
-        [attr.aria-label]="'Mais' + (notificationService.unreadCount() > 0 ? ' (notificações por ler)' : '')"
+        [attr.aria-label]="'Mais' + (notificationService.unreadCount() > 0 ? ' (notificações não lidas)' : '')"
         (click)="toggleMoreSheet()"
       >
         <span translate="no" class="material-symbols-outlined">menu</span>

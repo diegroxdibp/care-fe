@@ -52,7 +52,7 @@ export class DashboardSalasComponent implements OnInit {
       this.apiService.createRoom(payload).subscribe({
         next: (room) => {
           this.rooms.update((list) => [room, ...list]);
-          this.snackbarService.openSnackBar({ message: 'Sala criada. O link já está pronto a partilhar.' });
+          this.snackbarService.openSnackBar({ message: 'Sala criada. O link já está pronto para compartilhar.' });
         },
         // O interceptor já mostra a recusa concreta do backend.
         error: () => {},
@@ -66,7 +66,7 @@ export class DashboardSalasComponent implements OnInit {
       panelClass: 'care-dialog',
       data: {
         title: 'Apagar sala',
-        message: 'Deseja realmente apagar esta sala? Quem tiver o link deixa de conseguir entrar.',
+        message: 'Deseja realmente apagar esta sala? Quem tiver o link não vai mais conseguir entrar.',
         confirmLabel: 'Apagar sala',
         cancelLabel: 'Voltar',
       },

@@ -25,8 +25,8 @@ const isBackgroundSyncCall = (url: string) =>
   url.endsWith('/api/notifications') || url.endsWith('/api/threads');
 
 const ERROR_MESSAGES: Partial<Record<number, string>> = {
-  400: 'Pedido inválido. Verifique os dados e tente novamente.',
-  403: 'Não tem permissão para realizar esta ação.',
+  400: 'Solicitação inválida. Verifique os dados e tente novamente.',
+  403: 'Você não tem permissão para realizar esta ação.',
   404: 'O recurso solicitado não foi encontrado.',
   409: 'Conflito com dados existentes. Tente novamente.',
   422: 'Dados inválidos. Verifique os campos e tente novamente.',

@@ -83,8 +83,8 @@ export class RescheduleConfirmComponent implements OnInit {
 
   readonly resolvedMessage = computed(() => {
     const r = this.request();
-    if (r?.status === 'ACCEPTED') return 'Já aceitou este pedido — a sessão mudou de dia.';
-    if (r?.status === 'DECLINED') return 'Já recusou este pedido — a sessão manteve-se como estava.';
+    if (r?.status === 'ACCEPTED') return 'Você já aceitou este pedido — a sessão mudou de dia.';
+    if (r?.status === 'DECLINED') return 'Você já recusou este pedido — a sessão continuou como estava.';
     return 'Este pedido já foi respondido.';
   });
 
@@ -110,7 +110,7 @@ export class RescheduleConfirmComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         if (err.status === 403) {
-          this.loadError.set('Este pedido não lhe é dirigido.');
+          this.loadError.set('Este pedido não é direcionado a você.');
         } else if (err.status === 404) {
           this.loadError.set('Pedido não encontrado.');
         } else {
@@ -184,7 +184,7 @@ export class RescheduleConfirmComponent implements OnInit {
       panelClass: 'care-dialog',
       data: {
         title: 'Recusar pedido',
-        message: 'Deseja recusar este pedido? A sessão mantém-se no dia e hora em que está.',
+        message: 'Deseja recusar este pedido? A sessão continua no dia e horário em que está.',
         confirmLabel: 'Recusar',
       },
     });
@@ -204,7 +204,7 @@ export class RescheduleConfirmComponent implements OnInit {
         this.snackbarService.openSnackBar({
           message: accept
             ? 'Sessão reagendada com sucesso.'
-            : 'Pedido recusado. A sessão mantém-se como estava.',
+            : 'Pedido recusado. A sessão continua como estava.',
         });
         this.router.navigateByUrl('/dashboard');
       },
@@ -219,7 +219,7 @@ export class RescheduleConfirmComponent implements OnInit {
             err.error?.error ?? 'Não foi possível responder a este pedido.',
           );
         } else if (err.status === 403) {
-          this.respondError.set('Este pedido não lhe é dirigido.');
+          this.respondError.set('Este pedido não é direcionado a você.');
         } else {
           this.snackbarService.openSnackBar({ message: 'Erro ao responder ao pedido. Tente novamente.' });
         }

@@ -28,7 +28,7 @@ export class ConfiancaComponent {
     {
       icon: 'lock',
       label: 'Dados protegidos',
-      description: 'Só a pessoa profissional do seu atendimento vê os seus dados de contato. Nunca terceiros.',
+      description: 'Só a pessoa profissional do seu atendimento vê seus dados de contato. Nunca terceiros.',
       chipBackground: 'var(--color-secondary-cyan)',
       chipForeground: 'var(--color-primary-blue)',
     },
