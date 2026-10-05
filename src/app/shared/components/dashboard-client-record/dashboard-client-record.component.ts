@@ -1,4 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  Component, computed, DestroyRef, ElementRef, inject, OnInit, signal, viewChildren,
+} from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
@@ -13,14 +15,46 @@ import {
   ClientRecordNoteVisibility,
 } from '../../models/client-record.model';
 import { Currency } from '../../enums/currency.enum';
-import { Genders } from '../../enums/genders.enum';
+import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
 import { Pages } from '../../enums/pages.enum';
 import { buildSessions, isUpcomingOrOngoing, sessionBounds } from '../../utils/session-list.util';
-import { detectBrowserTimezone, timezoneLabel } from '../../utils/timezones.util';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
 import { UserTimePipe } from '../../pipes/user-time.pipe';
 
 /** Espelha ClientRecordService.MAX_TEXT_LENGTH no backend. */
 const MAX_TEXT_LENGTH = 10_000;
+
+/** Cores dos pontos da equipa de cuidado, por ordem (repetem-se depois da sexta pessoa). */
+const CARE_TEAM_COLORS = [
+  'var(--color-primary-blue)',
+  'var(--color-secondary-green)',
+  'var(--color-primary-purple)',
+  'var(--color-secondary-cyan)',
+  'var(--color-secondary-pink)',
+  'var(--color-secondary-indigo)',
+];
+
+const MONTHS_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+/**
+ * Distância (px) abaixo do topo da área com scroll a partir da qual um dia
+ * da Evolução passa a ser o ativo na linha do tempo.
+ */
+const ACTIVE_DAY_OFFSET = 96;
+
+/** Folga (px) entre o topo da área visível e o marcador de um dia que o acompanha. */
+const MARKER_TOP_GAP = 12;
+
+/** Notas de um mesmo dia (no fuso de quem vê), pela ordem da Evolução. */
+export interface NoteDay {
+  /** yyyy-MM-dd no fuso de quem vê. */
+  key: string;
+  /** "05 Out" */
+  label: string;
+  /** "Hoje", "Ontem", o ano se não for o corrente, ou null. */
+  sublabel: string | null;
+  notes: ClientRecordNote[];
+}
 
 @Component({
   selector: 'app-dashboard-client-record',
@@ -36,6 +70,10 @@ export class DashboardClientRecordComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Um bloco por dia da Evolução — a linha do tempo segue-os no scroll. */
+  private readonly dayGroups = viewChildren<ElementRef<HTMLElement>>('dayGroup');
 
   /**
    * Se se chegou aqui a partir de outra página da app (a lista de Clientes ou
@@ -87,15 +125,63 @@ export class DashboardClientRecordComponent implements OnInit {
     return `${d}/${m}/${y}`;
   });
 
-  readonly genderLabel = computed(() => {
-    const g = this.client()?.gender;
-    return g ? (Genders[g as keyof typeof Genders] ?? null) : null;
+  private readonly viewerTimeZone = computed(() =>
+    this.sessionService.user()?.timeZone || detectBrowserTimezone());
+
+  /** Equipa de cuidado com a cor de cada pessoa e qual delas é quem está a ver. */
+  readonly careTeam = computed(() => {
+    const me = this.sessionService.user()?.id;
+    return (this.record()?.careTeam ?? []).map((p, i) => ({
+      ...p,
+      color: CARE_TEAM_COLORS[i % CARE_TEAM_COLORS.length],
+      isMe: p.id === me,
+    }));
   });
 
-  readonly timeZoneLabel = computed(() => {
-    const tz = this.client()?.timeZone;
-    return tz ? timezoneLabel(tz) : null;
+  readonly careAreas = computed(() =>
+    (this.record()?.careAreas ?? []).map(key =>
+      ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key));
+
+  /**
+   * Notas agrupadas por dia no fuso de quem vê — a mesma conta que o pipe
+   * userTime faz para a data mostrada em cada nota.
+   */
+  readonly noteDays = computed<NoteDay[]>(() => {
+    const timeZone = this.viewerTimeZone();
+    const today = dayKey(new Date(), timeZone);
+    const yesterday = dayKey(new Date(Date.now() - 86_400_000), timeZone);
+    const days: NoteDay[] = [];
+    for (const note of this.record()?.notes ?? []) {
+      const key = dayKey(new Date(note.createdAt), timeZone);
+      const last = days[days.length - 1];
+      if (last?.key === key) {
+        last.notes.push(note);
+        continue;
+      }
+      const [y, m, d] = key.split('-');
+      days.push({
+        key,
+        label: `${d} ${MONTHS_SHORT[Number(m) - 1]}`,
+        sublabel: key === today ? 'Hoje'
+          : key === yesterday ? 'Ontem'
+          : y !== today.slice(0, 4) ? y
+          : null,
+        notes: [note],
+      });
+    }
+    return days;
   });
+
+  /** Dia em destaque na linha do tempo — o que está no topo da área visível. */
+  private readonly scrolledDay = signal<string | null>(null);
+  readonly activeDay = computed(() => this.scrolledDay() ?? this.noteDays()[0]?.key ?? null);
+
+  /**
+   * Dia escolhido com um clique na linha do tempo. Enquanto o scroll suave
+   * corre (e se o último dia nem chega ao topo) é ele que fica em destaque;
+   * larga-se no próximo scroll feito pela pessoa.
+   */
+  private pinnedDay: string | null = null;
 
   /** Sessões com quem está a ver — mesmo código de fusos que "Meus atendimentos". */
   private readonly sessions = computed(() =>
@@ -144,6 +230,23 @@ export class DashboardClientRecordComponent implements OnInit {
     } else {
       this.router.navigateByUrl(this.clientsListUrl);
     }
+  }
+
+  constructor() {
+    // Em ecrã largo quem faz scroll é o painel (ou o <main> do dashboard); em
+    // ecrã estreito é a janela. Em captura apanha-se o scroll de qualquer um.
+    const onScroll = () => this.followScroll();
+    const release = () => { this.pinnedDay = null; };
+    const opts = { capture: true, passive: true };
+    const releaseOn = ['wheel', 'touchstart', 'keydown'] as const;
+    document.addEventListener('scroll', onScroll, opts);
+    window.addEventListener('resize', onScroll, { passive: true });
+    releaseOn.forEach(type => document.addEventListener(type, release, opts));
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('scroll', onScroll, opts);
+      window.removeEventListener('resize', onScroll);
+      releaseOn.forEach(type => document.removeEventListener(type, release, opts));
+    });
   }
 
   ngOnInit(): void {
@@ -229,6 +332,65 @@ export class DashboardClientRecordComponent implements OnInit {
     });
   }
 
+  /** Clique numa data da linha do tempo: leva à primeira nota desse dia. */
+  goToDay(day: NoteDay): void {
+    const el = this.dayGroups().find(g => g.nativeElement.dataset['day'] === day.key)?.nativeElement;
+    if (!el) return;
+    this.pinnedDay = day.key;
+    this.scrolledDay.set(day.key);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  /**
+   * A cada scroll: o marcador de cada dia desce com o scroll até ao fim das
+   * notas desse dia, e o dia ativo é o último cujo bloco já passou a linha de
+   * referência, um pouco abaixo do topo da área visível (o cabeçalho fixo ou
+   * o topo da área com scroll). No fim do scroll é o último dia, que pode
+   * nunca chegar ao topo.
+   *
+   * Não é position: sticky de propósito — o painel, o <main> e o .body do
+   * dashboard têm overflow próprio mesmo quando quem faz scroll é a janela,
+   * e isso prende o sticky a um elemento que nunca se mexe.
+   */
+  private followScroll(): void {
+    const groups = this.dayGroups().map(g => g.nativeElement);
+    if (groups.length === 0) return;
+
+    const scroller = scrollParent(groups[0]);
+    const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 0;
+    const rootTop = scroller ? scroller.getBoundingClientRect().top : 0;
+    const visibleTop = Math.max(rootTop, headerH);
+
+    for (const g of groups) {
+      const marker = g.querySelector<HTMLElement>('.day-marker');
+      if (!marker) continue;
+      const rect = g.getBoundingClientRect();
+      const room = rect.height - marker.offsetHeight;
+      const offset = Math.min(Math.max(visibleTop + MARKER_TOP_GAP - rect.top, 0), Math.max(room, 0));
+      marker.style.transform = offset ? `translateY(${offset}px)` : '';
+    }
+
+    if (this.pinnedDay) return;
+    const line = visibleTop + ACTIVE_DAY_OFFSET;
+
+    const root = scroller ?? document.scrollingElement;
+    const atBottom = root != null && root.scrollTop > 0
+      && root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+    const last = groups[groups.length - 1];
+
+    let active = groups[0];
+    if (atBottom && last.getBoundingClientRect().top < window.innerHeight) {
+      active = last;
+    } else {
+      for (const g of groups) {
+        if (g.getBoundingClientRect().top > line) break;
+        active = g;
+      }
+    }
+    this.scrolledDay.set(active.dataset['day'] ?? null);
+  }
+
   authorInitials(name: string): string {
     return initialsFor(name);
   }
@@ -242,6 +404,22 @@ export class DashboardClientRecordComponent implements OnInit {
       case 'addendum': this.addendumBody.set(value); break;
     }
   }
+}
+
+/** yyyy-MM-dd do instante no fuso dado. */
+function dayKey(date: Date, timeZone: string): string {
+  // en-CA formata como yyyy-MM-dd.
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(date);
+}
+
+/** Antepassado mais próximo com scroll vertical; null quando é a janela. */
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const overflowY = getComputedStyle(p).overflowY;
+    if ((overflowY === 'auto' || overflowY === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
 }
 
 function initialsFor(name: string): string {

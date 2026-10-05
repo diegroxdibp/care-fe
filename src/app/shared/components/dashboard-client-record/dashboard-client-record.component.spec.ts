@@ -42,6 +42,8 @@ function makeRecord(overrides: Partial<ClientRecord> = {}): ClientRecord {
       mine: true,
       addenda: [],
     }],
+    careTeam: [{ id: ME, name: 'Luane Bastos' }],
+    careAreas: ['MINDFULNESS'],
     ...overrides,
   };
 }
@@ -174,6 +176,89 @@ describe('DashboardClientRecordComponent — instantes no fuso de quem vê', () 
       reason: undefined,
       clinicalHistory: 'Asma',
     });
+  });
+});
+
+describe('DashboardClientRecordComponent — cabeçalho, equipa e linha do tempo', () => {
+  let fixture: ComponentFixture<DashboardClientRecordComponent>;
+  let component: DashboardClientRecordComponent;
+
+  const note = (id: number, createdAt: string) => ({
+    id, author: { id: ME, name: 'Luane Bastos' }, visibility: 'SHARED' as const,
+    body: 'nota ' + id, createdAt, mine: true, addenda: [],
+  });
+
+  async function setup(viewerTimeZone: string, record = makeRecord()) {
+    await TestBed.configureTestingModule({
+      imports: [DashboardClientRecordComponent],
+      providers: [
+        {
+          provide: ApiService,
+          useValue: {
+            getClientRecord: jest.fn().mockReturnValue(of(record)),
+            getProfessionalAppointments: jest.fn().mockReturnValue(of([])),
+            getServices: jest.fn().mockReturnValue(of([])),
+          },
+        },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ clientId: String(CLIENT_ID) }) } } },
+      ],
+    }).compileComponents();
+    TestBed.inject(SessionService).setUser({
+      id: ME, email: 'luane@example.com', roles: ['PROFESSIONAL'], profileCompleted: true, timeZone: viewerTimeZone,
+    });
+    fixture = TestBed.createComponent(DashboardClientRecordComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'queueMicrotask', 'nextTick'] });
+    jest.setSystemTime(new Date('2026-01-16T12:00:00Z'));
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('mostra idade e data de nascimento por baixo do nome, sem email, telefone, género nem fuso', async () => {
+    await setup(LISBON);
+    const subtitle: string = fixture.nativeElement.querySelector('.client-head .subtle').textContent;
+    expect(subtitle).toContain('36 anos');
+    expect(subtitle).toContain('16/01/1990');
+    expect(subtitle).not.toContain('Prontuário');
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).not.toContain('ana@example.com');
+    expect(text).not.toContain('Fuso horário');
+  });
+
+  it('notas do mesmo dia (no fuso de quem vê) ficam juntas na linha do tempo', async () => {
+    await setup(LISBON, makeRecord({
+      notes: [
+        note(3, '2026-01-16T10:00:00Z'),
+        note(2, '2026-01-16T01:30:00Z'),
+        note(1, '2026-01-15T09:00:00Z'),
+      ],
+    }));
+    expect(component.noteDays().map(d => [d.label, d.sublabel, d.notes.length]))
+      .toEqual([['16 Jan', 'Hoje', 2], ['15 Jan', 'Ontem', 1]]);
+    expect(fixture.nativeElement.querySelectorAll('.day').length).toBe(2);
+    // O primeiro dia começa ativo.
+    expect(fixture.nativeElement.querySelector('.day-marker.active .day-label').textContent).toContain('16 Jan');
+  });
+
+  it('em São Paulo a nota das 01:30 UTC já é do dia anterior', async () => {
+    await setup(SAO_PAULO, makeRecord({
+      notes: [note(2, '2026-01-16T10:00:00Z'), note(1, '2026-01-16T01:30:00Z')],
+    }));
+    expect(component.noteDays().map(d => d.key)).toEqual(['2026-01-16', '2026-01-15']);
+  });
+
+  it('equipa de cuidado e áreas de cuidado traduzidas', async () => {
+    await setup(LISBON, makeRecord({
+      careTeam: [{ id: ME, name: 'Luane Bastos' }, { id: 11, name: 'Rui Costa' }],
+      careAreas: ['REICHIAN_BODY_ANALYSIS', 'MINDFULNESS'],
+    }));
+    expect(fixture.nativeElement.querySelector('.team-count').textContent.trim()).toBe('2');
+    expect(fixture.nativeElement.querySelector('.team-list').textContent).toContain('(você)');
+    expect(component.careAreas()).toEqual(['Análise Corporal Reichiana', 'Mindfulness']);
   });
 });
 

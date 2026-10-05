@@ -34,6 +34,32 @@
   }
 }
 
+// Equipa e áreas de cuidado num só cartão por baixo dos dados da pessoa,
+// e as notas por baixo dele.
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.care-card .areas-title { margin-top: 24px; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -91,7 +117,6 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
 
   h2 {
     margin: 0;
@@ -121,6 +146,22 @@
   color: var(--fg-3);
   font-size: var(--fs-small);
   text-align: left;
+}
+
+// Separa os dados da pessoa do acompanhamento com quem está a ver.
+.followup {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.group-label {
+  margin-bottom: 12px;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-2);
 }
 
 .auto-grid {
@@ -312,12 +353,192 @@
   &:hover { text-decoration: underline; }
 }
 
+// ── Equipa de cuidado ──
+.team-box {
+  padding: 20px 16px 16px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.team-count {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  color: var(--fg-1);
+}
+
+.team-caption {
+  margin: 6px 0 0;
+  font-size: var(--fs-micro);
+  color: var(--fg-3);
+  text-align: center;
+}
+
+// <ul>/<li> perdem aqui o estilo global do site institucional (flex
+// centrado, itálico, 18px) — ver o comentário de .note.
+.team-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--color-border-soft);
+  display: inline-grid;
+  gap: 6px;
+  text-align: left;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    margin: 0;
+    font-size: var(--fs-small);
+    font-style: normal;
+    font-weight: var(--fw-regular);
+    color: var(--fg-1);
+  }
+
+  .me { color: var(--fg-3); font-size: var(--fs-micro); }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// ── Áreas de cuidado ──
+.area-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.area-chip {
+  display: inline-block;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-tint);
+  color: var(--fg-1);
+  font-size: var(--fs-micro);
+  font-style: normal;
+  font-weight: var(--fw-semibold);
+}
+
+// ── Evolução: linha do tempo por dia ──
+// Cada dia é uma linha da grelha: a coluna da esquerda (o "carril") estica
+// com as notas desse dia, e o marcador do dia desce com o scroll dentro dela
+// — com muitas notas no mesmo dia acompanha-as até ao dia seguinte.
 .timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 16px;
+  // O scrollIntoView do clique não deixa o dia debaixo do cabeçalho fixo
+  // quando é a janela que faz scroll.
+  scroll-margin-top: calc(var(--header-h) + 16px);
+
+  @media (max-width: breakpoint.$breakpoint-xs) {
+    grid-template-columns: 48px minmax(0, 1fr);
+    column-gap: 10px;
+  }
+
+  // Espaço entre dias como padding (e não gap) para a linha vertical não ter falhas.
+  &:not(:last-child) .notes { padding-bottom: 24px; }
+}
+
+.rail {
+  position: relative;
+
+  // A linha vertical, de ponta a ponta do dia, a passar pelo centro das bolas.
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--color-border-soft);
+  }
+}
+
+.day:first-child .rail::before { top: 8px; }
+.day:last-child .rail::before { bottom: auto; height: 8px; }
+
+.day-marker {
+  // Acompanha o scroll dentro do seu dia via transform (ver followScroll).
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0 0 4px;
+  border: none;
+  // Tapa a linha vertical por trás do texto da data.
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  cursor: pointer;
+
+  .ball {
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 3px solid var(--color-primary-purple);
+    background: var(--color-surface);
+    transition: background var(--dur-fast) var(--ease-care), transform var(--dur-fast) var(--ease-care);
+  }
+
+  .day-label {
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+
+  .day-sublabel {
+    margin-top: -4px;
+    font-size: var(--fs-micro);
+    color: var(--fg-3);
+  }
+
+  &:hover .ball { transform: scale(1.15); }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-blue);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  &.active {
+    .ball {
+      background: var(--color-primary-purple);
+      transform: scale(1.25);
+    }
+    .day-label { color: var(--fg-1); font-weight: var(--fw-bold); }
+  }
+}
+
+.notes {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 16px;
+  gap: 12px;
+  align-content: start;
 }
 
 // Cada nota é um <li>, e o styles.scss global faz de todo o <li> um flex

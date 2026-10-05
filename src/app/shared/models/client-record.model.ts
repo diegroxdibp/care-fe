@@ -40,6 +40,8 @@ export interface ClientRecordClientInfo {
   gender?: string | null;
   picture?: string | null;
   timeZone?: string | null;
+  /** Instante ISO em UTC do registo da conta — null em contas antigas sem atividade. */
+  createdAt?: string | null;
 }
 
 export interface ClientRecord {
@@ -48,6 +50,10 @@ export interface ClientRecord {
   /** O que quem está a ver ainda não preencheu — pedido na próxima nota. */
   pendingIntake: { reason: boolean; clinicalHistory: boolean };
   notes: ClientRecordNote[];
+  /** Pessoas profissionais com marcações com a pessoa cliente, por nome. */
+  careTeam: ClientRecordAuthor[];
+  /** Chaves de ProfessionalSessionService dos serviços marcados. */
+  careAreas: string[];
 }
 
 export interface ClientRecordSummary {
