@@ -37,6 +37,11 @@ jobs:
       - name: Unit tests (browser in São Paulo)
         run: npm run test:browser-zone -- --ci
 
+      # Same idea, computer in the Netherlands with a Lisbon profile - the
+      # pair behind the 06/10/2026 room that closed an hour early.
+      - name: Unit tests (browser in Amsterdam)
+        run: npm run test:browser-zone-amsterdam -- --ci
+
       # Template type-checking only happens in the AOT build, not in Jest.
       - name: Production build
         run: npm run build
