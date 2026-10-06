@@ -23,7 +23,7 @@
     @case ('ended') {
       <div class="status-screen">
         <span translate="no" class="material-symbols-outlined status-icon">call_end</span>
-        <p>A sessão terminou.</p>
+        <p>{{ endedMessage() }}</p>
         <button class="btn-primary" (click)="leave()">Voltar ao painel</button>
       </div>
     }
@@ -34,7 +34,71 @@
           <span translate="no" class="material-symbols-outlined">videocam</span>
           {{ title ?? 'Sessão por videochamada' }}
         </div>
+
+        @if (closesAtLabel()) {
+          <div class="closing-time">
+            <span class="closing-chip" [class.soon]="closingSoon()">
+              <span translate="no" class="material-symbols-outlined">schedule</span>
+              Fecha às {{ closesAtLabel() }}
+            </span>
+            @if (canExtend()) {
+              <div class="extend-wrap">
+                <button
+                  type="button"
+                  class="extend-btn"
+                  [attr.aria-expanded]="extendMenuOpen()"
+                  (click)="toggleExtendMenu()"
+                >
+                  Estender
+                </button>
+                @if (extendMenuOpen()) {
+                  <div class="extend-menu" role="menu">
+                    @for (m of extendOptions; track m) {
+                      <button
+                        type="button"
+                        role="menuitem"
+                        [disabled]="extending() || exceedsMaxDuration(m)"
+                        (click)="extend(m)"
+                      >
+                        +{{ m }} min
+                      </button>
+                    }
+                    <p class="extend-hint">Máximo de 8 horas no total.</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </header>
+
+      @if (closingSoon()) {
+        <div class="closing-banner" role="status">
+          <span translate="no" class="material-symbols-outlined">timer</span>
+          <span class="closing-text">
+            A sala fecha em {{ minutesLeft() }} min, às {{ closesAtLabel() }}.
+            @if (!canExtend()) {
+              Só quem criou a sala pode estender o horário.
+            }
+          </span>
+          @if (canExtend()) {
+            <div class="closing-actions">
+              @for (m of extendOptions; track m) {
+                @if (!exceedsMaxDuration(m)) {
+                  <button type="button" [disabled]="extending()" (click)="extend(m)">+{{ m }} min</button>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (extendError()) {
+        <div class="closing-banner error" role="alert">
+          <span translate="no" class="material-symbols-outlined">error</span>
+          <span class="closing-text">{{ extendError() }}</span>
+        </div>
+      }
 
       <div class="stage" [class.chat-open]="chatOpen()">
         <div class="tiles">

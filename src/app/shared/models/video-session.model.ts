@@ -8,4 +8,6 @@ export interface VideoSession {
   token: string;
   opensAt: string;
   closesAt: string;
+  /** Só numa sala avulsa, para quem a criou ou admin — ver ApiService.extendRoom. */
+  canExtend: boolean;
 }

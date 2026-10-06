@@ -23,6 +23,16 @@ import Daily, {
 } from '@daily-co/daily-js';
 import { SessionService } from '../../services/session.service';
 import { VideoSession } from '../../models/video-session.model';
+import { detectBrowserTimezone } from '../../utils/timezones.util';
+
+/** A partir de quando se avisa que a sala vai fechar. */
+const CLOSING_WARNING_MS = 5 * 60_000;
+/** Mesmo teto da criação de sala - ver RoomService.extendRoom no backend. */
+const MAX_ROOM_DURATION_MS = 8 * 60 * 60_000;
+const EXTEND_OPTIONS_MIN = [15, 30, 60];
+
+/** Mensagem que quem estende manda às outras pessoas na chamada - ver onAppMessage. */
+const ROOM_EXTENDED_KIND = 'room-extended';
 
 interface VideoTile {
   sessionId: string;
@@ -88,6 +98,8 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   @Input({ required: true }) fetchSession!: () => Observable<VideoSession>;
   @Input() title: string | null = null;
   @Input() leaveRoute: string[] = ['/dashboard'];
+  /** Só as salas avulsas passam isto - a janela de uma marcação não se estende. */
+  @Input() extendSession: ((minutes: number) => Observable<{ closesAt: string }>) | null = null;
 
   private readonly router = inject(Router);
   private readonly sessionService = inject(SessionService);
@@ -95,6 +107,40 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
 
   readonly state = signal<RoomState>('loading');
   readonly errorMessage = signal<string | null>(null);
+  readonly endedMessage = signal('A sessão terminou.');
+
+  // ── Horário de fecho ──
+  // A chamada fecha sozinha em closesAt, que conta a partir da abertura da
+  // sala e não de quando se entrou - por isso o fecho fica sempre à vista, e
+  // com aviso nos últimos minutos, em vez de cortar a conversa sem pré-aviso.
+
+  readonly extendOptions = EXTEND_OPTIONS_MIN;
+  private readonly opensAt = signal<number | null>(null);
+  readonly closesAt = signal<number | null>(null);
+  readonly canExtend = signal(false);
+  private readonly now = signal(Date.now());
+  readonly extendMenuOpen = signal(false);
+  readonly extending = signal(false);
+  readonly extendError = signal<string | null>(null);
+
+  readonly minutesLeft = computed(() => {
+    const closes = this.closesAt();
+    if (closes === null) return null;
+    return Math.max(0, Math.ceil((closes - this.now()) / 60_000));
+  });
+
+  readonly closingSoon = computed(() => {
+    const closes = this.closesAt();
+    return closes !== null && closes - this.now() <= CLOSING_WARNING_MS;
+  });
+
+  /** No fuso do perfil, como a lista de salas (DashboardSalasComponent.formatWindow). */
+  readonly closesAtLabel = computed(() => {
+    const closes = this.closesAt();
+    if (closes === null) return '';
+    const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    return new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone }).format(closes);
+  });
 
   readonly tiles = signal<VideoTile[]>([]);
   readonly micOn = signal(true);
@@ -131,6 +177,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   private call: DailyCall | null = null;
   private readonly streamsBySessionId = new Map<string, MediaStream>();
   private autoLeaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     this.connect();
@@ -208,17 +255,76 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       });
       this.state.set('in-call');
       this.refreshTiles();
-      this.scheduleAutoLeave(session.closesAt);
+      this.opensAt.set(new Date(session.opensAt).getTime());
+      this.canExtend.set(session.canExtend && !!this.extendSession);
+      this.setClosesAt(session.closesAt);
+      this.clockTimer = setInterval(() => this.now.set(Date.now()), 15_000);
     } catch {
       this.state.set('not-available');
       this.errorMessage.set('Não foi possível entrar na sala. Verifique a câmera/microfone e tente novamente.');
     }
   }
 
-  private scheduleAutoLeave(closesAt: string): void {
-    const msLeft = new Date(closesAt).getTime() - Date.now();
+  private setClosesAt(closesAt: string): void {
+    const closes = new Date(closesAt).getTime();
+    this.closesAt.set(closes);
+    this.now.set(Date.now());
+
+    if (this.autoLeaveTimer) clearTimeout(this.autoLeaveTimer);
+    this.autoLeaveTimer = null;
+    const msLeft = closes - Date.now();
     if (msLeft <= 0) return;
-    this.autoLeaveTimer = setTimeout(() => this.leave(), msLeft);
+    this.autoLeaveTimer = setTimeout(() => this.endAtClosingTime(), msLeft);
+  }
+
+  // Antes isto voltava direto ao painel, e quem estava na chamada não tinha
+  // como perceber que tinha sido o horário da sala a acabar.
+  private endAtClosingTime(): void {
+    this.teardown();
+    this.endedMessage.set('O horário da sala terminou.');
+    this.state.set('ended');
+  }
+
+  /** Verdadeiro quando estender estes minutos passaria das 8h no total. */
+  exceedsMaxDuration(minutes: number): boolean {
+    const opens = this.opensAt();
+    const closes = this.closesAt();
+    if (opens === null || closes === null) return true;
+    return closes + minutes * 60_000 > opens + MAX_ROOM_DURATION_MS;
+  }
+
+  toggleExtendMenu(): void {
+    this.extendError.set(null);
+    this.extendMenuOpen.update((v) => !v);
+  }
+
+  extend(minutes: number): void {
+    if (!this.extendSession || this.extending() || this.exceedsMaxDuration(minutes)) return;
+    this.extending.set(true);
+    this.extendError.set(null);
+
+    this.extendSession(minutes).subscribe({
+      next: (room) => {
+        this.extending.set(false);
+        this.extendMenuOpen.set(false);
+        this.setClosesAt(room.closesAt);
+        this.call?.sendAppMessage({ kind: ROOM_EXTENDED_KIND }, '*');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.extending.set(false);
+        const body = err.error as { error?: string } | null;
+        this.extendError.set(body?.error ?? 'Não foi possível estender a sala.');
+      },
+    });
+  }
+
+  // O novo fecho vem sempre do backend, nunca da mensagem - qualquer pessoa
+  // na chamada pode mandar uma app-message.
+  private refreshClosingTime(): void {
+    this.fetchSession().subscribe({
+      next: (session) => this.setClosesAt(session.closesAt),
+      error: () => {},
+    });
   }
 
   private onParticipantChange(_e: DailyEventObjectParticipant): void {
@@ -234,7 +340,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     this.state.set('ended');
   }
 
-  private onAppMessage(e: DailyEventObjectAppMessage<{ text?: string; from?: string }>): void {
+  private onAppMessage(e: DailyEventObjectAppMessage<{ text?: string; from?: string; kind?: string }>): void {
+    if (e.data?.kind === ROOM_EXTENDED_KIND) {
+      this.refreshClosingTime();
+      return;
+    }
     if (!e.data?.text) return;
     this.messages.update((list) => [...list, { from: e.data.from ?? 'Participante', text: e.data.text!, mine: false }]);
   }
@@ -297,6 +407,10 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     if (this.autoLeaveTimer) {
       clearTimeout(this.autoLeaveTimer);
       this.autoLeaveTimer = null;
+    }
+    if (this.clockTimer) {
+      clearInterval(this.clockTimer);
+      this.clockTimer = null;
     }
     this.streamsBySessionId.clear();
     if (this.call) {

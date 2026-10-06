@@ -3,6 +3,13 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { UserSearchPickerComponent } from '../user-search-picker/user-search-picker.component';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 import { minToTime } from '../../utils/session-time.util';
+import {
+  detectBrowserTimezone,
+  timezoneLabel,
+  wallTimeInZone,
+  zonedWallTimeToInstant,
+} from '../../utils/timezones.util';
+import { SessionService } from '../../services/session.service';
 import { CreateRoomPayload, RoomAccessMode, RoomAllowedUser } from '../../models/room.model';
 
 interface DurationPreset {
@@ -50,6 +57,16 @@ function toKey(d: Date): string {
 export class CreateRoomDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<CreateRoomDialogComponent>);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly sessionService = inject(SessionService);
+
+  /**
+   * A data/hora escolhidas são lidas no fuso do perfil, o mesmo em que a lista
+   * de salas as mostra (DashboardSalasComponent.formatWindow). Antes eram
+   * lidas no fuso do navegador: com o perfil em São Paulo e o computador em
+   * Lisboa, "14:00" virava 13:00 de São Paulo na lista, sem aviso nenhum.
+   */
+  readonly timeZone = computed(() => this.sessionService.user()?.timeZone || detectBrowserTimezone());
+  readonly timeZoneLabel = computed(() => timezoneLabel(this.timeZone()));
 
   readonly presets = DURATION_PRESETS;
   readonly timeOptions = TIME_OPTIONS;
@@ -66,9 +83,21 @@ export class CreateRoomDialogComponent {
   readonly limitParticipants = signal(false);
   readonly maxParticipants = signal(MAX_PARTICIPANTS_CAP);
 
+  readonly scheduledOpensAt = computed<Date | null>(() => {
+    if (this.startsNow() || !this.scheduledDate() || !this.scheduledTime()) return null;
+    return zonedWallTimeToInstant(this.scheduledDate(), this.scheduledTime(), this.timeZone());
+  });
+
+  /** O backend também recusa (com 1 min de folga) - isto só avisa antes de submeter. */
+  readonly scheduledInPast = computed(() => {
+    const opens = this.scheduledOpensAt();
+    return opens !== null && opens.getTime() < Date.now();
+  });
+
   readonly canSubmit = computed(() => {
     if (this.durationMinutes() < 5) return false;
     if (!this.startsNow() && (!this.scheduledDate() || !this.scheduledTime())) return false;
+    if (this.scheduledInPast()) return false;
     if (this.accessMode() === 'SPECIFIC_USERS' && this.allowedUsers().length === 0) return false;
     return true;
   });
@@ -146,17 +175,19 @@ export class CreateRoomDialogComponent {
     this.calendarViewDate.set(new Date(d.getFullYear(), d.getMonth() + 1, 1));
   }
 
-  isPast(date: Date): boolean {
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return date < t;
+  // "Hoje" no fuso do perfil, pelo mesmo motivo de timeZone - perto da
+  // meia-noite o dia do navegador e o do perfil podem não ser o mesmo.
+  private todayKey(): string {
+    const t = wallTimeInZone(new Date(), this.timeZone());
+    return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
   }
 
-  isToday(date: Date): boolean {
-    const t = new Date();
-    return date.getFullYear() === t.getFullYear()
-      && date.getMonth() === t.getMonth()
-      && date.getDate() === t.getDate();
+  isPast(key: string): boolean {
+    return key < this.todayKey();
+  }
+
+  isToday(key: string): boolean {
+    return key === this.todayKey();
   }
 
   selectDate(key: string): void {
@@ -187,9 +218,7 @@ export class CreateRoomDialogComponent {
   submit(): void {
     if (!this.canSubmit()) return;
 
-    const opensAt = this.startsNow()
-      ? null
-      : new Date(`${this.scheduledDate()}T${this.scheduledTime()}`).toISOString();
+    const opensAt = this.startsNow() ? null : (this.scheduledOpensAt()?.toISOString() ?? null);
 
     this.dialogRef.close({
       name: this.name().trim() || undefined,

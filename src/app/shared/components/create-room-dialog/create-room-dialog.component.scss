@@ -247,6 +247,15 @@ h3 {
   &.compact { margin: 8px 0 0; font-size: 12px; }
 }
 
+.tz-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: -8px;
+
+  span.material-symbols-outlined { font-size: 16px; margin-top: 2px; }
+}
+
 /* ── Checkbox — mesmo espaçamento do "aceito os termos" do registo ── */
 .checkbox-row {
   display: flex;

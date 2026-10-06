@@ -329,6 +329,14 @@ export class ApiService {
     );
   }
 
+  extendRoom(id: number, minutes: number): Observable<Room> {
+    return this.http.post<Room>(
+      `${environment.apiUrl}/api/rooms/${id}/extend`,
+      { minutes },
+      { withCredentials: true },
+    );
+  }
+
   searchUsers(query: string): Observable<RoomAllowedUser[]> {
     return this.http.get<RoomAllowedUser[]>(
       `${environment.apiUrl}/api/user/search`,
