@@ -109,13 +109,16 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal<string | null>(null);
   readonly endedMessage = signal('A sessão terminou.');
 
-  // ── Horário de fecho ──
-  // A chamada fecha sozinha em closesAt, que conta a partir da abertura da
-  // sala e não de quando se entrou - por isso o fecho fica sempre à vista, e
-  // com aviso nos últimos minutos, em vez de cortar a conversa sem pré-aviso.
+  // ── Horário de fim / fecho ──
+  // endsAt é o fim combinado; closesAt é quando a chamada fecha sozinha.
+  // Numa marcação, closesAt vem 5 min depois (margem para despedidas); numa
+  // sala avulsa são o mesmo instante. O aviso conta a partir de endsAt (às
+  // 17:55 para uma sessão até às 18:00), e o fecho fica sempre à vista em vez
+  // de cortar a conversa sem pré-aviso.
 
   readonly extendOptions = EXTEND_OPTIONS_MIN;
   private readonly opensAt = signal<number | null>(null);
+  readonly endsAt = signal<number | null>(null);
   readonly closesAt = signal<number | null>(null);
   readonly canExtend = signal(false);
   private readonly now = signal(Date.now());
@@ -123,24 +126,46 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   readonly extending = signal(false);
   readonly extendError = signal<string | null>(null);
 
-  readonly minutesLeft = computed(() => {
+  /** Há margem entre o fim combinado e o fecho (marcações). */
+  readonly hasGracePeriod = computed(() => {
+    const ends = this.endsAt();
     const closes = this.closesAt();
-    if (closes === null) return null;
-    return Math.max(0, Math.ceil((closes - this.now()) / 60_000));
+    return ends !== null && closes !== null && closes > ends;
   });
 
-  readonly closingSoon = computed(() => {
+  /** Minutos até ao fim combinado. */
+  readonly minutesLeft = computed(() => {
+    const ends = this.endsAt();
+    if (ends === null) return null;
+    return Math.max(0, Math.ceil((ends - this.now()) / 60_000));
+  });
+
+  /** Nos 5 minutos antes do fim combinado. */
+  readonly endingSoon = computed(() => {
+    const ends = this.endsAt();
+    if (ends === null) return false;
+    const now = this.now();
+    return now >= ends - CLOSING_WARNING_MS && now < ends;
+  });
+
+  /** Já passou do fim combinado, mas a chamada ainda não fechou. */
+  readonly inGracePeriod = computed(() => {
+    const ends = this.endsAt();
     const closes = this.closesAt();
-    return closes !== null && closes - this.now() <= CLOSING_WARNING_MS;
+    if (ends === null || closes === null) return false;
+    const now = this.now();
+    return now >= ends && now < closes;
   });
 
   /** No fuso do perfil, como a lista de salas (DashboardSalasComponent.formatWindow). */
-  readonly closesAtLabel = computed(() => {
-    const closes = this.closesAt();
-    if (closes === null) return '';
+  readonly endsAtLabel = computed(() => this.formatTime(this.endsAt()));
+  readonly closesAtLabel = computed(() => this.formatTime(this.closesAt()));
+
+  private formatTime(instant: number | null): string {
+    if (instant === null) return '';
     const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
-    return new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone }).format(closes);
-  });
+    return new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone }).format(instant);
+  }
 
   readonly tiles = signal<VideoTile[]>([]);
   readonly micOn = signal(true);
@@ -257,7 +282,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.refreshTiles();
       this.opensAt.set(new Date(session.opensAt).getTime());
       this.canExtend.set(session.canExtend && !!this.extendSession);
-      this.setClosesAt(session.closesAt);
+      this.setWindow(session.closesAt, session.endsAt);
       this.clockTimer = setInterval(() => this.now.set(Date.now()), 15_000);
     } catch {
       this.state.set('not-available');
@@ -265,9 +290,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     }
   }
 
-  private setClosesAt(closesAt: string): void {
+  /** Sem endsAt (sala avulsa, ou backend antigo), o fim combinado é o próprio fecho. */
+  private setWindow(closesAt: string, endsAt?: string): void {
     const closes = new Date(closesAt).getTime();
     this.closesAt.set(closes);
+    this.endsAt.set(endsAt ? new Date(endsAt).getTime() : closes);
     this.now.set(Date.now());
 
     if (this.autoLeaveTimer) clearTimeout(this.autoLeaveTimer);
@@ -307,7 +334,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       next: (room) => {
         this.extending.set(false);
         this.extendMenuOpen.set(false);
-        this.setClosesAt(room.closesAt);
+        this.setWindow(room.closesAt);
         this.call?.sendAppMessage({ kind: ROOM_EXTENDED_KIND }, '*');
       },
       error: (err: HttpErrorResponse) => {
@@ -322,7 +349,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   // na chamada pode mandar uma app-message.
   private refreshClosingTime(): void {
     this.fetchSession().subscribe({
-      next: (session) => this.setClosesAt(session.closesAt),
+      next: (session) => this.setWindow(session.closesAt, session.endsAt),
       error: () => {},
     });
   }

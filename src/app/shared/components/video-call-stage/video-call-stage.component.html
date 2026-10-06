@@ -37,9 +37,13 @@
 
         @if (closesAtLabel()) {
           <div class="closing-time">
-            <span class="closing-chip" [class.soon]="closingSoon()">
+            <span class="closing-chip" [class.soon]="endingSoon() || inGracePeriod()">
               <span translate="no" class="material-symbols-outlined">schedule</span>
-              Fecha às {{ closesAtLabel() }}
+              @if (hasGracePeriod()) {
+                Termina às {{ endsAtLabel() }}
+              } @else {
+                Fecha às {{ closesAtLabel() }}
+              }
             </span>
             @if (canExtend()) {
               <div class="extend-wrap">
@@ -72,13 +76,24 @@
         }
       </header>
 
-      @if (closingSoon()) {
+      @if (inGracePeriod()) {
         <div class="closing-banner" role="status">
           <span translate="no" class="material-symbols-outlined">timer</span>
           <span class="closing-text">
-            A sala fecha em {{ minutesLeft() }} min, às {{ closesAtLabel() }}.
-            @if (!canExtend()) {
-              Só quem criou a sala pode estender o horário.
+            O horário da sessão terminou. A sala fecha às {{ closesAtLabel() }}.
+          </span>
+        </div>
+      } @else if (endingSoon()) {
+        <div class="closing-banner" role="status">
+          <span translate="no" class="material-symbols-outlined">timer</span>
+          <span class="closing-text">
+            @if (hasGracePeriod()) {
+              A sessão termina em {{ minutesLeft() }} min, às {{ endsAtLabel() }}.
+            } @else {
+              A sala fecha em {{ minutesLeft() }} min, às {{ closesAtLabel() }}.
+              @if (!canExtend()) {
+                Só quem criou a sala pode estender o horário.
+              }
             }
           </span>
           @if (canExtend()) {

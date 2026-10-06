@@ -110,12 +110,64 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
 
   it('só avisa nos últimos 5 minutos', async () => {
     await join();
-    expect(component.closingSoon()).toBe(false);
+    expect(component.endingSoon()).toBe(false);
 
     jest.setSystemTime(new Date('2026-10-06T17:55:30Z'));
     jest.advanceTimersByTime(15_000);
-    expect(component.closingSoon()).toBe(true);
+    expect(component.endingSoon()).toBe(true);
     expect(component.minutesLeft()).toBe(5);
+  });
+
+  it('sala avulsa: termina e fecha ao mesmo tempo, sem margem', async () => {
+    await join();
+    expect(component.hasGracePeriod()).toBe(false);
+  });
+
+  describe('marcação: aviso às 17:55, fim às 18:00, fecho às 18:05', () => {
+    const appointmentSession = () =>
+      session({ canExtend: false, closesAt: '2026-10-06T18:05:00Z', endsAt: '2026-10-06T18:00:00Z' });
+
+    function at(iso: string) {
+      jest.setSystemTime(new Date(iso));
+      jest.advanceTimersByTime(15_000);
+    }
+
+    it('mostra o fim combinado no cabeçalho, não o fecho', async () => {
+      await join({ session: appointmentSession() });
+      expect(component.hasGracePeriod()).toBe(true);
+      expect(component.endsAtLabel()).toBe('15:00');
+      expect(component.closesAtLabel()).toBe('15:05');
+    });
+
+    it('17:54 ainda sem aviso; 17:55 avisa que a sessão termina em 5 min', async () => {
+      await join({ session: appointmentSession() });
+
+      at('2026-10-06T17:54:00Z');
+      expect(component.endingSoon()).toBe(false);
+
+      at('2026-10-06T17:55:00Z');
+      expect(component.endingSoon()).toBe(true);
+      expect(component.minutesLeft()).toBe(5);
+      expect(component.inGracePeriod()).toBe(false);
+    });
+
+    it('18:00 passa à margem: a sessão terminou, a sala ainda está aberta', async () => {
+      await join({ session: appointmentSession() });
+
+      at('2026-10-06T18:00:00Z');
+      expect(component.endingSoon()).toBe(false);
+      expect(component.inGracePeriod()).toBe(true);
+      expect(component.state()).toBe('in-call');
+    });
+
+    it('18:05 a chamada fecha sozinha', async () => {
+      await join({ session: appointmentSession() });
+
+      jest.advanceTimersByTime(57 * 60_000 - 1_000); // 18:04:59
+      expect(component.state()).toBe('in-call');
+      jest.advanceTimersByTime(1_000); // 18:05
+      expect(component.state()).toBe('ended');
+    });
   });
 
   it('ao chegar ao fecho mostra que o horário terminou, em vez de voltar ao painel sem explicação', async () => {
