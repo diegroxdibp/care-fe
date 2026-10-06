@@ -155,7 +155,8 @@ function durationLabel(startTime?: string, endTime?: string): string {
 }
 
 const JOIN_WINDOW_BEFORE_MIN = 5;
-const JOIN_WINDOW_AFTER_MIN = 30;
+// Tem de bater com AppointmentService.JOIN_WINDOW_AFTER_MINUTES no backend.
+const JOIN_WINDOW_AFTER_MIN = 5;
 
 /** Início/fim reais (data + hora) de uma ocorrência — null quando não há horas (não devia acontecer numa sessão marcada). */
 export function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
@@ -178,7 +179,7 @@ export function sessionBounds(session: BuiltSession): { start: Date; end: Date }
 
 /**
  * Se a sessão remota está dentro da janela de entrada da videochamada (5 min
- * antes até 30 min depois do horário combinado). Só decide se o botão
+ * antes até 5 min depois do horário combinado). Só decide se o botão
  * "Entrar" aparece — quem manda de facto é o backend, que recusa fora da
  * janela mesmo que este cálculo do lado do cliente esteja desalinhado com o
  * relógio do servidor.
