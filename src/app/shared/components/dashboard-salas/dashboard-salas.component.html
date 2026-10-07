@@ -61,10 +61,18 @@
             </div>
           }
 
-          <button class="btn-copy" (click)="copyLink(room)">
-            <span translate="no" class="material-symbols-outlined">content_copy</span>
-            Copiar link
-          </button>
+          <div class="room-actions">
+            @if (statusOf(room) === 'agora') {
+              <a class="btn-join" [routerLink]="['/rooms', room.id, 'room']">
+                <span translate="no" class="material-symbols-outlined">videocam</span>
+                Entrar
+              </a>
+            }
+            <button class="btn-copy" (click)="copyLink(room)">
+              <span translate="no" class="material-symbols-outlined">content_copy</span>
+              Copiar link
+            </button>
+          </div>
         </div>
       }
     </div>

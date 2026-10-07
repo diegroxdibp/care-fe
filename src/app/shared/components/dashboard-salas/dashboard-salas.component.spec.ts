@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { DashboardSalasComponent } from './dashboard-salas.component';
@@ -66,5 +67,62 @@ describe('DashboardSalasComponent — formatWindow usa o fuso do perfil, não o 
     await setup(LISBON);
     // 20:00 UTC = 20:00 em Lisboa (UTC+0 em janeiro), mesmo dia.
     expect(component.formatWindow(makeRoom())).toBe('15/01, 20:00 – 15/01, 21:00');
+  });
+});
+
+/** Entrar direto da lista, sem copiar o link e colar na barra de endereço. */
+describe('DashboardSalasComponent — botão Entrar', () => {
+  let fixture: ComponentFixture<DashboardSalasComponent>;
+
+  const open = makeRoom({ id: 1, name: 'Reunião Jéssica', opensAt: '2026-10-07T16:00:00Z', closesAt: '2026-10-07T18:00:00Z' });
+  const scheduled = makeRoom({ id: 2, name: 'Reunião Carolina', opensAt: '2026-10-07T17:00:00Z', closesAt: '2026-10-07T19:00:00Z' });
+  const expired = makeRoom({ id: 3, name: 'Antiga', opensAt: '2026-10-06T16:00:00Z', closesAt: '2026-10-06T18:00:00Z' });
+
+  async function setup() {
+    await TestBed.configureTestingModule({
+      imports: [DashboardSalasComponent],
+      providers: [
+        provideRouter([]),
+        { provide: ApiService, useValue: { getMyRooms: jest.fn().mockReturnValue(of([open, scheduled, expired])) } },
+      ],
+    }).compileComponents();
+    TestBed.inject(SessionService).setUser({
+      email: 'user@example.com',
+      roles: ['PROFESSIONAL'],
+      profileCompleted: true,
+      timeZone: LISBON,
+    });
+    fixture = TestBed.createComponent(DashboardSalasComponent);
+    fixture.detectChanges();
+  }
+
+  const joinLinks = () =>
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.btn-join')).map((a) =>
+      a.getAttribute('href'),
+    );
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-07T16:30:00Z'));
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('só a sala aberta agora tem Entrar, e leva à página da sala', async () => {
+    await setup();
+    expect(joinLinks()).toEqual(['/rooms/1/room']);
+  });
+
+  it('uma sala agendada ganha o Entrar quando abre, sem recarregar a página', async () => {
+    await setup();
+
+    jest.setSystemTime(new Date('2026-10-07T17:00:30Z'));
+    jest.advanceTimersByTime(30_000);
+    fixture.detectChanges();
+
+    expect(joinLinks()).toEqual(['/rooms/1/room', '/rooms/2/room']);
   });
 });

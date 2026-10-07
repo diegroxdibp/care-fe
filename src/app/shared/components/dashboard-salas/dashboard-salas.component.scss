@@ -211,12 +211,41 @@
   border-radius: var(--radius-pill);
 }
 
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+
+  > * { flex: 1 1 auto; }
+}
+
+.btn-join {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-primary-blue);
+  background: var(--color-primary-blue);
+  color: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity var(--dur-fast);
+
+  span.material-symbols-outlined { font-size: 16px; }
+
+  &:hover { opacity: 0.88; }
+}
+
 .btn-copy {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 4px;
   border: 1px solid var(--color-primary-blue);
   background: none;
   color: var(--color-primary-blue);
