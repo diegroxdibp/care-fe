@@ -283,9 +283,14 @@
   aspect-ratio: 4 / 3;
   flex-shrink: 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-  transition: transform var(--dur-fast);
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition: outline-color var(--dur-fast);
 
-  &:hover { transform: scale(1.03); }
+  // Contorno por dentro, não scale(): a tile aumentada saía da .thumb-strip
+  // (que tem overflow: auto) e fazia aparecer as duas barras de rolagem.
+  &:hover,
+  &:focus-visible { outline-color: var(--color-primary-purple); }
 
   .tile-label { font-size: 11px; padding: 3px 8px; }
 }
