@@ -34,6 +34,12 @@ import {
   EditSeriesDialogData,
   EditSeriesDialogResult,
 } from '../../shared/components/edit-series-dialog/edit-series-dialog.component';
+import {
+  CancelSessionDialogComponent,
+  CancelSessionDialogData,
+  CancelSessionDialogResult,
+} from '../dashboard/cancel-session-dialog.component';
+import { applyCancellation, CancellationScope } from '../../shared/utils/cancellation.util';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { isPendingSeriesChange, nextSeriesOccurrence, pendingSeriesChangeFor } from '../../shared/utils/series-change.util';
 import { detectBrowserTimezone } from '../../shared/utils/timezones.util';
@@ -2417,25 +2423,57 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.withdrawSeriesChange(appt);
       return;
     }
+
+    // A sessão que cai é a ocorrência em vista, não a âncora da série. Sem a
+    // data, o backend desmarcava a primeira sessão da série - a de hoje ficava
+    // na agenda e a pessoa cliente era avisada na mesma (07/10/2026).
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    const justificationLabel = 'Justificativa do cancelamento:';
+    const justificationPlaceholder = 'Explique o motivo do cancelamento para a pessoa cliente.';
+
+    if (appt.isRecurring && appt.status === 'CONFIRMED') {
+      const d = new Date(occurrenceDate + 'T00:00:00');
+      const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
+      const ref = this.dialog.open(CancelSessionDialogComponent, {
+        width: '460px',
+        panelClass: 'care-dialog',
+        data: {
+          occurrenceLabel: `${dow.charAt(0).toUpperCase() + dow.slice(1)}, ${d.getDate()} ${PT_MONTHS[d.getMonth()]}`,
+          justificationLabel,
+          justificationPlaceholder,
+        } satisfies CancelSessionDialogData,
+      });
+      ref.afterClosed().subscribe((result: CancelSessionDialogResult | null) => {
+        if (result) this._doCancelAppointment(appt, result.justification ?? '', occurrenceDate, result.scope);
+      });
+      return;
+    }
+
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '440px',
       panelClass: 'care-dialog',
       data: {
         title: 'Confirmar cancelamento',
         message: 'Deseja realmente cancelar este agendamento? Essa ação não poderá ser desfeita.',
-        justificationLabel: 'Justificativa do cancelamento:',
-        justificationPlaceholder: 'Explique o motivo do cancelamento para a pessoa cliente.',
+        justificationLabel,
+        justificationPlaceholder,
       } satisfies ConfirmDialogData,
     });
     ref.afterClosed().subscribe((result: ConfirmDialogResult | false) => {
-      if (result) this._doCancelAppointment(appt, result.justification);
+      if (result) this._doCancelAppointment(appt, result.justification, occurrenceDate, 'SINGLE');
     });
   }
 
-  private _doCancelAppointment(appt: Appointment, justification: string): void {
-    this.apiService.deleteAppointment(appt.id, justification).subscribe({
+  private _doCancelAppointment(
+    appt: Appointment,
+    justification: string,
+    occurrenceDate: string,
+    scope: CancellationScope,
+  ): void {
+    this.apiService.deleteAppointment(appt.id, justification, occurrenceDate, scope).subscribe({
       next: () => {
-        this.appointments.update(list => list.filter(a => a.id !== appt.id));
+        this.appointments.update(list => applyCancellation(list, appt.id, occurrenceDate, scope));
         this.selectedAppointment.set(null);
         this.snackbarService.openSnackBar({ message: 'Sessão cancelada com sucesso.' });
       },

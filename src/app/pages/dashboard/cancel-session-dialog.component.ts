@@ -1,13 +1,22 @@
 import { Component, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { CancellationScope } from '../../shared/utils/cancellation.util';
 
 export interface CancelSessionDialogData {
   /** Ex.: "segunda-feira, 10 de agosto". Ancora a escolha numa data concreta. */
   occurrenceLabel: string;
+  /** Quando definido, pede (obrigatória) a mensagem que segue para a pessoa cliente. */
+  justificationLabel?: string;
+  justificationPlaceholder?: string;
 }
 
-export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
+export type CancelSessionScope = CancellationScope;
+
+export interface CancelSessionDialogResult {
+  scope: CancelSessionScope;
+  justification?: string;
+}
 
 /**
  * Cancelamento de uma sessão que faz parte de uma série recorrente: é preciso
@@ -40,9 +49,23 @@ export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
         </span>
       </label>
 
+      @if (data.justificationLabel) {
+        <p class="confirm-label">{{ data.justificationLabel }}</p>
+        <textarea
+          class="justification-input"
+          rows="3"
+          [formControl]="justificationCtrl"
+          [placeholder]="data.justificationPlaceholder ?? ''"
+        ></textarea>
+      }
+
       <div class="btns">
         <button class="btn-ghost" (click)="cancel()">Voltar</button>
-        <button class="btn-danger" (click)="confirm()">Cancelar sessão</button>
+        <button
+          class="btn-danger"
+          [disabled]="data.justificationLabel && !justificationCtrl.value.trim()"
+          (click)="confirm()"
+        >Cancelar sessão</button>
       </div>
     </div>
   `,
@@ -93,6 +116,29 @@ export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
       line-height: 1.45;
       color: var(--color-muted);
     }
+    .confirm-label {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--color-primary-blue);
+      margin: 8px 0 10px;
+      text-align: left;
+    }
+    .justification-input {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--color-primary-blue);
+      padding: 13px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      transition: border-color 0.2s ease;
+      &:focus { border-color: var(--color-primary-blue); }
+      &::placeholder { color: var(--color-muted); }
+    }
     .btns {
       display: flex;
       gap: 10px;
@@ -127,7 +173,8 @@ export type CancelSessionScope = 'SINGLE' | 'THIS_AND_FOLLOWING';
       text-transform: uppercase;
       cursor: pointer;
       transition: opacity 0.2s ease;
-      &:hover { opacity: 0.88; }
+      &:hover:not(:disabled) { opacity: 0.88; }
+      &:disabled { opacity: 0.4; cursor: not-allowed; }
     }
   `],
 })
@@ -136,12 +183,19 @@ export class CancelSessionDialogComponent {
   readonly data = inject<CancelSessionDialogData>(MAT_DIALOG_DATA);
 
   readonly scopeCtrl = new FormControl<CancelSessionScope>('SINGLE', { nonNullable: true });
+  readonly justificationCtrl = new FormControl('', { nonNullable: true });
 
   cancel(): void {
     this.dialogRef.close(null);
   }
 
   confirm(): void {
-    this.dialogRef.close(this.scopeCtrl.value);
+    const result: CancelSessionDialogResult = { scope: this.scopeCtrl.value };
+    if (this.data.justificationLabel) {
+      const justification = this.justificationCtrl.value.trim();
+      if (!justification) return;
+      result.justification = justification;
+    }
+    this.dialogRef.close(result);
   }
 }

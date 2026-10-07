@@ -19,8 +19,10 @@ import { FeatureFlagService } from '../../shared/services/feature-flag.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   CancelSessionDialogComponent,
+  CancelSessionDialogResult,
   CancelSessionScope,
 } from './cancel-session-dialog.component';
+import { applyCancellation } from '../../shared/utils/cancellation.util';
 import {
   RescheduleDialogComponent,
   RescheduleDialogData,
@@ -40,7 +42,6 @@ import {
   buildSessions,
   canJoinSession,
   isUpcomingOrOngoing,
-  toDateKey,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
 import { environment } from '../../../environments/environment';
@@ -599,14 +600,16 @@ export class DashboardPageComponent implements OnInit {
       if (!result) return;
 
       const scope: CancelSessionScope = session.isRecurring
-        ? (result as CancelSessionScope)
+        ? (result as CancelSessionDialogResult).scope
         : 'SINGLE';
 
       this.apiService
         .deleteAppointment(session.appointmentId, undefined, occurrenceDate, scope)
         .subscribe({
           next: () => {
-            this.applyCancellation(session, occurrenceDate, scope);
+            this.appointments.update((list) =>
+              applyCancellation(list, session.appointmentId, occurrenceDate, scope),
+            );
             this.snackbarService.openSnackBar({ message: 'Sessão cancelada com sucesso.' });
           },
           error: () => {
@@ -614,46 +617,5 @@ export class DashboardPageComponent implements OnInit {
           },
         });
     });
-  }
-
-  /**
-   * Reflete localmente o que o backend acabou de fazer, sem recarregar: uma
-   * ocorrência vira exceção, uma série encurta, e uma sessão única desaparece.
-   */
-  private applyCancellation(
-    session: DashSession,
-    occurrenceDate: string,
-    scope: CancelSessionScope,
-  ): void {
-    if (!session.isRecurring) {
-      this.appointments.update((list) => list.filter((a) => a.id !== session.appointmentId));
-      return;
-    }
-
-    if (scope === 'SINGLE') {
-      this.appointments.update((list) =>
-        list.map((a) =>
-          a.id === session.appointmentId
-            ? { ...a, excludedDates: [...(a.excludedDates ?? []), occurrenceDate] }
-            : a,
-        ),
-      );
-      return;
-    }
-
-    // A partir de occurrenceKey (fuso de origem), não de session.date (fuso
-    // de quem vê) — endDate compara-se com startDate no mesmo fuso em que a
-    // série foi combinada.
-    const newEnd = new Date(session.occurrenceKey + 'T00:00:00');
-    newEnd.setDate(newEnd.getDate() - 1);
-    const newEndKey = toDateKey(newEnd);
-    this.appointments.update((list) =>
-      list.flatMap((a) => {
-        if (a.id !== session.appointmentId) return [a];
-        // A série deixou de ter ocorrências - sai da lista por completo.
-        if (a.startDate && newEndKey < a.startDate) return [];
-        return [{ ...a, endDate: newEndKey }];
-      }),
-    );
   }
 }
