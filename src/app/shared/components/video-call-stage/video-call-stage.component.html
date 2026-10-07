@@ -291,14 +291,33 @@
       </div>
 
       <div class="controls">
+        @if (chatPreview(); as preview) {
+          <div class="chat-preview" role="status">
+            <button type="button" class="chat-preview-body" (click)="toggleChat()" aria-label="Abrir conversa">
+              <span translate="no" class="material-symbols-outlined">chat</span>
+              <span class="chat-preview-text"><strong>{{ preview.from }}:</strong> {{ preview.text }}</span>
+            </button>
+            <button type="button" class="chat-preview-close" (click)="dismissChatPreview()" aria-label="Dispensar aviso">
+              <span translate="no" class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        }
         <button class="ctrl" [class.off]="!micOn()" (click)="toggleMic()" [attr.aria-label]="micOn() ? 'Desativar microfone' : 'Ativar microfone'">
           <span translate="no" class="material-symbols-outlined">{{ micOn() ? 'mic' : 'mic_off' }}</span>
         </button>
         <button class="ctrl" [class.off]="!camOn()" (click)="toggleCam()" [attr.aria-label]="camOn() ? 'Desativar câmera' : 'Ativar câmera'">
           <span translate="no" class="material-symbols-outlined">{{ camOn() ? 'videocam' : 'videocam_off' }}</span>
         </button>
-        <button class="ctrl" [class.active]="chatOpen()" (click)="toggleChat()" aria-label="Conversa">
+        <button
+          class="ctrl"
+          [class.active]="chatOpen()"
+          (click)="toggleChat()"
+          [attr.aria-label]="unreadCount() ? 'Conversa, ' + unreadCount() + ' mensagens novas' : 'Conversa'"
+        >
           <span translate="no" class="material-symbols-outlined">chat</span>
+          @if (unreadCount()) {
+            <span class="ctrl-badge" aria-hidden="true">{{ unreadCount() > 9 ? '9+' : unreadCount() }}</span>
+          }
         </button>
         @if (canModerate()) {
           <button class="ctrl" [class.active]="peopleOpen()" (click)="togglePeople()" aria-label="Pessoas na sala">

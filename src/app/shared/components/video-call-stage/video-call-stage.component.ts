@@ -35,6 +35,8 @@ const EXTEND_OPTIONS_MIN = [15, 30, 60];
 const ROOM_EXTENDED_KIND = 'room-extended';
 /** Mensagem que quem modera manda a quem silenciou - ver onAppMessage. */
 const MUTED_BY_HOST_KIND = 'muted-by-host';
+/** Quanto tempo a pré-visualização de uma mensagem nova fica à vista. */
+const CHAT_PREVIEW_MS = 5_000;
 
 interface VideoTile {
   sessionId: string;
@@ -192,6 +194,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   readonly camOn = signal(true);
   readonly chatOpen = signal(false);
   readonly messages = signal<ChatMessage[]>([]);
+  /** Mensagens que chegaram com a conversa fechada - o número no botão. */
+  readonly unreadCount = signal(0);
+  /** A última mensagem que chegou com a conversa fechada, por uns segundos. */
+  readonly chatPreview = signal<ChatMessage | null>(null);
+  private chatPreviewTimer: ReturnType<typeof setTimeout> | null = null;
   readonly isFullscreen = signal(false);
 
   /** Sessão escolhida para ocupar o palco principal - null usa o critério por omissão. */
@@ -462,7 +469,30 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       return;
     }
     if (!e.data?.text) return;
-    this.messages.update((list) => [...list, { from: e.data.from ?? 'Participante', text: e.data.text!, mine: false }]);
+    const message: ChatMessage = { from: e.data.from ?? 'Participante', text: e.data.text, mine: false };
+    this.messages.update((list) => [...list, message]);
+    if (!this.chatOpen()) this.notifyUnread(message);
+  }
+
+  // Com a conversa fechada, uma mensagem nova passava despercebida - fica um
+  // número no botão até a conversa abrir, e a mensagem à vista uns segundos.
+  private notifyUnread(message: ChatMessage): void {
+    this.unreadCount.update((n) => n + 1);
+    this.chatPreview.set(message);
+    this.clearChatPreviewTimer();
+    this.chatPreviewTimer = setTimeout(() => this.chatPreview.set(null), CHAT_PREVIEW_MS);
+  }
+
+  private clearChatPreviewTimer(): void {
+    if (this.chatPreviewTimer) {
+      clearTimeout(this.chatPreviewTimer);
+      this.chatPreviewTimer = null;
+    }
+  }
+
+  dismissChatPreview(): void {
+    this.clearChatPreviewTimer();
+    this.chatPreview.set(null);
   }
 
   private refreshTiles(): void {
@@ -508,7 +538,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
 
   toggleChat(): void {
     this.chatOpen.update((v) => !v);
-    if (this.chatOpen()) this.peopleOpen.set(false);
+    if (this.chatOpen()) {
+      this.peopleOpen.set(false);
+      this.unreadCount.set(0);
+      this.dismissChatPreview();
+    }
   }
 
   sendChat(input: HTMLInputElement): void {
@@ -532,6 +566,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       clearInterval(this.clockTimer);
       this.clockTimer = null;
     }
+    this.clearChatPreviewTimer();
     this.streamsBySessionId.clear();
     if (this.call) {
       this.call.leave().catch(() => {});

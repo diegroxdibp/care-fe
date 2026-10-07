@@ -395,3 +395,89 @@ describe('VideoCallStageComponent — moderação', () => {
     expect(component.endedMessage()).toBe('Você foi removido da sala por quem a organiza.');
   });
 });
+
+/** Com a conversa fechada, uma mensagem nova tem de se notar. */
+describe('VideoCallStageComponent — mensagens com a conversa fechada', () => {
+  let fixture: ComponentFixture<VideoCallStageComponent>;
+  let component: VideoCallStageComponent;
+
+  async function join() {
+    await TestBed.configureTestingModule({
+      imports: [VideoCallStageComponent],
+      providers: [{ provide: Router, useValue: { navigate: jest.fn() } }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(VideoCallStageComponent);
+    component = fixture.componentInstance;
+    component.fetchSession = () =>
+      of({
+        roomUrl: 'https://careclinica.daily.co/room-4',
+        token: 'tok',
+        opensAt: '2026-10-07T16:00:00Z',
+        closesAt: '2026-10-07T18:00:00Z',
+        canExtend: false,
+      });
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  const receive = (text: string, from = 'Jéssica') =>
+    fakeCall.handlers.get('app-message')!({ fromId: 'guest', data: { text, from } });
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-07T16:30:00Z'));
+    fakeCall.handlers.clear();
+    fakeParticipants = {};
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('conta as mensagens novas e mostra a última por uns segundos', async () => {
+    await join();
+
+    receive('Oi, está me ouvindo?');
+    receive('Vou reiniciar a câmera');
+    fixture.detectChanges();
+
+    expect(component.unreadCount()).toBe(2);
+    expect(component.chatPreview()?.text).toBe('Vou reiniciar a câmera');
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.ctrl-badge')?.textContent?.trim()).toBe('2');
+    expect(el.querySelector('.chat-preview')?.textContent).toContain('Jéssica:');
+
+    jest.advanceTimersByTime(5_000);
+    fixture.detectChanges();
+    expect(component.chatPreview()).toBeNull();
+    expect(el.querySelector('.chat-preview')).toBeNull();
+    // O número fica até a conversa abrir.
+    expect(component.unreadCount()).toBe(2);
+  });
+
+  it('abrir a conversa limpa o aviso', async () => {
+    await join();
+    receive('Oi');
+
+    component.toggleChat();
+    fixture.detectChanges();
+
+    expect(component.unreadCount()).toBe(0);
+    expect(component.chatPreview()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.ctrl-badge')).toBeNull();
+  });
+
+  it('com a conversa aberta não há aviso', async () => {
+    await join();
+    component.toggleChat();
+
+    receive('Oi');
+
+    expect(component.unreadCount()).toBe(0);
+    expect(component.chatPreview()).toBeNull();
+    expect(component.messages().length).toBe(1);
+  });
+});
