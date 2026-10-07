@@ -272,6 +272,13 @@
   }
 }
 
+// Tela compartilhada: inteira mesmo em miniatura (texto cortado não se lê) e
+// nunca espelhada - só a câmara própria é que se vê ao espelho.
+.tile.screen video {
+  object-fit: contain;
+  transform: none;
+}
+
 /* Miniaturas clicáveis sobrepostas ao palco principal - inclui a própria câmara, que por
    omissão já não é a tile em destaque (ver AppointmentRoomComponent.mainTile). */
 .thumb-strip {

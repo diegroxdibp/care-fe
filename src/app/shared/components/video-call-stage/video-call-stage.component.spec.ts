@@ -48,6 +48,8 @@ const fakeCall = {
   sendAppMessage: jest.fn(),
   setLocalAudio: jest.fn(),
   setLocalVideo: jest.fn(),
+  startScreenShare: jest.fn(),
+  stopScreenShare: jest.fn(),
 };
 
 jest.mock('@daily-co/daily-js', () => ({
@@ -479,5 +481,152 @@ describe('VideoCallStageComponent — mensagens com a conversa fechada', () => {
     expect(component.unreadCount()).toBe(0);
     expect(component.chatPreview()).toBeNull();
     expect(component.messages().length).toBe(1);
+  });
+});
+
+describe('VideoCallStageComponent — compartilhar a tela', () => {
+  let fixture: ComponentFixture<VideoCallStageComponent>;
+  let component: VideoCallStageComponent;
+  const originalMediaDevices = navigator.mediaDevices;
+
+  const sharing = (sessionId: string, opts: { local?: boolean; name?: string } = {}) => {
+    const p = participant(sessionId, opts) as ReturnType<typeof participant> & {
+      tracks: Record<string, { state: string; persistentTrack: null }>;
+    };
+    p.tracks['screenVideo'] = { state: 'playable', persistentTrack: null };
+    return p;
+  };
+
+  async function join(opts: { canShare?: boolean } = {}) {
+    // jsdom não tem getDisplayMedia - num computador o navegador tem.
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: opts.canShare === false ? undefined : { getDisplayMedia: jest.fn() },
+    });
+    await TestBed.configureTestingModule({
+      imports: [VideoCallStageComponent],
+      providers: [{ provide: Router, useValue: { navigate: jest.fn() } }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(VideoCallStageComponent);
+    component = fixture.componentInstance;
+    component.fetchSession = () =>
+      of({
+        roomUrl: 'https://careclinica.daily.co/room-5',
+        token: 'tok',
+        opensAt: '2026-10-07T16:00:00Z',
+        closesAt: '2026-10-07T18:00:00Z',
+        canExtend: false,
+      });
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  const participantsChanged = () => {
+    fakeCall.handlers.get('participant-updated')!({ participant: {} });
+    fixture.detectChanges();
+  };
+
+  const shareButton = () =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-pressed]');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-07T16:30:00Z'));
+    fakeCall.handlers.clear();
+    fakeParticipants = {};
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: originalMediaDevices });
+  });
+
+  it('a tela de outra pessoa ocupa o palco, inteira e sem espelho, e a câmara dela vai para as miniaturas', async () => {
+    await join();
+    fakeParticipants = {
+      me: participant('me', { local: true }),
+      ash: sharing('ash', { name: 'Ash Barros' }),
+    };
+    participantsChanged();
+
+    expect(component.mainTile()?.sessionId).toBe('ash:screen');
+    expect(component.mainTile()?.name).toBe('Tela de Ash Barros');
+    expect(component.thumbnailTiles().map((t) => t.sessionId)).toEqual(['me', 'ash']);
+    const main = (fixture.nativeElement as HTMLElement).querySelector('.tile.main');
+    expect(main?.classList.contains('screen')).toBe(true);
+    expect(main?.textContent).toContain('Tela de Ash Barros');
+  });
+
+  it('a lista de pessoas não mostra a tela como se fosse alguém', async () => {
+    await join();
+    fakeParticipants = { me: participant('me', { local: true }), ash: sharing('ash') };
+    participantsChanged();
+
+    expect(component.remoteTiles().map((t) => t.sessionId)).toEqual(['ash']);
+  });
+
+  it('a minha própria tela não fica em destaque: a outra pessoa continua no palco', async () => {
+    await join();
+    fakeParticipants = { me: sharing('me', { local: true }), ash: participant('ash') };
+    participantsChanged();
+
+    expect(component.mainTile()?.sessionId).toBe('ash');
+    expect(component.thumbnailTiles().find((t) => t.isScreen)?.name).toBe('Sua tela');
+  });
+
+  it('quando a pessoa para de compartilhar, o palco volta para a câmara dela', async () => {
+    await join();
+    fakeParticipants = { me: participant('me', { local: true }), ash: sharing('ash') };
+    participantsChanged();
+    expect(component.mainTile()?.sessionId).toBe('ash:screen');
+
+    fakeParticipants = { me: participant('me', { local: true }), ash: participant('ash') };
+    participantsChanged();
+
+    expect(component.mainTile()?.sessionId).toBe('ash');
+    expect(component.tiles().some((t) => t.isScreen)).toBe(false);
+  });
+
+  it('o botão pede à Daily para começar e parar, e segue os eventos dela', async () => {
+    await join();
+    fixture.detectChanges();
+    expect(shareButton()?.getAttribute('aria-label')).toBe('Compartilhar a tela');
+
+    shareButton()!.click();
+    expect(fakeCall.startScreenShare).toHaveBeenCalledTimes(1);
+    // Só fica "a compartilhar" quando a Daily confirma - o seletor ainda pode ser fechado.
+    expect(component.screenSharing()).toBe(false);
+
+    fakeCall.handlers.get('local-screen-share-started')!({});
+    fixture.detectChanges();
+    expect(component.screenSharing()).toBe(true);
+    expect(shareButton()?.getAttribute('aria-label')).toBe('Parar de compartilhar a tela');
+
+    shareButton()!.click();
+    expect(fakeCall.stopScreenShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('parar pela barra do navegador, ou fechar o seletor, devolve o botão ao normal', async () => {
+    await join();
+    fakeCall.handlers.get('local-screen-share-started')!({});
+    expect(component.screenSharing()).toBe(true);
+
+    fakeCall.handlers.get('local-screen-share-stopped')!({});
+    expect(component.screenSharing()).toBe(false);
+
+    fakeCall.handlers.get('local-screen-share-started')!({});
+    fakeCall.handlers.get('local-screen-share-canceled')!({});
+    expect(component.screenSharing()).toBe(false);
+  });
+
+  it('num navegador sem compartilhamento de tela (celular) o botão não aparece', async () => {
+    await join({ canShare: false });
+    fixture.detectChanges();
+
+    expect(component.canShareScreen).toBe(false);
+    expect(shareButton()).toBeNull();
   });
 });

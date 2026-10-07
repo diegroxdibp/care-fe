@@ -38,6 +38,11 @@ const MUTED_BY_HOST_KIND = 'muted-by-host';
 /** Quanto tempo a pré-visualização de uma mensagem nova fica à vista. */
 const CHAT_PREVIEW_MS = 5_000;
 
+/** Id da tile da tela compartilhada de uma pessoa - a câmara fica com o session_id. */
+function screenTileId(sessionId: string): string {
+  return `${sessionId}:screen`;
+}
+
 interface VideoTile {
   sessionId: string;
   name: string;
@@ -48,6 +53,11 @@ interface VideoTile {
   isOwner: boolean;
   micOn: boolean;
   camOn: boolean;
+  /**
+   * Tela compartilhada - uma tile à parte da câmara da mesma pessoa, com o id
+   * `<session_id>:screen`. Não entra na lista de pessoas nem é espelhada.
+   */
+  isScreen: boolean;
   stream: MediaStream;
 }
 
@@ -187,11 +197,18 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   /** Para quem foi silenciado - o microfone volta a ligar-se pelo botão de sempre. */
   readonly mutedByHost = signal(false);
 
-  readonly remoteTiles = computed(() => this.tiles().filter((t) => !t.isLocal));
+  readonly remoteTiles = computed(() => this.tiles().filter((t) => !t.isLocal && !t.isScreen));
 
   readonly tiles = signal<VideoTile[]>([]);
   readonly micOn = signal(true);
   readonly camOn = signal(true);
+  /** A minha tela está a ser compartilhada - segue os eventos da Daily, não o clique. */
+  readonly screenSharing = signal(false);
+  /**
+   * Só navegadores de computador compartilham a tela (getDisplayMedia); no
+   * celular, em especial no Safari do iPhone, o botão nem aparece.
+   */
+  readonly canShareScreen = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
   readonly chatOpen = signal(false);
   readonly messages = signal<ChatMessage[]>([]);
   /** Mensagens que chegaram com a conversa fechada - o número no botão. */
@@ -209,6 +226,10 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
    * pessoa remota - é o próprio profissional a ficar a ocupar metade do
    * ecrã por omissão que se estava a queixar, não faz sentido a câmara
    * própria começar em destaque quando há outra pessoa na sala.
+   *
+   * Uma tela compartilhada por outra pessoa passa à frente: é para ela que
+   * toda a gente quer olhar. A minha própria tela nunca fica em destaque por
+   * omissão - ver-me a mim a compartilhar a tela dentro dela não ajuda.
    */
   readonly mainTile = computed<VideoTile | null>(() => {
     const list = this.tiles();
@@ -216,7 +237,8 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     const focused = this.focusedSessionId();
     return (
       list.find((t) => t.sessionId === focused) ??
-      list.find((t) => !t.isLocal) ??
+      list.find((t) => t.isScreen && !t.isLocal) ??
+      list.find((t) => !t.isLocal && !t.isScreen) ??
       list[0]
     );
   });
@@ -304,6 +326,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.errorMessage.set('A conexão com a sala falhou. Tente novamente.');
     });
     call.on('app-message', (e) => this.onAppMessage(e));
+    // Parar pela barra do próprio navegador ("Parar de compartilhar") ou
+    // fechar o seletor sem escolher também chegam aqui, não só pelo botão.
+    call.on('local-screen-share-started', () => this.screenSharing.set(true));
+    call.on('local-screen-share-stopped', () => this.screenSharing.set(false));
+    call.on('local-screen-share-canceled', () => this.screenSharing.set(false));
 
     try {
       await call.join({
@@ -447,6 +474,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
 
   private onParticipantLeft(_e: DailyEventObjectParticipantLeft): void {
     this.streamsBySessionId.delete(_e.participant.session_id);
+    this.streamsBySessionId.delete(screenTileId(_e.participant.session_id));
     this.refreshTiles();
   }
 
@@ -498,16 +526,34 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   private refreshTiles(): void {
     if (!this.call) return;
     const participants = this.call.participants();
-    const list: VideoTile[] = Object.values(participants).map((p: DailyParticipant) => ({
-      sessionId: p.session_id,
-      name: p.local ? 'Você' : (p.user_name || 'Participante'),
-      isLocal: p.local,
-      userId: p.user_id ?? '',
-      isOwner: !!p.owner,
-      micOn: p.tracks.audio.state === 'playable',
-      camOn: p.tracks.video.state === 'playable',
-      stream: this.streamFor(p.session_id, p.tracks.video.persistentTrack, p.tracks.audio.persistentTrack),
-    }));
+    const list: VideoTile[] = Object.values(participants).flatMap((p: DailyParticipant) => {
+      const camera: VideoTile = {
+        sessionId: p.session_id,
+        name: p.local ? 'Você' : (p.user_name || 'Participante'),
+        isLocal: p.local,
+        userId: p.user_id ?? '',
+        isOwner: !!p.owner,
+        micOn: p.tracks.audio.state === 'playable',
+        camOn: p.tracks.video.state === 'playable',
+        isScreen: false,
+        stream: this.streamFor(p.session_id, p.tracks.video.persistentTrack, p.tracks.audio.persistentTrack),
+      };
+      const screen = p.tracks.screenVideo;
+      if (!screen || screen.state !== 'playable') return [camera];
+      const screenId = screenTileId(p.session_id);
+      return [
+        camera,
+        {
+          ...camera,
+          sessionId: screenId,
+          name: p.local ? 'Sua tela' : `Tela de ${p.user_name || 'Participante'}`,
+          micOn: true,
+          camOn: true,
+          isScreen: true,
+          stream: this.streamFor(screenId, screen.persistentTrack, p.tracks.screenAudio?.persistentTrack),
+        },
+      ];
+    });
     list.sort((a, b) => (a.isLocal === b.isLocal ? 0 : a.isLocal ? -1 : 1));
     this.tiles.set(list);
   }
@@ -534,6 +580,15 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     const next = !this.camOn();
     this.call?.setLocalVideo(next);
     this.camOn.set(next);
+  }
+
+  toggleScreenShare(): void {
+    if (!this.call) return;
+    if (this.screenSharing()) {
+      this.call.stopScreenShare();
+    } else {
+      this.call.startScreenShare();
+    }
   }
 
   toggleChat(): void {

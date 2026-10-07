@@ -131,6 +131,7 @@
             <div
               class="tile main"
               [class.local]="main.isLocal"
+              [class.screen]="main.isScreen"
               role="button"
               tabindex="0"
               [attr.aria-label]="'Focar ' + main.name"
@@ -163,6 +164,7 @@
                 <div
                   class="tile thumb"
                   [class.local]="tile.isLocal"
+                  [class.screen]="tile.isScreen"
                   role="button"
                   tabindex="0"
                   [attr.aria-label]="'Focar ' + tile.name"
@@ -308,6 +310,17 @@
         <button class="ctrl" [class.off]="!camOn()" (click)="toggleCam()" [attr.aria-label]="camOn() ? 'Desativar câmera' : 'Ativar câmera'">
           <span translate="no" class="material-symbols-outlined">{{ camOn() ? 'videocam' : 'videocam_off' }}</span>
         </button>
+        @if (canShareScreen) {
+          <button
+            class="ctrl"
+            [class.active]="screenSharing()"
+            [attr.aria-pressed]="screenSharing()"
+            (click)="toggleScreenShare()"
+            [attr.aria-label]="screenSharing() ? 'Parar de compartilhar a tela' : 'Compartilhar a tela'"
+          >
+            <span translate="no" class="material-symbols-outlined">{{ screenSharing() ? 'stop_screen_share' : 'screen_share' }}</span>
+          </button>
+        }
         <button
           class="ctrl"
           [class.active]="chatOpen()"
