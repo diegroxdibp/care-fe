@@ -108,6 +108,16 @@
         </div>
       }
 
+      @if (mutedByHost()) {
+        <div class="closing-banner" role="status">
+          <span translate="no" class="material-symbols-outlined">mic_off</span>
+          <span class="closing-text">Quem organiza a sala desligou seu microfone. Você pode ligá-lo de novo quando quiser falar.</span>
+          <div class="closing-actions">
+            <button type="button" (click)="dismissMutedNotice()">Ok</button>
+          </div>
+        </div>
+      }
+
       @if (extendError()) {
         <div class="closing-banner error" role="alert">
           <span translate="no" class="material-symbols-outlined">error</span>
@@ -115,7 +125,7 @@
         </div>
       }
 
-      <div class="stage" [class.chat-open]="chatOpen()">
+      <div class="stage" [class.chat-open]="chatOpen() || peopleOpen()">
         <div class="tiles">
           @if (mainTile(); as main) {
             <div
@@ -182,6 +192,71 @@
           }
         </div>
 
+        @if (peopleOpen()) {
+          <aside class="chat-panel people-panel">
+            <div class="chat-header">
+              <span>Pessoas na sala</span>
+              <button class="chat-close" (click)="togglePeople()" aria-label="Fechar lista de pessoas">
+                <span translate="no" class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            @if (moderationError()) {
+              <p class="people-error" role="alert">{{ moderationError() }}</p>
+            }
+            <ul class="people-list">
+              @for (person of remoteTiles(); track person.sessionId) {
+                <li class="person">
+                  <div class="person-row">
+                    <span class="person-name">
+                      @if (!person.micOn) {
+                        <span translate="no" class="material-symbols-outlined mic-off">mic_off</span>
+                      }
+                      {{ person.name }}
+                    </span>
+                    @if (person.isOwner) {
+                      <span class="person-role">Organiza</span>
+                    } @else {
+                      <div class="person-actions">
+                        <button
+                          type="button"
+                          [disabled]="!person.micOn"
+                          [attr.aria-label]="'Silenciar ' + person.name"
+                          (click)="mute(person)"
+                        >
+                          <span translate="no" class="material-symbols-outlined">mic_off</span>
+                          Silenciar
+                        </button>
+                        <button
+                          type="button"
+                          class="danger"
+                          [attr.aria-label]="'Remover ' + person.name"
+                          (click)="askToRemove(person)"
+                        >
+                          <span translate="no" class="material-symbols-outlined">person_remove</span>
+                          Remover
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  @if (confirmingRemoval() === person.sessionId) {
+                    <div class="person-confirm" role="alertdialog" [attr.aria-label]="'Remover ' + person.name">
+                      <p>{{ person.name }} sai da chamada e não consegue voltar a entrar enquanto a sala estiver aberta.</p>
+                      <div class="person-actions">
+                        <button type="button" (click)="cancelRemoval()">Cancelar</button>
+                        <button type="button" class="danger" [disabled]="removing()" (click)="remove(person)">
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </li>
+              } @empty {
+                <p class="chat-empty">Ainda não entrou mais ninguém.</p>
+              }
+            </ul>
+          </aside>
+        }
+
         @if (chatOpen()) {
           <aside class="chat-panel">
             <div class="chat-header">
@@ -225,6 +300,11 @@
         <button class="ctrl" [class.active]="chatOpen()" (click)="toggleChat()" aria-label="Conversa">
           <span translate="no" class="material-symbols-outlined">chat</span>
         </button>
+        @if (canModerate()) {
+          <button class="ctrl" [class.active]="peopleOpen()" (click)="togglePeople()" aria-label="Pessoas na sala">
+            <span translate="no" class="material-symbols-outlined">group</span>
+          </button>
+        }
         <button class="ctrl" [class.active]="isFullscreen()" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Sair da tela cheia' : 'Tela cheia'">
           <span translate="no" class="material-symbols-outlined">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
         </button>

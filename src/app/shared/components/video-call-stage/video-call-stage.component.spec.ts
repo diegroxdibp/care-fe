@@ -1,12 +1,38 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { VideoCallStageComponent } from './video-call-stage.component';
 import { SessionService } from '../../services/session.service';
 import { VideoSession } from '../../models/video-session.model';
 
 type Handler = (e: unknown) => void;
+
+/** O que call.participants() devolve - cada teste monta quem está na sala. */
+let fakeParticipants: Record<string, unknown> = {};
+
+// jsdom não tem MediaStream - refreshTiles cria uma por participante.
+class FakeMediaStream {
+  getVideoTracks() { return []; }
+  getAudioTracks() { return []; }
+  getTracks() { return []; }
+  addTrack() {}
+  removeTrack() {}
+}
+(globalThis as unknown as { MediaStream: unknown }).MediaStream ??= FakeMediaStream;
+
+function participant(sessionId: string, opts: { userId?: string; owner?: boolean; local?: boolean; name?: string } = {}) {
+  const track = { state: 'playable', persistentTrack: null };
+  return {
+    session_id: sessionId,
+    user_id: opts.userId ?? '',
+    user_name: opts.name ?? 'Pessoa ' + sessionId,
+    local: !!opts.local,
+    owner: !!opts.owner,
+    tracks: { audio: { ...track }, video: { ...track } },
+  };
+}
 
 const fakeCall = {
   handlers: new Map<string, Handler>(),
@@ -17,7 +43,8 @@ const fakeCall = {
   join: jest.fn(() => Promise.resolve()),
   leave: jest.fn(() => Promise.resolve()),
   destroy: jest.fn(() => Promise.resolve()),
-  participants: () => ({}),
+  participants: () => fakeParticipants,
+  updateParticipant: jest.fn(),
   sendAppMessage: jest.fn(),
   setLocalAudio: jest.fn(),
   setLocalVideo: jest.fn(),
@@ -57,6 +84,7 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
   async function join(opts: {
     session?: VideoSession;
     extendSession?: VideoCallStageComponent['extendSession'];
+    removeParticipant?: VideoCallStageComponent['removeParticipant'];
     profileTimeZone?: string;
   } = {}) {
     router = { navigate: jest.fn() };
@@ -78,6 +106,7 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
     const fetchSession = jest.fn(() => of(opts.session ?? session()));
     component.fetchSession = fetchSession;
     component.extendSession = opts.extendSession ?? null;
+    component.removeParticipant = opts.removeParticipant ?? null;
     fixture.detectChanges();
     // joinCall espera pelo call.join() - deixa a promessa resolver.
     await Promise.resolve();
@@ -89,6 +118,7 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(JOINED_AT));
     fakeCall.handlers.clear();
+    fakeParticipants = {};
     jest.clearAllMocks();
   });
 
@@ -219,5 +249,149 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
 
     expect(fetchSession).toHaveBeenCalledTimes(2);
     expect(component.closesAtLabel()).toBe('16:00');
+  });
+});
+
+/**
+ * Silenciar e remover pessoas: só quem criou a sala (ou admin), só nas salas
+ * avulsas. Remover tira primeiro o acesso no backend (para a pessoa não
+ * voltar pelo link) e só depois a tira da chamada.
+ */
+describe('VideoCallStageComponent — moderação', () => {
+  let fixture: ComponentFixture<VideoCallStageComponent>;
+  let component: VideoCallStageComponent;
+
+  async function join(opts: {
+    session?: Partial<VideoSession>;
+    removeParticipant?: VideoCallStageComponent['removeParticipant'];
+  } = {}) {
+    await TestBed.configureTestingModule({
+      imports: [VideoCallStageComponent],
+      providers: [{ provide: Router, useValue: { navigate: jest.fn() } }],
+    }).compileComponents();
+    TestBed.inject(SessionService).setUser({
+      email: 'luane@example.com',
+      name: 'Luane Bastos',
+      roles: ['PROFESSIONAL'],
+      profileCompleted: true,
+      timeZone: 'Europe/Lisbon',
+    });
+
+    fixture = TestBed.createComponent(VideoCallStageComponent);
+    component = fixture.componentInstance;
+    component.fetchSession = () =>
+      of({
+        roomUrl: 'https://careclinica.daily.co/room-4',
+        token: 'tok',
+        opensAt: '2026-10-07T16:00:00Z',
+        closesAt: '2026-10-07T18:00:00Z',
+        canExtend: true,
+        canModerate: true,
+        ...opts.session,
+      });
+    component.removeParticipant = opts.removeParticipant === undefined ? jest.fn(() => of(undefined)) : opts.removeParticipant;
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  const guest = () => component.remoteTiles().find((t) => t.sessionId === 'guest')!;
+  const host = () => component.remoteTiles().find((t) => t.sessionId === 'admin')!;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-07T16:30:00Z'));
+    fakeCall.handlers.clear();
+    jest.clearAllMocks();
+    fakeParticipants = {
+      local: participant('me', { local: true, owner: true, userId: '2' }),
+      guest: participant('guest', { userId: '7', name: 'Jéssica' }),
+      admin: participant('admin', { userId: '1', owner: true, name: 'Admin' }),
+    };
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('quem criou a sala vê os controlos; quem foi convidado não', async () => {
+    await join();
+    expect(component.canModerate()).toBe(true);
+    fixture.destroy();
+    TestBed.resetTestingModule();
+
+    await join({ session: { canModerate: false } });
+    expect(component.canModerate()).toBe(false);
+  });
+
+  it('numa marcação (sem removeParticipant) não há moderação, mesmo com o token de dona', async () => {
+    await join({ removeParticipant: null });
+    expect(component.canModerate()).toBe(false);
+  });
+
+  it('silenciar desliga o microfone da pessoa e avisa-a', async () => {
+    await join();
+    component.mute(guest());
+    expect(fakeCall.updateParticipant).toHaveBeenCalledWith('guest', { setAudio: false });
+    expect(fakeCall.sendAppMessage).toHaveBeenCalledWith({ kind: 'muted-by-host' }, 'guest');
+  });
+
+  it('remover tira o acesso no backend e depois tira a pessoa da chamada', async () => {
+    const removeParticipant = jest.fn(() => of(undefined));
+    await join({ removeParticipant });
+
+    component.askToRemove(guest());
+    expect(component.confirmingRemoval()).toBe('guest');
+    component.remove(guest());
+
+    expect(removeParticipant).toHaveBeenCalledWith(7);
+    expect(fakeCall.updateParticipant).toHaveBeenCalledWith('guest', { eject: true });
+    expect(component.confirmingRemoval()).toBeNull();
+  });
+
+  it('se o backend recusa, a pessoa não é tirada da chamada e o erro aparece', async () => {
+    const removeParticipant = jest.fn(() =>
+      throwError(() => new HttpErrorResponse({ status: 403, error: { error: 'Só quem criou a sala pode remover pessoas.' } })),
+    );
+    await join({ removeParticipant });
+
+    component.remove(guest());
+
+    expect(fakeCall.updateParticipant).not.toHaveBeenCalled();
+    expect(component.moderationError()).toBe('Só quem criou a sala pode remover pessoas.');
+  });
+
+  it('não modera quem também é dona da sala (admin)', async () => {
+    const removeParticipant = jest.fn(() => of(undefined));
+    await join({ removeParticipant });
+
+    component.mute(host());
+    component.remove(host());
+
+    expect(fakeCall.updateParticipant).not.toHaveBeenCalled();
+    expect(removeParticipant).not.toHaveBeenCalled();
+  });
+
+  it('quem é silenciado por quem organiza vê o aviso; a mesma mensagem vinda de outra pessoa é ignorada', async () => {
+    await join();
+
+    fakeCall.handlers.get('app-message')!({ fromId: 'guest', data: { kind: 'muted-by-host' } });
+    expect(component.mutedByHost()).toBe(false);
+    expect(component.micOn()).toBe(true);
+
+    fakeCall.handlers.get('app-message')!({ fromId: 'admin', data: { kind: 'muted-by-host' } });
+    expect(component.mutedByHost()).toBe(true);
+    expect(component.micOn()).toBe(false);
+
+    component.toggleMic();
+    expect(component.mutedByHost()).toBe(false);
+  });
+
+  it('quem é removido vê que foi removido, não um erro de conexão', async () => {
+    await join();
+    fakeCall.handlers.get('error')!({ action: 'error', errorMsg: 'ejected', error: { type: 'ejected' } });
+    expect(component.state()).toBe('ended');
+    expect(component.endedMessage()).toBe('Você foi removido da sala por quem a organiza.');
   });
 });

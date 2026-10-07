@@ -12,6 +12,11 @@ const SELF_HANDLED_ENDPOINTS = [
   '/api/auth/me',
   '/api/user/onboarding',
   '/api/user/profile/picture',
+  // Pedidos feitos de dentro da videochamada (VideoCallStageComponent): um
+  // 5xx aqui mandava toda a gente para /error a meio da conversa.
+  '/video-session',
+  '/extend',
+  '/removed-users',
 ];
 
 // The one-shot GET each SSE service fires when (re)connecting — retried

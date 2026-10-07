@@ -337,6 +337,15 @@ export class ApiService {
     );
   }
 
+  /** Tira o acesso de alguém à sala até ela fechar - a chamada em curso é com a Daily. */
+  removeRoomParticipant(id: number, userId: number): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/api/rooms/${id}/removed-users`,
+      { userId },
+      { withCredentials: true },
+    );
+  }
+
   searchUsers(query: string): Observable<RoomAllowedUser[]> {
     return this.http.get<RoomAllowedUser[]>(
       `${environment.apiUrl}/api/user/search`,

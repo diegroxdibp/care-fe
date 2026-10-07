@@ -16,4 +16,6 @@ export interface VideoSession {
   endsAt?: string;
   /** Só numa sala avulsa, para quem a criou ou admin — ver ApiService.extendRoom. */
   canExtend: boolean;
+  /** Silenciar e remover pessoas — mesma regra de `canExtend`. Ausente num backend antigo. */
+  canModerate?: boolean;
 }

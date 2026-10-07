@@ -33,11 +33,17 @@ const EXTEND_OPTIONS_MIN = [15, 30, 60];
 
 /** Mensagem que quem estende manda às outras pessoas na chamada - ver onAppMessage. */
 const ROOM_EXTENDED_KIND = 'room-extended';
+/** Mensagem que quem modera manda a quem silenciou - ver onAppMessage. */
+const MUTED_BY_HOST_KIND = 'muted-by-host';
 
 interface VideoTile {
   sessionId: string;
   name: string;
   isLocal: boolean;
+  /** Id da pessoa no Care, vindo do token (RoomService.getVideoSession) - vazio num token antigo. */
+  userId: string;
+  /** Dona da sala ou admin, pelo token da Daily - não se modera entre si. */
+  isOwner: boolean;
   micOn: boolean;
   camOn: boolean;
   stream: MediaStream;
@@ -100,6 +106,8 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   @Input() leaveRoute: string[] = ['/dashboard'];
   /** Só as salas avulsas passam isto - a janela de uma marcação não se estende. */
   @Input() extendSession: ((minutes: number) => Observable<{ closesAt: string }>) | null = null;
+  /** Também só as salas avulsas - tira o acesso no backend antes de tirar da chamada. */
+  @Input() removeParticipant: ((userId: number) => Observable<void>) | null = null;
 
   private readonly router = inject(Router);
   private readonly sessionService = inject(SessionService);
@@ -166,6 +174,18 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
     return new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone }).format(instant);
   }
+
+  // ── Moderação (silenciar / remover) ──
+  readonly canModerate = signal(false);
+  readonly peopleOpen = signal(false);
+  /** Pessoa à espera de confirmação para ser removida. */
+  readonly confirmingRemoval = signal<string | null>(null);
+  readonly removing = signal(false);
+  readonly moderationError = signal<string | null>(null);
+  /** Para quem foi silenciado - o microfone volta a ligar-se pelo botão de sempre. */
+  readonly mutedByHost = signal(false);
+
+  readonly remoteTiles = computed(() => this.tiles().filter((t) => !t.isLocal));
 
   readonly tiles = signal<VideoTile[]>([]);
   readonly micOn = signal(true);
@@ -266,7 +286,13 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     call.on('participant-updated', (e) => this.onParticipantChange(e));
     call.on('participant-left', (e) => this.onParticipantLeft(e));
     call.on('left-meeting', () => this.onLeftMeeting());
-    call.on('error', () => {
+    call.on('error', (e) => {
+      if (e?.error?.type === 'ejected') {
+        this.teardown();
+        this.endedMessage.set('Você foi removido da sala por quem a organiza.');
+        this.state.set('ended');
+        return;
+      }
       this.state.set('not-available');
       this.errorMessage.set('A conexão com a sala falhou. Tente novamente.');
     });
@@ -282,6 +308,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.refreshTiles();
       this.opensAt.set(new Date(session.opensAt).getTime());
       this.canExtend.set(session.canExtend && !!this.extendSession);
+      this.canModerate.set(!!session.canModerate && !!this.removeParticipant);
       this.setWindow(session.closesAt, session.endsAt);
       this.clockTimer = setInterval(() => this.now.set(Date.now()), 15_000);
     } catch {
@@ -354,6 +381,59 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     });
   }
 
+  togglePeople(): void {
+    this.moderationError.set(null);
+    this.confirmingRemoval.set(null);
+    this.peopleOpen.update((v) => !v);
+    if (this.peopleOpen()) this.chatOpen.set(false);
+  }
+
+  mute(tile: VideoTile): void {
+    if (!this.canModerate() || !this.call || tile.isLocal || tile.isOwner) return;
+    this.call.updateParticipant(tile.sessionId, { setAudio: false });
+    this.call.sendAppMessage({ kind: MUTED_BY_HOST_KIND }, tile.sessionId);
+  }
+
+  askToRemove(tile: VideoTile): void {
+    this.moderationError.set(null);
+    this.confirmingRemoval.set(tile.sessionId);
+  }
+
+  cancelRemoval(): void {
+    this.confirmingRemoval.set(null);
+  }
+
+  // Primeiro o backend, para a pessoa não voltar a entrar pelo link; só
+  // depois tirá-la da chamada. Ao contrário, um erro no backend deixava-a
+  // fora da chamada mas livre para voltar.
+  remove(tile: VideoTile): void {
+    if (!this.canModerate() || !this.removeParticipant || this.removing() || tile.isLocal || tile.isOwner) return;
+    const userId = Number(tile.userId);
+    if (!tile.userId || !Number.isInteger(userId)) {
+      this.moderationError.set('Não foi possível identificar esta pessoa. Peça para ela sair e entrar de novo.');
+      return;
+    }
+    this.removing.set(true);
+    this.moderationError.set(null);
+
+    this.removeParticipant(userId).subscribe({
+      next: () => {
+        this.removing.set(false);
+        this.confirmingRemoval.set(null);
+        this.call?.updateParticipant(tile.sessionId, { eject: true });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.removing.set(false);
+        const body = err.error as { error?: string } | null;
+        this.moderationError.set(body?.error ?? 'Não foi possível remover esta pessoa.');
+      },
+    });
+  }
+
+  dismissMutedNotice(): void {
+    this.mutedByHost.set(false);
+  }
+
   private onParticipantChange(_e: DailyEventObjectParticipant): void {
     this.refreshTiles();
   }
@@ -372,6 +452,15 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.refreshClosingTime();
       return;
     }
+    // Qualquer pessoa pode mandar uma app-message: só conta vinda de quem é
+    // dona da sala (a Daily já só deixa uma dona silenciar outra pessoa).
+    if (e.data?.kind === MUTED_BY_HOST_KIND) {
+      if (this.call?.participants()[e.fromId]?.owner) {
+        this.micOn.set(false);
+        this.mutedByHost.set(true);
+      }
+      return;
+    }
     if (!e.data?.text) return;
     this.messages.update((list) => [...list, { from: e.data.from ?? 'Participante', text: e.data.text!, mine: false }]);
   }
@@ -383,6 +472,8 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       sessionId: p.session_id,
       name: p.local ? 'Você' : (p.user_name || 'Participante'),
       isLocal: p.local,
+      userId: p.user_id ?? '',
+      isOwner: !!p.owner,
       micOn: p.tracks.audio.state === 'playable',
       camOn: p.tracks.video.state === 'playable',
       stream: this.streamFor(p.session_id, p.tracks.video.persistentTrack, p.tracks.audio.persistentTrack),
@@ -404,6 +495,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
 
   toggleMic(): void {
     const next = !this.micOn();
+    if (next) this.mutedByHost.set(false);
     this.call?.setLocalAudio(next);
     this.micOn.set(next);
   }
@@ -416,6 +508,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
 
   toggleChat(): void {
     this.chatOpen.update((v) => !v);
+    if (this.chatOpen()) this.peopleOpen.set(false);
   }
 
   sendChat(input: HTMLInputElement): void {
