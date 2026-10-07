@@ -262,6 +262,14 @@
 .tile.main {
   width: 100%;
   height: 100%;
+
+  // A imagem inteira, nunca cortada: um celular na vertical manda vídeo
+  // retrato, que com cover perdia o topo e o fundo (testa e queixo) para
+  // encher o palco horizontal. Sobram faixas laterais no fundo da tile.
+  // As miniaturas continuam com cover - pequenas, o centro chega.
+  video {
+    object-fit: contain;
+  }
 }
 
 /* Miniaturas clicáveis sobrepostas ao palco principal - inclui a própria câmara, que por
