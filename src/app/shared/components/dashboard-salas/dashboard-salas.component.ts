@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
@@ -12,11 +13,11 @@ type RoomStatus = 'agora' | 'agendada' | 'expirada';
 
 @Component({
   selector: 'app-dashboard-salas',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './dashboard-salas.component.html',
   styleUrl: './dashboard-salas.component.scss',
 })
-export class DashboardSalasComponent implements OnInit {
+export class DashboardSalasComponent implements OnInit, OnDestroy {
   private readonly apiService = inject(ApiService);
   private readonly sessionService = inject(SessionService);
   private readonly snackbarService = inject(SnackbarService);
@@ -25,8 +26,18 @@ export class DashboardSalasComponent implements OnInit {
   readonly rooms = signal<Room[]>([]);
   readonly loading = signal(true);
 
+  // O estado de cada sala (e o botão Entrar) muda com o relógio, não só ao
+  // carregar - uma sala agendada passa a "Disponível agora" sem recarregar.
+  private readonly now = signal(Date.now());
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
+
   ngOnInit(): void {
     this.load();
+    this.clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.clockTimer) clearInterval(this.clockTimer);
   }
 
   private load(): void {
@@ -93,7 +104,7 @@ export class DashboardSalasComponent implements OnInit {
   }
 
   statusOf(room: Room): RoomStatus {
-    const now = Date.now();
+    const now = this.now();
     const opens = new Date(room.opensAt).getTime();
     const closes = new Date(room.closesAt).getTime();
     if (now > closes) return 'expirada';

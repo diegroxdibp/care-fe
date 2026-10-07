@@ -15,7 +15,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:browser-zone": "jest -c jest.browser-zone.config.ts --runInBand"
+    "test:browser-zone": "jest -c jest.browser-zone.config.ts --runInBand",
+    "test:browser-zone-amsterdam": "jest -c jest.browser-zone-amsterdam.config.ts --runInBand"
   },
   "private": true,
   "dependencies": {

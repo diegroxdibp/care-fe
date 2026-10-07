@@ -15,6 +15,8 @@ import { VideoCallStageComponent } from '../../shared/components/video-call-stag
   template: `
     <app-video-call-stage
       [fetchSession]="fetchSession"
+      [extendSession]="extendSession"
+      [removeParticipant]="removeParticipant"
       [leaveRoute]="['/dashboard']"
     />
   `,
@@ -26,4 +28,6 @@ export class RoomJoinComponent {
   private readonly roomId = Number(this.route.snapshot.paramMap.get('id'));
 
   readonly fetchSession = () => this.apiService.getRoomVideoSession(this.roomId);
+  readonly extendSession = (minutes: number) => this.apiService.extendRoom(this.roomId, minutes);
+  readonly removeParticipant = (userId: number) => this.apiService.removeRoomParticipant(this.roomId, userId);
 }

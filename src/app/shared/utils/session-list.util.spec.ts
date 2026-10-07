@@ -339,5 +339,20 @@ describe('buildSessions — proposta recorrente por responder', () => {
     const [confirmed] = buildSessions([{ ...proposal, status: 'CONFIRMED' }], [SERVICE], options());
     expect(canJoinSession(confirmed, inWindow)).toBe(true);
   });
+
+  it('a sala fecha 5 min depois do fim, não 30', () => {
+    const [confirmed] = buildSessions([{ ...proposal, status: 'CONFIRMED' }], [SERVICE], options());
+    // Termina às 11:00 em Lisboa (UTC+1) = 10:00 UTC.
+    expect(canJoinSession(confirmed, new Date('2026-10-06T10:04:00Z'))).toBe(true);
+    expect(canJoinSession(confirmed, new Date('2026-10-06T10:06:00Z'))).toBe(false);
+  });
+
+  it('vista de São Paulo, a mesma sessão também fecha às 10:05 UTC', () => {
+    const [confirmed] = buildSessions(
+      [{ ...proposal, status: 'CONFIRMED' }], [SERVICE], options({ viewerTimeZone: SAO_PAULO }),
+    );
+    expect(canJoinSession(confirmed, new Date('2026-10-06T10:04:00Z'))).toBe(true);
+    expect(canJoinSession(confirmed, new Date('2026-10-06T10:06:00Z'))).toBe(false);
+  });
 });
 

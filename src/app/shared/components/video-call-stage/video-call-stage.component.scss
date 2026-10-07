@@ -86,8 +86,129 @@
 .room-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 14px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- Horário de fecho / estender ---------- */
+
+.closing-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.closing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: var(--fs-small);
+
+  span.material-symbols-outlined { font-size: 18px; }
+
+  &.soon {
+    background: var(--color-pending);
+    color: var(--color-secondary-black);
+  }
+}
+
+.extend-wrap {
+  position: relative;
+}
+
+.extend-btn {
+  background: none;
+  color: var(--color-white);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+
+  &:hover { background: rgba(255, 255, 255, 0.1); }
+  &:focus-visible { outline: 2px solid var(--color-secondary-cyan); outline-offset: 2px; }
+}
+
+.extend-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  padding: 8px;
+  background: #14172b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+
+  button {
+    background: none;
+    border: none;
+    border-radius: var(--radius-xs);
+    color: var(--color-white);
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    text-align: left;
+    padding: 8px 10px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+}
+
+.extend-hint {
+  margin: 4px 10px 0;
+  font-size: var(--fs-micro);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.closing-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--color-pending);
+  color: var(--color-secondary-black);
+  font-size: var(--fs-small);
+
+  &.error {
+    background: var(--color-error);
+    color: var(--color-white);
+  }
+
+  .closing-text { flex: 1; min-width: 180px; }
+}
+
+.closing-actions {
+  display: flex;
+  gap: 8px;
+
+  button {
+    background: var(--color-secondary-black);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 6px 12px;
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
 }
 
 .room-title {
@@ -162,9 +283,14 @@
   aspect-ratio: 4 / 3;
   flex-shrink: 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-  transition: transform var(--dur-fast);
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition: outline-color var(--dur-fast);
 
-  &:hover { transform: scale(1.03); }
+  // Contorno por dentro, não scale(): a tile aumentada saía da .thumb-strip
+  // (que tem overflow: auto) e fazia aparecer as duas barras de rolagem.
+  &:hover,
+  &:focus-visible { outline-color: var(--color-primary-purple); }
 
   .tile-label { font-size: 11px; padding: 3px 8px; }
 }
@@ -316,6 +442,7 @@
 }
 
 .controls {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -325,6 +452,7 @@
 }
 
 .ctrl {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -351,5 +479,158 @@
   &.leave {
     background: #d32f2f;
     &:hover { background: #e53935; }
+  }
+}
+
+/* Mensagens que chegam com a conversa fechada: número no botão e pré-visualização por cima dos controlos. */
+.ctrl-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-error);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #14172b;
+}
+
+.chat-preview {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  max-width: min(420px, calc(100% - 32px));
+  background: #14172b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 4;
+
+  button {
+    background: none;
+    border: none;
+    color: var(--color-white);
+    font-family: var(--font-sans);
+    cursor: pointer;
+  }
+}
+
+.chat-preview-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 4px 10px 14px;
+  text-align: left;
+  font-size: var(--fs-small);
+
+  span.material-symbols-outlined { font-size: 18px; color: var(--color-primary-purple); }
+}
+
+.chat-preview-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-preview-close {
+  display: flex;
+  padding: 10px 12px 10px 6px;
+  opacity: 0.7;
+
+  span.material-symbols-outlined { font-size: 18px; }
+  &:hover { opacity: 1; }
+}
+
+/* Lista de pessoas para quem modera (silenciar / remover) - mesma casca do painel de conversa. */
+.people-error {
+  margin: 12px 16px 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-error);
+  color: var(--color-white);
+  font-size: var(--fs-small);
+}
+
+.people-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 8px 16px;
+}
+
+.person {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.person-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.person-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  .mic-off { font-size: 16px; color: #ff8a80; }
+}
+
+.person-role {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.person-actions {
+  display: flex;
+  gap: 6px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 5px 10px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+
+    span.material-symbols-outlined { font-size: 16px; }
+
+    &.danger { background: var(--color-error); }
+    &:disabled { opacity: 0.45; cursor: default; }
+  }
+}
+
+.person-confirm {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+
+  p {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
   }
 }

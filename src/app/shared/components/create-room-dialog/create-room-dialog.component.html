@@ -60,9 +60,9 @@
                 type="button"
                 class="cal-day"
                 [class.other-month]="!cell.inMonth"
-                [class.today]="isToday(cell.date)"
+                [class.today]="isToday(cell.key)"
                 [class.selected]="scheduledDate() === cell.key"
-                [disabled]="isPast(cell.date) || !cell.inMonth"
+                [disabled]="isPast(cell.key) || !cell.inMonth"
                 (click)="selectDate(cell.key)"
               >
                 {{ cell.date.getDate() }}
@@ -85,6 +85,13 @@
         />
       </div>
     </div>
+    @if (scheduledInPast()) {
+      <span class="field-error">Esse horário já passou.</span>
+    }
+    <p class="hint tz-hint">
+      <span translate="no" class="material-symbols-outlined">public</span>
+      Horário de {{ timeZoneLabel() }}, o fuso do seu perfil. A sala fica aberta pela duração escolhida a partir deste horário, mesmo que as pessoas entrem depois.
+    </p>
   }
 
   <label class="control-label">Duração</label>
