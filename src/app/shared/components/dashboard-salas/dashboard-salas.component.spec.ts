@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
@@ -124,5 +125,79 @@ describe('DashboardSalasComponent — botão Entrar', () => {
     fixture.detectChanges();
 
     expect(joinLinks()).toEqual(['/rooms/1/room', '/rooms/2/room']);
+  });
+});
+
+describe('DashboardSalasComponent — sala criada para agora', () => {
+  let fixture: ComponentFixture<DashboardSalasComponent>;
+  let component: DashboardSalasComponent;
+
+  const joinLinks = () =>
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.btn-join')).map((a) =>
+      a.getAttribute('href'),
+    );
+
+  /** Abre a página à hora atual e cria a sala `createdAfterMs` depois. */
+  async function createNow(serverOpensAt: string, createdAfterMs = 0) {
+    const created = makeRoom({ id: 9, name: 'Agora', opensAt: serverOpensAt, closesAt: '2026-10-07T17:30:00Z' });
+    await TestBed.configureTestingModule({
+      imports: [DashboardSalasComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ApiService,
+          useValue: {
+            getMyRooms: jest.fn().mockReturnValue(of([])),
+            createRoom: jest.fn().mockReturnValue(of(created)),
+          },
+        },
+      ],
+    });
+    // O diálogo devolve o pedido de uma sala "agora" (sem opensAt). Com
+    // overrideProvider, e não em providers, porque o componente traz o
+    // MatDialogModule nos seus próprios imports.
+    TestBed.overrideProvider(MatDialog, {
+      useValue: { open: () => ({ afterClosed: () => of({ name: 'Agora', opensAt: null, durationMinutes: 60 }) }) },
+    });
+    await TestBed.compileComponents();
+    TestBed.inject(SessionService).setUser({
+      email: 'user@example.com',
+      roles: ['PROFESSIONAL'],
+      profileCompleted: true,
+      timeZone: LISBON,
+    });
+    fixture = TestBed.createComponent(DashboardSalasComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    jest.setSystemTime(Date.now() + createdAfterMs);
+    component.openCreateDialog();
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-07T16:30:00Z'));
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('aparece já disponível, mesmo criada entre dois tiques do relógio da lista', async () => {
+    // A página abriu às 16:30:00; a sala é criada 20 s depois, antes do próximo tique.
+    await createNow('2026-10-07T16:30:20Z', 20_000);
+
+    expect(component.statusOf(component.rooms()[0])).toBe('agora');
+    expect(joinLinks()).toEqual(['/rooms/9/room']);
+  });
+
+  it('aparece já disponível mesmo com o relógio do computador uns segundos atrasado', async () => {
+    // O servidor abriu a sala às 16:30:08; este computador ainda marca 16:30:00.
+    await createNow('2026-10-07T16:30:08Z');
+
+    expect(component.statusOf(component.rooms()[0])).toBe('agora');
+    expect(joinLinks()).toEqual(['/rooms/9/room']);
   });
 });

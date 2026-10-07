@@ -31,6 +31,16 @@ export class DashboardSalasComponent implements OnInit, OnDestroy {
   private readonly now = signal(Date.now());
   private clockTimer: ReturnType<typeof setInterval> | null = null;
 
+  /**
+   * Quanto o relógio deste computador está atrasado em relação ao do
+   * servidor, em ms. Uma sala criada para "agora" abre no instante do
+   * servidor; com o relógio local uns segundos atrás, ela ficava como
+   * "Agendada" até o relógio local chegar lá. Só avança o relógio da lista,
+   * nunca o atrasa, então uma sala agendada nunca parece aberta antes de o
+   * servidor deixar entrar.
+   */
+  private readonly clockLag = signal(0);
+
   ngOnInit(): void {
     this.load();
     this.clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
@@ -62,6 +72,13 @@ export class DashboardSalasComponent implements OnInit, OnDestroy {
 
       this.apiService.createRoom(payload).subscribe({
         next: (room) => {
+          // Sem esperar pelo próximo tique de 30 s: a sala nova já tem o
+          // estado certo ao aparecer.
+          this.now.set(Date.now());
+          if (!payload.opensAt) {
+            const lag = new Date(room.opensAt).getTime() - this.now();
+            this.clockLag.update((current) => Math.max(current, lag));
+          }
           this.rooms.update((list) => [room, ...list]);
           this.snackbarService.openSnackBar({ message: 'Sala criada. O link já está pronto para compartilhar.' });
         },
@@ -104,7 +121,7 @@ export class DashboardSalasComponent implements OnInit, OnDestroy {
   }
 
   statusOf(room: Room): RoomStatus {
-    const now = this.now();
+    const now = this.now() + this.clockLag();
     const opens = new Date(room.opensAt).getTime();
     const closes = new Date(room.closesAt).getTime();
     if (now > closes) return 'expirada';
