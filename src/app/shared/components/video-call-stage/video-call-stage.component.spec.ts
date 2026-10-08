@@ -252,6 +252,55 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
     expect(fetchSession).toHaveBeenCalledTimes(2);
     expect(component.closesAtLabel()).toBe('16:00');
   });
+
+  /*
+   * 08/10/2026: quem criou a sala estendeu +30 min, mas a outra pessoa nunca
+   * recebeu o room-extended (ou o pedido do novo fecho falhou) e foi tirada da
+   * chamada à hora original. Ninguém manda a mensagem nestes testes — é
+   * exatamente o caso de ela não chegar.
+   */
+  describe('extensão que não chegou por mensagem', () => {
+    it('no fecho antigo confirma com o backend e continua na chamada até ao novo', async () => {
+      const fetchSession = await join({ session: session({ canExtend: false }) });
+      fetchSession.mockReturnValue(of(session({ closesAt: '2026-10-06T18:30:00Z', canExtend: false })));
+
+      jest.advanceTimersByTime(52 * 60_000); // 18:00, o fecho antigo
+      expect(component.state()).toBe('in-call');
+      expect(component.closesAtLabel()).toBe('15:30');
+
+      jest.advanceTimersByTime(30 * 60_000); // 18:30, o fecho novo
+      expect(component.state()).toBe('ended');
+      expect(component.endedMessage()).toBe('O horário da sala terminou.');
+    });
+
+    it('ao entrar no aviso dos 5 minutos vai buscar o fecho, e o aviso some se foi adiado', async () => {
+      const fetchSession = await join({ session: session({ canExtend: false }) });
+      fetchSession.mockReturnValue(of(session({ closesAt: '2026-10-06T18:30:00Z', canExtend: false })));
+
+      jest.advanceTimersByTime(47 * 60_000); // 17:55
+      expect(fetchSession).toHaveBeenCalledTimes(2);
+      expect(component.endingSoon()).toBe(false);
+      expect(component.minutesLeft()).toBe(35);
+    });
+
+    it('se o backend diz que a sala fechou, a chamada fecha', async () => {
+      const fetchSession = await join({ session: session({ canExtend: false }) });
+      fetchSession.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
+
+      jest.advanceTimersByTime(52 * 60_000);
+      expect(component.state()).toBe('ended');
+    });
+
+    it('com o relógio deste computador adiantado, um fecho igual também fecha', async () => {
+      // O backend ainda devolve a sessão (para ele ainda não são 18:00), mas
+      // com o mesmo fecho: não houve extensão, e não pode ficar presa aberta.
+      const fetchSession = await join({ session: session({ canExtend: false }) });
+      fetchSession.mockReturnValue(of(session({ canExtend: false })));
+
+      jest.advanceTimersByTime(52 * 60_000);
+      expect(component.state()).toBe('ended');
+    });
+  });
 });
 
 /**

@@ -251,6 +251,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   private call: DailyCall | null = null;
   private readonly streamsBySessionId = new Map<string, MediaStream>();
   private autoLeaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private warningRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private clockTimer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
@@ -354,15 +355,60 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   /** Sem endsAt (sala avulsa, ou backend antigo), o fim combinado é o próprio fecho. */
   private setWindow(closesAt: string, endsAt?: string): void {
     const closes = new Date(closesAt).getTime();
+    const ends = endsAt ? new Date(endsAt).getTime() : closes;
     this.closesAt.set(closes);
-    this.endsAt.set(endsAt ? new Date(endsAt).getTime() : closes);
+    this.endsAt.set(ends);
     this.now.set(Date.now());
 
-    if (this.autoLeaveTimer) clearTimeout(this.autoLeaveTimer);
-    this.autoLeaveTimer = null;
+    this.clearWindowTimers();
     const msLeft = closes - Date.now();
     if (msLeft <= 0) return;
-    this.autoLeaveTimer = setTimeout(() => this.endAtClosingTime(), msLeft);
+    this.autoLeaveTimer = setTimeout(() => this.confirmClosingTime(), msLeft);
+
+    // Uma extensão que não chegou cá também deixava o aviso dos 5 minutos a
+    // contar para o fecho antigo. Confirmar ao entrar no aviso mantém-no certo.
+    const msToWarning = ends - CLOSING_WARNING_MS - Date.now();
+    if (msToWarning > 0) {
+      this.warningRefreshTimer = setTimeout(() => this.refreshClosingTime(), msToWarning);
+    }
+  }
+
+  private clearWindowTimers(): void {
+    if (this.autoLeaveTimer) clearTimeout(this.autoLeaveTimer);
+    if (this.warningRefreshTimer) clearTimeout(this.warningRefreshTimer);
+    this.autoLeaveTimer = null;
+    this.warningRefreshTimer = null;
+  }
+
+  /**
+   * Chegou o fecho que esta página conhece — mas pode já não ser o fecho.
+   *
+   * Uma extensão chega às outras pessoas por uma única app-message
+   * (room-extended), e uma mensagem da Daily não espera por ninguém: com o
+   * separador em segundo plano, a ligação a recuperar ou o pedido do novo
+   * fecho a falhar, esta página ficava com o fecho antigo e tirava a pessoa da
+   * chamada à hora original, com a sala ainda aberta para quem estendeu. Antes
+   * de fechar pergunta-se ao backend; só um fecho mais tarde que o conhecido
+   * mantém a chamada — o relógio deste computador pode estar adiantado, e um
+   * fecho igual quer dizer que acabou mesmo.
+   */
+  private confirmClosingTime(): void {
+    this.autoLeaveTimer = null;
+    const known = this.closesAt();
+    this.fetchSession().subscribe({
+      next: (session) => {
+        if (this.state() !== 'in-call') return;
+        if (known !== null && new Date(session.closesAt).getTime() > known) {
+          this.setWindow(session.closesAt, session.endsAt);
+          return;
+        }
+        this.endAtClosingTime();
+      },
+      // Fora da janela o backend recusa o pedido: a sala fechou mesmo.
+      error: () => {
+        if (this.state() === 'in-call') this.endAtClosingTime();
+      },
+    });
   }
 
   // Antes isto voltava direto ao painel, e quem estava na chamada não tinha
@@ -613,10 +659,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     if (document.fullscreenElement === this.hostEl.nativeElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-    if (this.autoLeaveTimer) {
-      clearTimeout(this.autoLeaveTimer);
-      this.autoLeaveTimer = null;
-    }
+    this.clearWindowTimers();
     if (this.clockTimer) {
       clearInterval(this.clockTimer);
       this.clockTimer = null;
