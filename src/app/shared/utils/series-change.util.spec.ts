@@ -4,6 +4,7 @@ import { DayOfWeek } from '../enums/day-of-week.enum';
 import { Modality } from '../enums/modality.enum';
 import {
   firstSeriesChangeStart,
+  firstSeriesConflict,
   isPendingSeriesChange,
   isSeriesChangeStartAvailable,
   nextSeriesOccurrence,
@@ -136,5 +137,55 @@ describe('pendingSeriesChangeFor', () => {
     expect(isPendingSeriesChange(proposal)).toBe(false);
     expect(pendingSeriesChangeFor([proposal, change], 1)).toBe(change);
     expect(pendingSeriesChangeFor([proposal], 1)).toBeUndefined();
+  });
+});
+
+describe('firstSeriesConflict', () => {
+  // Vaga semanal às quintas, como a das 10:00 do caso real: uma série
+  // quinzenal confirmada a partir de 15/10 (a 15/10 desmarcada à parte).
+  const thursday = slot({ startDate: '2026-01-01', dayOfWeek: 'THURSDAY' as unknown as DayOfWeek });
+  const biweekly = series({
+    id: 82, startDate: '2026-10-15', dayOfWeek: 'THURSDAY' as unknown as DayOfWeek,
+    recurrenceFrequency: 'BIWEEKLY', excludedDates: ['2026-10-15'],
+  });
+
+  it('lets a biweekly series sit on the alternating weeks', () => {
+    expect(firstSeriesConflict(thursday, 'BIWEEKLY', '2026-10-22', [biweekly])).toBeNull();
+  });
+
+  it('flags a weekly series that starts on a free week but lands on the biweekly one later', () => {
+    expect(firstSeriesConflict(thursday, 'WEEKLY', '2026-10-22', [biweekly])).toBe('2026-10-29');
+  });
+
+  it('ignores an occurrence cancelled on its own', () => {
+    // 15/10 está desmarcada: uma série a começar aí só pisa a 82 a 29/10.
+    expect(firstSeriesConflict(thursday, 'WEEKLY', '2026-10-15', [biweekly])).toBe('2026-10-29');
+  });
+
+  it('counts a one-off session further ahead', () => {
+    const oneOff = series({
+      id: 81, isRecurring: false, startDate: '2026-11-19', endDate: '2026-11-19',
+      dayOfWeek: 'THURSDAY' as unknown as DayOfWeek, recurrenceFrequency: undefined,
+    });
+    expect(firstSeriesConflict(thursday, 'BIWEEKLY', '2026-10-22', [oneOff])).toBe('2026-11-19');
+  });
+
+  it('only looks three months ahead, like the backend', () => {
+    const far = series({
+      id: 90, isRecurring: false, startDate: '2027-01-28', endDate: '2027-01-28',
+      dayOfWeek: 'THURSDAY' as unknown as DayOfWeek, recurrenceFrequency: undefined,
+    });
+    expect(firstSeriesConflict(thursday, 'WEEKLY', '2026-10-22', [far])).toBeNull();
+    expect(firstSeriesConflict(thursday, 'WEEKLY', '2026-10-29', [far])).toBe('2027-01-28');
+  });
+
+  it('stops at the edge of the window', () => {
+    // 01/12 + 3 meses = 01/03: a terça 23/02 conta, a 02/03 já fica de fora.
+    const tuesday = slot({ startDate: '2026-01-06' });
+    const oneOff = (date: string) => series({
+      id: 91, isRecurring: false, startDate: date, endDate: date, recurrenceFrequency: undefined,
+    });
+    expect(firstSeriesConflict(tuesday, 'WEEKLY', '2026-12-01', [oneOff('2027-02-23')])).toBe('2027-02-23');
+    expect(firstSeriesConflict(tuesday, 'WEEKLY', '2026-12-01', [oneOff('2027-03-02')])).toBeNull();
   });
 });

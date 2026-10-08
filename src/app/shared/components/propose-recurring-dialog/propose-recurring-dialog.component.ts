@@ -3,8 +3,11 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { ApiService } from '../../../core/services/api.service';
 import { Modality } from '../../enums/modality.enum';
 import { RecurrenceFrequency } from '../../enums/recurrence-frequency.enum';
+import { Appointment } from '../../models/appointment.model';
 import { AvailabilityModel } from '../../models/availability.model';
 import { availabilityOccursOn } from '../../utils/free-slots.util';
+import { normalizeRecurrenceFrequency, toBackendRecurrenceFrequency } from '../../utils/recurrence.util';
+import { firstSeriesConflict } from '../../utils/series-change.util';
 import { getBookableModalities } from '../../utils/modality-compatibility.util';
 import { REMOTE_SESSION_INFO } from '../../utils/remote-session.util';
 import {
@@ -59,6 +62,12 @@ export interface ProposeRecurringDialogData {
    * tenham outra sessão marcada.
    */
   slotAvailability: AvailabilityModel;
+  /**
+   * As sessões já marcadas nesta vaga (confirmadas ou por responder). Servem
+   * para não oferecer um início cuja série pisaria uma delas mais à frente, e
+   * para avisar quando a pessoa cliente já tem uma série aqui.
+   */
+  slotAppointments?: Appointment[];
   /**
    * Quando o convite parte de uma sessão já existente, a pessoa cliente já
    * está definida — não faz sentido pedir para a escolher outra vez de uma
@@ -130,7 +139,7 @@ export interface ProposeRecurringDialogResult {
             type="button"
             class="chip"
             [class.on]="selectedFrequency() === f"
-            (click)="selectedFrequency.set(f)"
+            (click)="selectFrequency(f)"
           >
             {{ f }}
           </button>
@@ -292,6 +301,21 @@ export interface ProposeRecurringDialogResult {
         }
       }
 
+      @if (existingClientSeries(); as existing) {
+        <p class="warn">
+          @if (existing.status === 'PENDING') {
+            <strong>{{ selectedClientName() }} já tem uma proposta pendente neste horário</strong>
+            ({{ frequencyLabel(existing) }}, a partir de {{ fmtDate(existing.startDate) }}).
+            Uma nova proposta não substitui essa — as duas ficam na agenda.
+          } @else {
+            <strong>{{ selectedClientName() }} já tem uma série neste horário</strong>
+            ({{ frequencyLabel(existing) }}, a partir de {{ fmtDate(existing.startDate) }}).
+            Se a ideia é mudar o dia, o horário ou a periodicidade dessa série, use "Alterar série" nela.
+            Uma nova proposta cria uma segunda série, que se soma à primeira.
+          }
+        </p>
+      }
+
       @if (errorMessage()) {
         <p class="error">{{ errorMessage() }}</p>
       }
@@ -367,6 +391,27 @@ export class ProposeRecurringDialogComponent implements OnInit {
   readonly price = signal<string>(formatPriceForEditor(this.data.slotPrice, this.separator));
   readonly priceBRL = signal<string>(formatPriceForEditor(this.data.slotPriceBRL, this.separator));
 
+  /**
+   * Uma série (ou proposta) que a pessoa cliente escolhida já tem nesta vaga e
+   * que ainda não acabou. Não impede nada — duas séries quinzenais em semanas
+   * alternadas são possíveis —, mas quase sempre o que se queria era mudar a
+   * que já existe, e criar outra deixava a pessoa com sessões todas as semanas.
+   */
+  readonly existingClientSeries = computed<Appointment | null>(() => {
+    const clientId = this.selectedClientId();
+    if (clientId === null) return null;
+    const today = toKey(new Date());
+    return (this.data.slotAppointments ?? []).find(a =>
+      a.clientId === clientId && a.isRecurring && (!a.endDate || a.endDate >= today),
+    ) ?? null;
+  });
+
+  readonly selectedClientName = computed(() =>
+    this.data.preselectedClientName
+      ?? this.patients().find(p => p.id === this.selectedClientId())?.name
+      ?? 'Esta pessoa',
+  );
+
   readonly patientOptions = computed<StyledSelectOption[]>(() =>
     this.patients().map(p => ({ value: String(p.id), label: p.name })),
   );
@@ -437,12 +482,37 @@ export class ProposeRecurringDialogComponent implements OnInit {
     return `${PT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   });
 
-  /** Verdadeiro só nas ocorrências reais desta vaga que ainda não têm sessão marcada. */
+  /**
+   * Verdadeiro só nas ocorrências reais desta vaga que ainda não têm sessão
+   * marcada, e a partir das quais a série, com a periodicidade escolhida, não
+   * pisa outra sessão nos próximos meses — o backend recusa-a (firstSeriesConflict).
+   */
   isDateAvailable(dateKey: string): boolean {
     const av = this.data.slotAvailability;
     if (dateKey < toKey(new Date())) return false;
     if (!availabilityOccursOn(av, dateKey)) return false;
-    return !(av.bookedDates ?? []).includes(dateKey);
+    if ((av.bookedDates ?? []).includes(dateKey)) return false;
+    return firstSeriesConflict(
+      av, toBackendRecurrenceFrequency(this.selectedFrequency()), dateKey, this.data.slotAppointments ?? [],
+    ) === null;
+  }
+
+  /**
+   * Mudar a periodicidade muda que inícios servem: uma série semanal não cabe
+   * onde uma quinzenal cabia. Se o início escolhido deixar de servir, passa-se
+   * para o primeiro que sirva.
+   */
+  selectFrequency(frequency: RecurrenceFrequency): void {
+    this.selectedFrequency.set(frequency);
+    const current = this.selectedStartDate();
+    if (current && this.isDateAvailable(current)) return;
+    const next = this.computeDefaultStartDate();
+    this.selectedStartDate.set(next);
+    if (next) this.calendarViewDate.set(new Date(next + 'T00:00:00'));
+  }
+
+  frequencyLabel(appt: Appointment): string {
+    return normalizeRecurrenceFrequency(appt.recurrenceFrequency).toLowerCase();
   }
 
   /** Sem isto o calendário abriria mudo — sem nenhum dia disponível e sem dizer porquê. */

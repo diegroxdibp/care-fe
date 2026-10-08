@@ -74,6 +74,53 @@ export function isSeriesChangeStartAvailable(
   return slot.id === series.availabilityId && seriesOccursOn(series, dateKey);
 }
 
+/** Quantos meses à frente se confere — o mesmo que AppointmentService.SERIES_CONFLICT_WINDOW_MONTHS. */
+export const SERIES_CONFLICT_WINDOW_MONTHS = 3;
+
+/** `dateKey` + `months`, encostado ao fim do mês como o plusMonths do Java (31/01 + 1 → 28/02). */
+function addMonths(dateKey: string, months: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const lastDay = new Date(y, m - 1 + months + 1, 0).getDate();
+  const target = new Date(y, m - 1 + months, Math.min(d, lastDay));
+  const mm = String(target.getMonth() + 1).padStart(2, '0');
+  const dd = String(target.getDate()).padStart(2, '0');
+  return `${target.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
+ * A primeira data em que uma série nesta vaga — a começar em `startKey`, com
+ * esta periodicidade — cairia em cima de uma das `others`, ou null se não
+ * pisar nenhuma nos próximos meses. Espelho de
+ * AppointmentService.firstSeriesConflict: não basta o primeiro dia estar
+ * livre, porque uma série semanal a começar numa semana livre pisa uma
+ * quinzenal já marcada de duas em duas semanas. Duas quinzenais em semanas
+ * alternadas não se pisam.
+ */
+export function firstSeriesConflict(
+  slot: AvailabilityModel,
+  frequency: NonNullable<Appointment['recurrenceFrequency']>,
+  startKey: string,
+  others: SeriesShape[],
+): string | null {
+  if (others.length === 0) return null;
+  let horizon = addMonths(startKey, SERIES_CONFLICT_WINDOW_MONTHS);
+  if (slot.endDate && slot.endDate < horizon) horizon = slot.endDate;
+
+  const proposed: SeriesShape = {
+    startDate: startKey,
+    endDate: horizon,
+    isRecurring: true,
+    dayOfWeek: slot.dayOfWeek as unknown as Appointment['dayOfWeek'],
+    recurrenceFrequency: frequency,
+    excludedDates: [],
+  };
+  for (let key = startKey; key <= horizon; key = addDays(key, 1)) {
+    if (!seriesOccursOn(proposed, key)) continue;
+    if (others.some(o => seriesOccursOn(o, key))) return key;
+  }
+  return null;
+}
+
 /** A primeira data livre da vaga para começar — o valor inicial do calendário. */
 export function firstSeriesChangeStart(
   slot: AvailabilityModel,

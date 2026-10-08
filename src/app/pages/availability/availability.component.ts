@@ -2698,6 +2698,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             slotPrice: block.price,
             slotPriceBRL: block.priceBRL,
             slotAvailability,
+            slotAppointments: this.appointments().filter(a => a.availabilityId === backendSlot.backendId),
           } as ProposeRecurringDialogData,
         });
 
@@ -2791,6 +2792,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             slotPrice: appt.price ?? block.price,
             slotPriceBRL: appt.priceBRL ?? block.priceBRL,
             slotAvailability,
+            slotAppointments: this.appointments().filter(a => a.availabilityId === appt.availabilityId),
             preselectedClientId: appt.clientId,
             preselectedClientName: this.slotPatientName(appt),
           } as ProposeRecurringDialogData,
