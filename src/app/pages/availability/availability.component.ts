@@ -2393,6 +2393,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.sheetOpen.set(true);
   }
 
+  /**
+   * Clique numa sessão marcada dentro de um bloco na grelha. Se o bloco é só
+   * essa sessão, os detalhes do bloco não acrescentam nada e vai-se direto à
+   * sessão; com mais horários, mostra-se o bloco, e a sessão abre-se a partir
+   * da lista de "Sessões geradas".
+   */
+  selectBandSlot(event: Event, block: TherapistBlock, appt: Appointment): void {
+    if (this.bookedSlotsForBlock(block).length === 1) {
+      this.selectSlot(event, appt);
+    } else {
+      this.selectBlock(event, block);
+    }
+  }
+
   clearSelectedAppointment(): void {
     this.selectedAppointment.set(null);
     this.notesDraft.set('');

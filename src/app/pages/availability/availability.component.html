@@ -125,7 +125,7 @@
                             [class.pending]="slot.appointment?.status === 'PENDING'"
                             [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                             [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
-                            (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
+                            (click)="slot.booked && slot.appointment ? selectBandSlot($event, block, slot.appointment) : null"
                           >
                             <div class="bd-row">
                               <span class="bd-time">{{ slot.time }}</span>
@@ -418,7 +418,7 @@
                     [class.pending]="slot.appointment?.status === 'PENDING'"
                     [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                     [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
-                    (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
+                    (click)="slot.booked && slot.appointment ? selectBandSlot($event, block, slot.appointment) : null"
                   >
                     <div class="bd-row">
                       <span class="bd-time">{{ slot.time }}</span>
