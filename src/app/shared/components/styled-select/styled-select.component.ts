@@ -83,9 +83,31 @@ export class StyledSelectComponent implements AfterViewChecked {
     this.dropdownOpen.set(false);
   }
 
+  // Clicar na barra de scroll da lista (ou nas setas dela) tira o foco da
+  // pesquisa sem o dar a ninguém — relatedTarget chega null, e isso lia-se
+  // como "o foco saiu do select", fechando a lista a meio do scroll. Um clique
+  // que começou cá dentro não é sair; no fim dele o foco volta à pesquisa,
+  // para que Tab e cliques fora continuem a fechar.
+  private pointerDownInside = false;
+
+  @HostListener('mousedown')
+  onHostMousedown(): void {
+    this.pointerDownInside = true;
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseup(): void {
+    if (!this.pointerDownInside) return;
+    this.pointerDownInside = false;
+    if (this.dropdownOpen() && !this.elementRef.nativeElement.contains(document.activeElement)) {
+      this.searchInputRef?.nativeElement.focus();
+    }
+  }
+
   @HostListener('focusout', ['$event'])
   onFocusOut(event: FocusEvent): void {
     const next = event.relatedTarget as Node | null;
+    if (!next && this.pointerDownInside) return;
     if (!next || !this.elementRef.nativeElement.contains(next)) {
       this.dropdownOpen.set(false);
     }
