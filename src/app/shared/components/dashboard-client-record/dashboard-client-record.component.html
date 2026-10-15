@@ -22,91 +22,97 @@
   } @else {
     @let c = client()!;
 
-    <!-- ── Cabeçalho: quem é a pessoa e o acompanhamento consigo ── -->
-    <section class="card">
-      <div class="client-head">
-        @if (c.picture) {
-          <img class="avatar lg" [src]="c.picture" alt="" />
-        } @else {
-          <span class="avatar lg">{{ initials() }}</span>
-        }
-        <div>
-          <h2>{{ c.name }}</h2>
-          @if (age() !== null || birthDateLabel()) {
-            <p class="subtle">
-              @if (age() !== null) { {{ age() }} anos }
-              @if (age() !== null && birthDateLabel()) { · }
-              @if (birthDateLabel()) { <span class="visually-hidden">Data de nascimento: </span>{{ birthDateLabel() }} }
+    <!-- ── Cabeçalho: quem é a pessoa, o acompanhamento consigo, a equipe e as
+         áreas de cuidado. A disposição muda com a largura do cartão (ver .record-head). ── -->
+    <section class="card record-head">
+      <div class="record-head-grid">
+        <div class="rh-info">
+          <div class="client-head">
+            @if (c.picture) {
+              <img class="avatar lg" [src]="c.picture" alt="" />
+            } @else {
+              <span class="avatar lg">{{ initials() }}</span>
+            }
+            <div>
+              <h2>{{ c.name }}</h2>
+              @if (age() !== null || birthDateLabel()) {
+                <p class="subtle">
+                  @if (age() !== null) { {{ age() }} anos }
+                  @if (age() !== null && birthDateLabel()) { · }
+                  @if (birthDateLabel()) { <span class="visually-hidden">Data de nascimento: </span>{{ birthDateLabel() }} }
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="followup">
+            <div class="group-label">Acompanhamento</div>
+            <div class="auto-grid">
+              <div class="field">
+                <div class="k">Cliente desde</div>
+                <div class="v">{{ c.createdAt ? (c.createdAt | userTime: 'date') : '—' }}</div>
+              </div>
+              <div class="field">
+                <div class="k">Primeira sessão com você</div>
+                <div class="v">{{ sessionStats().firstAt ? (sessionStats().firstAt | userTime: 'date') : '—' }}</div>
+              </div>
+              <div class="field">
+                <div class="k">Sessões realizadas com você</div>
+                <div class="v">{{ sessionStats().done }}</div>
+              </div>
+              <div class="field">
+                <div class="k">Próxima sessão com você</div>
+                <div class="v">{{ sessionStats().nextAt ? (sessionStats().nextAt | userTime: 'full') : 'Sem sessões agendadas' }}</div>
+              </div>
+            </div>
+          </div>
+          <p class="hint">
+            <span translate="no" class="material-symbols-outlined">info</span>
+            Dados do perfil da pessoa cliente e das sessões, atualizados automaticamente.
+          </p>
+        </div>
+
+        <div class="rh-team">
+          <h3>Equipe de cuidado</h3>
+          <div class="team-box">
+            <div class="team-count">{{ careTeam().length }}</div>
+            <p class="team-caption">
+              @if (careTeam().length === 1) {
+                pessoa profissional acompanha esta pessoa cliente
+              } @else {
+                pessoas profissionais acompanham esta pessoa cliente
+              }
             </p>
+            @if (careTeam().length) {
+              <ul class="team-list">
+                @for (p of careTeam(); track p.id) {
+                  <li>
+                    <span class="dot" [style.background]="p.color" aria-hidden="true"></span>
+                    {{ p.name }}
+                    @if (p.isMe) { <span class="me">(você)</span> }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+
+        <div class="rh-areas">
+          <h3>Áreas de cuidado</h3>
+          @if (careAreas().length) {
+            <ul class="area-list">
+              @for (a of careAreas(); track a) {
+                <li class="area-chip">{{ a }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="subtle">Ainda sem serviços agendados.</p>
           }
         </div>
       </div>
-
-      <div class="followup">
-        <div class="group-label">Acompanhamento</div>
-        <div class="auto-grid">
-          <div class="field">
-            <div class="k">Cliente desde</div>
-            <div class="v">{{ c.createdAt ? (c.createdAt | userTime: 'date') : '—' }}</div>
-          </div>
-          <div class="field">
-            <div class="k">Primeira sessão com você</div>
-            <div class="v">{{ sessionStats().firstAt ? (sessionStats().firstAt | userTime: 'date') : '—' }}</div>
-          </div>
-          <div class="field">
-            <div class="k">Sessões realizadas com você</div>
-            <div class="v">{{ sessionStats().done }}</div>
-          </div>
-          <div class="field">
-            <div class="k">Próxima sessão com você</div>
-            <div class="v">{{ sessionStats().nextAt ? (sessionStats().nextAt | userTime: 'full') : 'Sem sessões agendadas' }}</div>
-          </div>
-        </div>
-      </div>
-      <p class="hint">
-        <span translate="no" class="material-symbols-outlined">info</span>
-        Dados do perfil da pessoa cliente e das sessões, atualizados automaticamente.
-      </p>
     </section>
 
     <div class="layout">
-      <!-- ── Equipe de cuidado e, por baixo, áreas de cuidado (serviços marcados) ── -->
-      <section class="card care-card">
-        <h3>Equipe de cuidado</h3>
-        <div class="team-box">
-          <div class="team-count">{{ careTeam().length }}</div>
-          <p class="team-caption">
-            @if (careTeam().length === 1) {
-              pessoa profissional acompanha esta pessoa cliente
-            } @else {
-              pessoas profissionais acompanham esta pessoa cliente
-            }
-          </p>
-          @if (careTeam().length) {
-            <ul class="team-list">
-              @for (p of careTeam(); track p.id) {
-                <li>
-                  <span class="dot" [style.background]="p.color" aria-hidden="true"></span>
-                  {{ p.name }}
-                  @if (p.isMe) { <span class="me">(você)</span> }
-                </li>
-              }
-            </ul>
-          }
-        </div>
-
-        <h3 class="areas-title">Áreas de cuidado</h3>
-        @if (careAreas().length) {
-          <ul class="area-list">
-            @for (a of careAreas(); track a) {
-              <li class="area-chip">{{ a }}</li>
-            }
-          </ul>
-        } @else {
-          <p class="subtle">Ainda sem serviços agendados.</p>
-        }
-      </section>
-
       <div class="main">
         <!-- ── Motivo da consulta e historial clínico, por profissional ── -->
         @if (record()!.intakes.length) {

@@ -34,8 +34,7 @@
   }
 }
 
-// Equipe e áreas de cuidado num só cartão por baixo dos dados da pessoa,
-// e as notas por baixo dele.
+// As notas, por baixo do cartão da pessoa.
 .layout {
   display: flex;
   flex-direction: column;
@@ -49,15 +48,65 @@
   min-width: 0;
 }
 
-// Só ocupa a largura do conteúdo, centrado na coluna e com tudo centrado.
-.care-card {
-  align-self: center;
-  width: fit-content;
-  max-width: 100%;
-  text-align: center;
+// Pessoa, equipe e áreas de cuidado num só cartão. A largura que conta é a
+// do cartão (o painel pode estar ao lado do menu), por isso container query:
+//   largo  — dados à esquerda; equipe e, por baixo, áreas à direita;
+//   médio  — dados em cima; equipe e áreas lado a lado por baixo;
+//   estreito — tudo em coluna.
+.record-head {
+  container: record-head / inline-size;
+}
 
-  .areas-title { margin-top: 24px; }
-  .area-list { justify-content: center; }
+.record-head-grid {
+  display: grid;
+}
+
+.rh-info,
+.rh-team,
+.rh-areas { min-width: 0; }
+
+.rh-team,
+.rh-areas {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+@container record-head (min-width: 480px) {
+  .record-head-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "info info"
+      "team areas";
+    column-gap: 24px;
+  }
+  .rh-info { grid-area: info; }
+  .rh-team { grid-area: team; }
+  .rh-areas { grid-area: areas; }
+}
+
+@container record-head (min-width: 780px) {
+  .record-head-grid {
+    // A coluna da direita cresce com o cartão: com 260px fixos ficava
+    // isolada no canto e deixava a da esquerda com espaço vazio.
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 1fr);
+    grid-template-areas:
+      "info team"
+      "info areas";
+    grid-template-rows: auto 1fr;
+    column-gap: 0;
+  }
+
+  // A coluna da direita separa-se por uma linha vertical em vez de horizontal.
+  .rh-info { padding-right: 24px; }
+  .rh-team,
+  .rh-areas {
+    margin-top: 0;
+    padding: 0 0 0 24px;
+    border-top: none;
+    border-left: 1px solid var(--color-border-soft);
+  }
+  .rh-areas { padding-top: 20px; }
 }
 
 .visually-hidden {
@@ -173,10 +222,11 @@
   color: var(--fg-2);
 }
 
+// Um campo por baixo do outro, em coluna.
 .auto-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
 .field { min-width: 0; }

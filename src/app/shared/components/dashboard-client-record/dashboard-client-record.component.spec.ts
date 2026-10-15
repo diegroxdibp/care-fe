@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Navigation, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 
 import { ageFrom, DashboardClientRecordComponent } from './dashboard-client-record.component';
 import { ApiService } from '../../../core/services/api.service';
@@ -163,14 +164,42 @@ describe('DashboardClientRecordComponent — instantes no fuso de quem vê', () 
     expect(component.birthDateLabel()).toBe('16/01/1990');
   });
 
+  function answerDialog(result: unknown): jest.SpyInstance {
+    return jest.spyOn(TestBed.inject(MatDialog), 'open')
+      .mockReturnValue({ afterClosed: () => of(result) } as MatDialogRef<unknown>);
+  }
+
   it('a nota envia só o texto e a visibilidade', async () => {
     await setup(LISBON, [], makeRecord());
+    answerDialog(true);
     component.noteBody.set('Sessão 2');
     component.saveNote();
     expect(apiService['addClientRecordNote']).toHaveBeenCalledWith(CLIENT_ID, {
       body: 'Sessão 2',
       visibility: 'SHARED',
     });
+  });
+
+  it('pede para escrever "pública" ou "privada" conforme a visibilidade', async () => {
+    await setup(LISBON, [], makeRecord());
+    const open = answerDialog(false);
+    component.noteBody.set('Sessão 2');
+
+    component.saveNote();
+    expect(open.mock.calls[0][1].data.typeToConfirm).toBe('pública');
+
+    component.noteVisibility.set('PRIVATE');
+    component.saveNote();
+    expect(open.mock.calls[1][1].data.typeToConfirm).toBe('privada');
+  });
+
+  it('cancelar a confirmação não salva a nota', async () => {
+    await setup(LISBON, [], makeRecord());
+    answerDialog(false);
+    component.noteBody.set('Sessão 2');
+    component.saveNote();
+    expect(apiService['addClientRecordNote']).not.toHaveBeenCalled();
+    expect(component.noteBody()).toBe('Sessão 2');
   });
 });
 

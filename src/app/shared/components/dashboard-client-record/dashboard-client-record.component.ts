@@ -3,7 +3,9 @@ import {
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { ApiService } from '../../../core/services/api.service';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../confirm-dialog/confirm-dialog.component';
 import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { FeatureFlagService } from '../../services/feature-flag.service';
@@ -71,6 +73,7 @@ export class DashboardClientRecordComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
 
   /** Um bloco por dia da Evolução — a linha do tempo segue-os no scroll. */
   private readonly dayGroups = viewChildren<ElementRef<HTMLElement>>('dayGroup');
@@ -272,7 +275,35 @@ export class DashboardClientRecordComponent implements OnInit {
     }
   }
 
+  /**
+   * Uma nota não pode ser editada depois de salva, e uma privada gravada como
+   * pública (ou o contrário) fica assim. Por isso a pessoa escreve a palavra
+   * da visibilidade antes de salvar.
+   */
   saveNote(): void {
+    if (!this.canSaveNote()) return;
+
+    const isPrivate = this.noteVisibility() === 'PRIVATE';
+    const word = isPrivate ? 'privada' : 'pública';
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '440px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Salvar nota',
+        message: isPrivate
+          ? 'Esta nota será privada: só você poderá vê-la. Depois de salva, não poderá ser editada.'
+          : 'Esta nota será pública: todas as pessoas profissionais que acompanham esta pessoa cliente poderão vê-la. Depois de salva, não poderá ser editada.',
+        typeToConfirm: word,
+        confirmLabel: 'Salvar nota',
+        confirmTone: 'primary',
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed === true) this.submitNote();
+    });
+  }
+
+  private submitNote(): void {
     if (!this.canSaveNote()) return;
 
     this.savingNote.set(true);
