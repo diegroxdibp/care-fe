@@ -3,7 +3,7 @@ import { ProfessionalService } from '../models/professional-service.model';
 import { DayOfWeek } from '../enums/day-of-week.enum';
 import { ProfessionalServiceFormat } from '../enums/professional-service-format.enum';
 import { ProfessionalServiceModality } from '../enums/professional-service-modality.enum';
-import { freeSlotsOn } from './free-slots.util';
+import { availabilityOccursOn, freeSlotsOn } from './free-slots.util';
 
 /**
  * Cobre o diálogo de reagendamento: quem escolhe uma vaga nova tem de ver a
@@ -124,5 +124,58 @@ describe('freeSlotsOn — ocupação e filtros continuam corretos independenteme
     );
 
     expect(slots).toHaveLength(1);
+  });
+});
+
+/**
+ * "Remover horário → Só neste dia" fecha uma única ocorrência de uma vaga
+ * recorrente. A data fechada é a do fuso da vaga (como startDate), por isso
+ * quem vê de outro fuso perde exatamente essa ocorrência — mesmo quando, no
+ * seu relógio, ela cai noutro dia — e continua a ver as semanas seguintes.
+ */
+describe('closedDates — um dia fechado sai, o resto da série fica', () => {
+  it('vaga em São Paulo vista de Lisboa, em janeiro: a quinta fechada sai, a seguinte continua', () => {
+    const av = makeAvailability({ closedDates: ['2026-01-15'] });
+
+    expect(availabilityOccursOn(av, '2026-01-15')).toBe(false);
+    expect(freeSlotsOn([av], '2026-01-15', SERVICE.id, { viewerTimeZone: LISBON })).toEqual([]);
+
+    const [next] = freeSlotsOn([av], '2026-01-22', SERVICE.id, { viewerTimeZone: LISBON });
+    expect(next.startTime).toBe('22:00');
+    expect(next.displayStartTime).toBe('01:00');
+  });
+
+  it('vaga em São Paulo vista de Lisboa, em julho: o mesmo, com a hora de verão europeia', () => {
+    const av = makeAvailability({ closedDates: ['2026-07-16'] });
+
+    expect(freeSlotsOn([av], '2026-07-16', SERVICE.id, { viewerTimeZone: LISBON })).toEqual([]);
+
+    const [next] = freeSlotsOn([av], '2026-07-23', SERVICE.id, { viewerTimeZone: LISBON });
+    expect(next.displayStartTime).toBe('02:00');
+  });
+
+  it('vaga em Lisboa vista de São Paulo, em janeiro e em julho', () => {
+    const av = makeAvailability({
+      timeZone: LISBON,
+      startTime: '01:00:00',
+      endTime: '02:00:00',
+      closedDates: ['2026-01-15', '2026-07-16'],
+    });
+
+    expect(freeSlotsOn([av], '2026-01-15', SERVICE.id, { viewerTimeZone: SAO_PAULO })).toEqual([]);
+    expect(freeSlotsOn([av], '2026-07-16', SERVICE.id, { viewerTimeZone: SAO_PAULO })).toEqual([]);
+
+    const [jan] = freeSlotsOn([av], '2026-01-22', SERVICE.id, { viewerTimeZone: SAO_PAULO });
+    expect(jan.displayStartTime).toBe('22:00');
+    const [jul] = freeSlotsOn([av], '2026-07-23', SERVICE.id, { viewerTimeZone: SAO_PAULO });
+    expect(jul.displayStartTime).toBe('21:00');
+  });
+
+  it('nem a ocorrência a ser movida reabre um dia fechado', () => {
+    const av = makeAvailability({ closedDates: ['2026-01-15'] });
+
+    expect(freeSlotsOn([av], '2026-01-15', SERVICE.id, {
+      moving: { availabilityId: av.id, date: '2026-01-15' },
+    })).toEqual([]);
   });
 });

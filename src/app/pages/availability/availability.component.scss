@@ -1672,6 +1672,21 @@ input[type="number"].field-value {
 .av .block .b-band.free::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.34); }
 .av .block .b-band.free .bd-name { font-weight: 500; font-style: italic; opacity: 0.85; }
 
+// Fechada só neste dia: tracejado neutro, para não se ler como livre nem como ocupada.
+.av .block .b-band.closed::before,
+.av .m-block .mb-band.closed::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-surface) 0 6px,
+    var(--color-surface-tint) 6px 12px
+  );
+}
+.av .block .b-band.closed,
+.av .m-block .mb-band.closed { color: var(--color-muted); }
+.av .block .b-band.closed .bd-name,
+.av .m-block .mb-band.closed .bd-name { font-weight: 500; font-style: italic; }
+
 .av .block.any .b-band { border-top-color: rgba(34,50,110,0.16); }
 .av .block.any .b-band.free::before { background: rgba(255,255,255,0.52); }
 
@@ -1780,6 +1795,9 @@ input[type="number"].field-value {
 .av .slot-row .s-dot::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed var(--color-border); }
 .av .slot-row.free .s-time { color: var(--color-muted); }
 .av .slot-row.free .s-body .s-name { color: var(--color-muted); font-weight: 500; }
+.av .slot-row.closed .s-time,
+.av .slot-row.closed .s-body .s-name { color: var(--color-muted); font-weight: 500; text-decoration: line-through; }
+.av .slot-row.closed .s-body .s-meta { color: var(--color-muted); }
 .av .slot-row.booked {
   background: rgba(86,176,147,0.07);
   transition: background 0.15s var(--ease-care);

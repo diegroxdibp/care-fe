@@ -77,6 +77,7 @@ export function availabilityOccursOn(av: AvailabilityModel, dateKey: string): bo
   if (av.endDate && dateKey > av.endDate) return false;
 
   if (!av.isRecurring) return av.startDate === dateKey;
+  if (av.closedDates?.includes(dateKey)) return false;
 
   const date = new Date(dateKey + 'T00:00:00');
   const targetDay = DOW_TO_JS[av.dayOfWeek as unknown as string];

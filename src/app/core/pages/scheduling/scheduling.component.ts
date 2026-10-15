@@ -204,6 +204,7 @@ export class SchedulingComponent implements OnDestroy {
     );
     return slots
       .filter(s => !(s.bookedDates ?? []).includes(day) || this.confirmedSlotId() === s.id)
+      .filter(s => !(s.closedDates ?? []).includes(day))
       // Um horário de hoje cuja hora já passou não é mais uma opção — só a
       // data já era filtrada, e "hoje" ficava com manhãs oferecidas à tarde.
       .filter(s => this.confirmedSlotId() === s.id || !isWallTimePast(day, s.startTime, s.timeZone))

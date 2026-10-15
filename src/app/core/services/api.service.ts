@@ -137,9 +137,39 @@ export class ApiService {
     );
   }
 
+  /**
+   * Grava as vagas de um bloco de uma só vez (todas ou nenhuma). O backend
+   * confere a sobreposição com o bloco já na posição nova, sem contar as
+   * posições antigas das próprias vagas.
+   */
+  updateAvailabilityBlock(edits: { id: number; slot: AvailabilityPayload }[]): Observable<AvailabilityModel[]> {
+    return this.http.put<AvailabilityModel[]>(
+      `${environment.apiUrl}/api/availability/block`,
+      edits,
+      { withCredentials: true },
+    );
+  }
+
   deleteAvailability(id: number): Observable<void> {
     return this.http.delete<void>(
       `${environment.apiUrl}/api/availability/delete/${id}`,
+      { withCredentials: true },
+    );
+  }
+
+  /** Fecha só esta data (yyyy-MM-dd) de uma vaga recorrente; a série continua. */
+  closeAvailabilityDate(id: number, dateKey: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/api/availability/${id}/closed-dates/${dateKey}`,
+      null,
+      { withCredentials: true },
+    );
+  }
+
+  /** Volta a abrir uma data fechada com {@link closeAvailabilityDate}. */
+  reopenAvailabilityDate(id: number, dateKey: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/api/availability/${id}/closed-dates/${dateKey}`,
       { withCredentials: true },
     );
   }

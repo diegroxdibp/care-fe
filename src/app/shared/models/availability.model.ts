@@ -21,6 +21,11 @@ export interface AvailabilityModel {
    * semana e livre na seguinte, e um booleano por série escondia-a em todas.
    */
   bookedDates: string[];
+  /**
+   * Datas (yyyy-MM-dd) em que a pessoa profissional fechou só esta ocorrência
+   * de uma vaga recorrente. Nesses dias a vaga não existe — nem livre nem ocupada.
+   */
+  closedDates?: string[];
   modality: string;
   /** Morada em texto livre para sessões presenciais. */
   address?: string;

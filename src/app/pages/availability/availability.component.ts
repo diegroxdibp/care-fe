@@ -8,6 +8,8 @@ import {
   LOCALE_ID,
   OnInit,
   ViewChild,
+  ViewChildren,
+  QueryList,
   computed,
   inject,
   signal,
@@ -217,12 +219,16 @@ interface PreviewBlock {
 interface SlotInfo {
   time: string;
   booked: boolean;
+  /** A vaga recorrente foi fechada só no dia que está à vista. */
+  closed?: boolean;
   appointment?: Appointment;
 }
 
 interface BackendSlot {
   slotTime: string;
   backendId: number;
+  /** Datas (yyyy-MM-dd) em que só esta ocorrência da vaga recorrente foi fechada. */
+  closedDates?: string[];
 }
 
 interface TherapistBlock {
@@ -489,6 +495,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // otherwise" behaviour by hand, against the scroll that's actually
   // happening.
   @ViewChild('mobTl') private readonly mobTlRef?: ElementRef<HTMLElement>;
+  /** Corpo do painel lateral / da folha inferior — o que tem scroll. */
+  @ViewChildren('panelBody') private readonly panelBodies?: QueryList<ElementRef<HTMLElement>>;
   private readonly FAB_SIZE = 58;
   private readonly FAB_MARGIN = 16;
   fabTop = signal<number>(0);
@@ -854,7 +862,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const dayKey = toKey(dayDate);
     return this.blocks().filter(b => {
       if (b.isRecurring) {
-        return b.weekdays.includes(dow);
+        // Uma série que só começa mais à frente não existe nas semanas
+        // anteriores — desenhá-la ali dava a ideia de que já estava aberta.
+        return b.weekdays.includes(dow) && (!b.startDate || dayKey >= b.startDate);
       } else {
         return b.startDate === dayKey;
       }
@@ -924,6 +934,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.selectedAppointment.set(null);
     this.attemptedSave.set(false);
     this.loadBlockIntoEditor(block);
+    this.scrollPanelToTop();
     // No desktop this abre-se sempre no mesmo sítio (a coluna à direita);
     // no telemóvel esse conteúdo só existe dentro da folha inferior.
     this.sheetOpen.set(true);
@@ -1042,15 +1053,19 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         const slotTimes = generateSlots(newStart, newEnd, dur);
         // UPDATE each existing slot record in place (duration is preserved during a move,
         // so slot count never changes). Avoids delete+create race conditions.
-        const updateOps = block.backendSlots.map((s, i) => {
+        // Num só pedido: o backend confere o bloco inteiro na posição nova, e
+        // ou o move todo ou não mexe em nada — vaga a vaga, o bloco colidia
+        // consigo próprio a meio do movimento.
+        const edits = block.backendSlots.map((s, i) => {
           const slotStart = slotTimes[i] ?? s.slotTime;
           const slotEnd = minToTime(timeToMin(slotStart) + dur);
-          return this.apiService.updateAvailability(s.backendId,
-            this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency),
-          );
+          return {
+            id: s.backendId,
+            slot: this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency),
+          };
         });
-        forkJoin(updateOps).subscribe({
-          next: (results) => {
+        this.apiService.updateAvailabilityBlock(edits).subscribe({
+          next: () => {
             const newSlots: BackendSlot[] = block.backendSlots.map((s, i) => ({
               ...s,
               slotTime: slotTimes[i] ?? s.slotTime,
@@ -1059,9 +1074,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
               b.id === block.id ? { ...b, backendSlots: newSlots } : b,
             ));
           },
-          error: () => this._resyncBlocksFromServer(
-            'Não foi possível mover a disponibilidade. Confirme a agenda.',
-          ),
+          // Nada foi gravado; o motivo (ex.: sobreposição a partir de uma data)
+          // chega pelo errorInterceptor. Repor o bloco onde estava.
+          error: () => this._resyncBlocksFromServer(),
         });
       }
     };
@@ -1491,9 +1506,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         const dur = b.sessionDuration;
         const oldEndMin = timeToMin(b.endTime);
         const newEndMin = timeToMin(newEnd);
-        const date = b.isRecurring && b.weekdays[0]
-          ? this.dateForWeekday(b.weekdays[0])
-          : (b.startDate ?? '');
+        const date = this.anchorDateOf(b);
 
         if (newEndMin > oldEndMin) {
           const newSlotTimes = generateSlots(b.endTime, newEnd, dur);
@@ -1603,9 +1616,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         const dur = b.sessionDuration;
         const oldStartMin = timeToMin(b.startTime);
         const newStartMin = timeToMin(newStart);
-        const date = b.isRecurring && b.weekdays[0]
-          ? this.dateForWeekday(b.weekdays[0])
-          : (b.startDate ?? '');
+        const date = this.anchorDateOf(b);
 
         if (newStartMin < oldStartMin) {
           // Expanding upward: prepend new free slots
@@ -1880,6 +1891,19 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * deve alterar em que semanas a série acontece. Se a data resultante já
    * passou, avança períodos inteiros para preservar a paridade.
    */
+  /**
+   * A data que ancora a série de um bloco já gravado. Editar um bloco
+   * (horas, serviços, redimensionar) não pode mudar quando ele começa: usar a
+   * semana em vista puxava uma série marcada para o mês seguinte para a
+   * semana atual.
+   */
+  private anchorDateOf(block: TherapistBlock): string {
+    if (block.isRecurring && !block.startDate && block.weekdays[0]) {
+      return this.dateForWeekday(block.weekdays[0]);
+    }
+    return block.startDate ?? '';
+  }
+
   private reanchorRecurring(block: TherapistBlock, newWeekday: DayOfWeek): string {
     if (!block.startDate) {
       return this.dateForWeekday(newWeekday);
@@ -1936,6 +1960,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
     const blocks: TherapistBlock[] = [];
     let group: AvailabilityModel[] = [];
+    const todayKey = toKey(new Date());
 
     const flush = () => {
       if (group.length > 0) { blocks.push(this._avGroupToBlock(group)); group = []; }
@@ -1952,11 +1977,16 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         // on different calendar dates (but the same weekday) are still "the same day".
         // Biweekly/monthly semantically depend on the anchor date (parity/week-of-month),
         // so those must also share the same anchor to be considered the same block.
+        //
+        // Uma série semanal que ainda não começou é outra coisa: juntá-la a uma
+        // que já corre dava ao bloco a data de início errada para uma delas.
+        const sameWeeklyStart = av.startDate === last.startDate
+          || (av.startDate <= todayKey && last.startDate <= todayKey);
         const sameDay = av.isRecurring === last.isRecurring &&
           (av.isRecurring
             ? av.dayOfWeek === last.dayOfWeek
               && avFreq === lastFreq
-              && (avFreq === RecurrenceFrequency.WEEKLY || av.startDate === last.startDate)
+              && (avFreq === RecurrenceFrequency.WEEKLY ? sameWeeklyStart : av.startDate === last.startDate)
             : av.startDate === last.startDate);
         const sameModality = normalizeModality(av.modality) === normalizeModality(last.modality);
         if (sameDay && sameModality && av.startTime === last.endTime && this._sameServiceSet(av.services, last.services)) {
@@ -1981,7 +2011,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const dow = BACKEND_DOW_MAP[first.dayOfWeek as unknown as string] ?? DayOfWeek.MONDAY;
     return {
       id: ++this._nextId,
-      backendSlots: avails.map(a => ({ slotTime: stripSec(a.startTime), backendId: a.id })),
+      backendSlots: avails.map(a => ({
+        slotTime: stripSec(a.startTime),
+        backendId: a.id,
+        closedDates: a.closedDates ?? [],
+      })),
       services: first.services,
       modality: first.modality ? normalizeModality(first.modality) : this.deriveModality(first.services),
       isRecurring: first.isRecurring,
@@ -2040,9 +2074,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   private _recreateSlotsOf(block: TherapistBlock, slotTimes: string[]): Observable<SettledWrite<AvailabilityModel>[]> {
     const dur = block.sessionDuration;
-    const date = block.isRecurring && block.weekdays[0]
-      ? this.dateForWeekday(block.weekdays[0])
-      : (block.startDate ?? '');
+    const date = this.anchorDateOf(block);
 
     return settleAll(slotTimes.map(t =>
       this.apiService.createAvailability(this.buildSlotPayload(
@@ -2060,9 +2092,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // strand a booked slot outside the new grid, so every slot in `toRemove` is guaranteed free.
   private _syncBookedBlock(existing: TherapistBlock, updated: TherapistBlock, blockId: number): void {
     const dur = existing.sessionDuration;
-    const date = existing.isRecurring && existing.weekdays[0]
-      ? this.dateForWeekday(existing.weekdays[0])
-      : (existing.startDate ?? '');
+    const date = this.anchorDateOf(existing);
 
     const newSlotTimes = generateSlots(updated.startTime, updated.endTime, dur);
     const newSlotSet = new Set(newSlotTimes);
@@ -2116,9 +2146,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   private _deleteAndRecreateBlock(existing: TherapistBlock, updated: TherapistBlock, blockId: number): void {
     const dur = updated.sessionDuration;
-    const date = updated.isRecurring && updated.weekdays[0]
-      ? this.dateForWeekday(updated.weekdays[0])
-      : (updated.startDate ?? '');
+    const date = this.anchorDateOf(updated);
     const slotTimes = generateSlots(updated.startTime, updated.endTime, dur);
 
     const deleteOps = existing.backendSlots.map(s => this.apiService.deleteAvailability(s.backendId));
@@ -2242,9 +2270,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     // semanas em que não acontece.
     const appts = this.appointmentsForBlock(block);
     if (block.backendSlots.length === slots.length && block.backendSlots.every(s => s.backendId > 0)) {
+      const dateKey = this.blockDateKey(block);
       return block.backendSlots.map((s) => {
         const appointment = appts.find(a => a.availabilityId === s.backendId);
-        return { time: s.slotTime, booked: !!appointment, appointment };
+        const closed = !appointment && !!dateKey && !!s.closedDates?.includes(dateKey);
+        return { time: s.slotTime, booked: !!appointment, closed, appointment };
       });
     }
     // Legacy/transition mode: match appointments by slot start time
@@ -2261,6 +2291,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   bookedCount(block: TherapistBlock): number {
     return this.bookedSlotsForBlock(block).filter(s => s.booked).length;
+  }
+
+  /** Vagas do bloco que abrem no dia à vista — as fechadas só nesse dia não contam. */
+  openSlotCount(block: TherapistBlock): number {
+    return this.bookedSlotsForBlock(block).filter(s => !s.closed).length;
+  }
+
+  /**
+   * O dia do bloco na semana à vista: é esse o dia que "Remover horário" fecha
+   * numa vaga recorrente, e é nele que se vê se uma vaga está fechada.
+   */
+  private blockDateKey(block: TherapistBlock): string | undefined {
+    if (!block.isRecurring) return block.startDate;
+    return block.weekdays.length > 0 ? this.dateForWeekday(block.weekdays[0]) : undefined;
   }
 
   hasBookings(block: TherapistBlock): boolean {
@@ -2391,6 +2435,15 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.selectedAppointment.set(appt);
     this.notesDraft.set(appt.notes ?? '');
     this.sheetOpen.set(true);
+    this.scrollPanelToTop();
+  }
+
+  /**
+   * O painel é o mesmo elemento de um bloco para o outro, e o scroll ficava
+   * onde estava: o bloco novo abria a meio, sem o título nem os primeiros campos.
+   */
+  private scrollPanelToTop(): void {
+    this.panelBodies?.forEach(ref => ref.nativeElement.scrollTop = 0);
   }
 
   /**
@@ -2580,6 +2633,18 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** "30/10" — o ano não acrescenta nada num horário desta semana. */
+  private fmtDayMonth(key: string): string {
+    const [, m, d] = key.split('-');
+    return `${d}/${m}`;
+  }
+
+  /** "quinta-feira". */
+  private weekdayLabel(block: TherapistBlock): string {
+    const idx = COL_TO_DOW.indexOf(block.weekdays[0]);
+    return idx >= 0 ? PT_DOW_LONG[idx] : '';
+  }
+
   fmtDateKey(key: string): string {
     const [y, m, d] = key.split('-');
     return `${d}/${m}/${y}`;
@@ -2590,7 +2655,85 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const slot = block.backendSlots[slotIndex];
     if (!slot || this.isSlotBooked(block, slot)) return;
 
-    this.confirmDelete(() => this._doRemoveSlot(block, slotIndex, slot));
+    // Numa semana em que a vaga quinzenal/mensal não ocorre não há dia para fechar.
+    const dateKey = this.blockDateKey(block);
+    const occursThisWeek = block.isRecurring
+      && this.isBlockOccurring(block, COL_TO_DOW.indexOf(block.weekdays[0]));
+    if (!dateKey || !occursThisWeek) {
+      this.confirmDelete(() => this._doRemoveSlot(block, slotIndex, slot));
+      return;
+    }
+
+    // Uma vaga recorrente é uma série inteira no backend. O que se quer quase
+    // sempre é fechar só o dia à vista — apagar a série fica como segunda opção.
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '440px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Remover horário',
+        message: `Horário das ${slot.slotTime} de ${this.weekdayLabel(block)} (série ${this.recurrenceTagLabel(true, block.recurrenceFrequency)}).`,
+        choices: [
+          {
+            value: 'day',
+            icon: 'event_busy',
+            label: `Só em ${this.fmtDayMonth(dateKey)}`,
+            hint: 'O resto da série continua aberto.',
+          },
+          {
+            value: 'series',
+            icon: 'event_repeat',
+            label: 'Toda a série',
+            hint: 'Remove de todas as datas.',
+            danger: true,
+          },
+        ],
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe(choice => {
+      if (choice === 'day') this._closeSlotDate(block, slot, dateKey);
+      else if (choice === 'series') this.confirmDelete(() => this._doRemoveSlot(block, slotIndex, slot));
+    });
+  }
+
+  /** Volta a abrir, no dia à vista, uma vaga recorrente que tinha sido fechada só nesse dia. */
+  reopenSlot(event: Event, block: TherapistBlock, slotIndex: number): void {
+    event.stopPropagation();
+    const slot = block.backendSlots[slotIndex];
+    const dateKey = this.blockDateKey(block);
+    if (!slot || !dateKey) return;
+
+    this.apiService.reopenAvailabilityDate(slot.backendId, dateKey).subscribe({
+      next: () => {
+        this._invalidateSchedulingCache();
+        this._setSlotClosedDates(block.id, slot.backendId,
+          dates => dates.filter(d => d !== dateKey));
+        this.snackbarService.openSnackBar({ message: 'Horário reaberto.' });
+      },
+      error: () => {},
+    });
+  }
+
+  private _closeSlotDate(block: TherapistBlock, slot: BackendSlot, dateKey: string): void {
+    this.apiService.closeAvailabilityDate(slot.backendId, dateKey).subscribe({
+      next: () => {
+        this._invalidateSchedulingCache();
+        this._setSlotClosedDates(block.id, slot.backendId,
+          dates => dates.includes(dateKey) ? dates : [...dates, dateKey]);
+        this.snackbarService.openSnackBar({ message: `Horário fechado em ${this.fmtDateKey(dateKey)}.` });
+      },
+      // A recusa (ex.: já há sessão marcada nesse dia) chega pelo errorInterceptor.
+      error: () => {},
+    });
+  }
+
+  private _setSlotClosedDates(blockId: number, backendId: number, change: (dates: string[]) => string[]): void {
+    this.blocks.update(bs => bs.map(b => b.id !== blockId ? b : {
+      ...b,
+      backendSlots: b.backendSlots.map(s => s.backendId !== backendId ? s : {
+        ...s,
+        closedDates: change(s.closedDates ?? []),
+      }),
+    }));
   }
 
   private _doRemoveSlot(block: TherapistBlock, slotIndex: number, slot: BackendSlot): void {

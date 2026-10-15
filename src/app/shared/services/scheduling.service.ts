@@ -153,6 +153,8 @@ export class SchedulingService {
       // A ocupação é por data: uma vaga quinzenal ocupada numa semana continua
       // livre na seguinte. Saltar a série inteira escondia as semanas livres.
       const booked = new Set(availability.bookedDates ?? []);
+      // Dias que a pessoa profissional fechou só nesta semana — a série continua.
+      const closed = new Set(availability.closedDates ?? []);
 
       const timeSlot = `${availability.startTime} - ${availability.endTime}`;
 
@@ -161,7 +163,7 @@ export class SchedulingService {
         // (abaixo) não pode substituí-la: a paridade de uma vaga quinzenal
         // conta-se a partir da data em que a série começou, e usar o cursor
         // como âncora oferecia justamente a semana errada.
-        const anchor = new Date(availability.startDate);
+        const anchor = new Date(availability.startDate + 'T00:00:00');
         anchor.setHours(0, 0, 0, 0);
 
         let current = new Date(anchor);
@@ -171,7 +173,7 @@ export class SchedulingService {
           current = new Date(now);
         }
 
-        const recurringEnd = new Date(availability.endDate);
+        const recurringEnd = new Date(availability.endDate + 'T00:00:00');
         recurringEnd.setHours(23, 59, 59, 999);
         const end = recurringEnd < maxDate ? recurringEnd : maxDate;
 
@@ -190,6 +192,7 @@ export class SchedulingService {
 
             if (
               !booked.has(key) &&
+              !closed.has(key) &&
               !isWallTimePast(key, availability.startTime, availability.timeZone, nowInstant)
             ) {
               if (!this.timeSlots.has(key)) {
@@ -202,7 +205,7 @@ export class SchedulingService {
           current.setDate(current.getDate() + 1);
         }
       } else if (!availability.isRecurring) {
-        const start = new Date(availability.startDate);
+        const start = new Date(availability.startDate + 'T00:00:00');
         start.setHours(0, 0, 0, 0);
 
         if (start >= now && start <= maxDate) {

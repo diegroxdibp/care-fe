@@ -96,7 +96,7 @@
                       [class.moving-source]="isDraggingMove() && movingBlockId() === block.id"
                       [class.conflicted]="conflictedBlockIds().has(block.id)"
                       [class.pinned]="hasBookings(block)"
-                      [class.full-booked]="bookedCount(block) > 0 && bookedCount(block) === blockSlotCount(block)"
+                      [class.full-booked]="bookedCount(block) > 0 && bookedCount(block) === openSlotCount(block)"
                       [class.non-occurring]="!isBlockOccurring(block, di)"
                       [class.dense]="blockIsDense(block)"
                       [style.top.px]="resizingTopBlockId() === block.id
@@ -120,7 +120,8 @@
                           <div
                             class="b-band"
                             [class.booked]="slot.booked"
-                            [class.free]="!slot.booked"
+                            [class.free]="!slot.booked && !slot.closed"
+                            [class.closed]="slot.closed"
                             [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
                             [class.pending]="slot.appointment?.status === 'PENDING'"
                             [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
@@ -138,6 +139,8 @@
                             @if (slot.booked && slot.appointment) {
                               <span class="bd-svc">{{ slotServiceName(slot.appointment) }}</span>
                               <span class="bd-name">{{ slotPatientFirstName(slot.appointment) }}</span>
+                            } @else if (slot.closed) {
+                              <span class="bd-name">fechado</span>
                             } @else {
                               <span class="bd-name">livre</span>
                             }
@@ -254,7 +257,7 @@
                 }
               </div>
             </div>
-            <div class="be-body">
+            <div class="be-body" #panelBody>
               <ng-container [ngTemplateOutlet]="apptDetailBody" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
             </div>
             <div class="be-actions">
@@ -276,7 +279,7 @@
               </span>
             </div>
 
-            <div class="be-body">
+            <div class="be-body" #panelBody>
               <ng-container [ngTemplateOutlet]="formSections"></ng-container>
             </div>
 
@@ -400,7 +403,7 @@
               [class.resizing]="resizingBlockId() === block.id"
               [class.conflicted]="conflictedBlockIds().has(block.id)"
               [class.pinned]="hasBookings(block)"
-              [class.full-booked]="bookedCount(block) > 0 && bookedCount(block) === blockSlotCount(block)"
+              [class.full-booked]="bookedCount(block) > 0 && bookedCount(block) === openSlotCount(block)"
               [class.non-occurring]="!isBlockOccurring(block, selectedDayIndex())"
               [style.top.px]="blockTopPx(block, MOB_ROW_H)"
               [style.height.px]="resizingBlockId() === block.id
@@ -413,7 +416,8 @@
                   <div
                     class="mb-band"
                     [class.booked]="slot.booked"
-                    [class.free]="!slot.booked"
+                    [class.free]="!slot.booked && !slot.closed"
+                    [class.closed]="slot.closed"
                     [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
                     [class.pending]="slot.appointment?.status === 'PENDING'"
                     [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
@@ -431,6 +435,8 @@
                     @if (slot.booked && slot.appointment) {
                       <span class="bd-svc">{{ slotServiceName(slot.appointment) }}</span>
                       <span class="bd-name">{{ slotPatientFirstName(slot.appointment) }}</span>
+                    } @else if (slot.closed) {
+                      <span class="bd-name">fechado</span>
                     } @else {
                       <span class="bd-name">livre</span>
                     }
@@ -476,7 +482,7 @@
                 <span translate="no" class="material-symbols-outlined">close</span>
               </button>
             </div>
-            <div class="sh-body">
+            <div class="sh-body" #panelBody>
               <div class="be-title" style="margin-bottom:14px">
                 {{ isPendingSeriesChange(appt) ? 'Alteração de série' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
@@ -498,7 +504,7 @@
                 <span translate="no" class="material-symbols-outlined">close</span>
               </button>
             </div>
-            <div class="sh-body">
+            <div class="sh-body" #panelBody>
               <ng-container [ngTemplateOutlet]="formSections"></ng-container>
             </div>
             <div class="sh-foot">
@@ -548,15 +554,15 @@
         <label class="control-label" style="margin:0">Sessões geradas</label>
         <span [class]="'ss-count' + (bookedCount(selectedBlock()!) === 0 ? ' none' : '')">
           @if (bookedCount(selectedBlock()!) === 0) {
-            <span>{{ blockSlotCount(selectedBlock()!) }} livres</span>
+            <span>{{ openSlotCount(selectedBlock()!) }} livres</span>
           } @else {
-            <span>{{ bookedCount(selectedBlock()!) }} de {{ blockSlotCount(selectedBlock()!) }} reservadas</span>
+            <span>{{ bookedCount(selectedBlock()!) }} de {{ openSlotCount(selectedBlock()!) }} reservadas</span>
           }
         </span>
       </div>
       <div class="slot-list">
         @for (slot of bookedSlotsForBlock(selectedBlock()!); track slot.time; let si = $index) {
-          <div [class]="'slot-row ' + (slot.booked ? 'booked' : 'free') + (slot.appointment?.status === 'PENDING' ? ' pending' : '')"
+          <div [class]="'slot-row ' + (slot.booked ? 'booked' : slot.closed ? 'closed' : 'free') + (slot.appointment?.status === 'PENDING' ? ' pending' : '')"
                (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
                [style.cursor]="slot.booked && slot.appointment ? 'pointer' : 'default'">
             @if (slot.booked && slot.appointment) {
@@ -578,6 +584,9 @@
                     <span class="pending-tag">Pendente</span>
                   }
                 </div>
+              } @else if (slot.closed) {
+                <div class="s-name">Fechado neste dia</div>
+                <div class="s-meta">O resto da série continua aberto</div>
               } @else {
                 <div class="s-name">Livre</div>
                 <div class="s-meta">
@@ -596,6 +605,12 @@
                   </button>
                 }
                 <span class="s-chev"><span translate="no" class="material-symbols-outlined">chevron_right</span></span>
+              </div>
+            } @else if (slot.closed) {
+              <div class="s-free-actions">
+                <button class="s-propose" (click)="reopenSlot($event, selectedBlock()!, si)" title="Reabrir neste dia">
+                  <span translate="no" class="material-symbols-outlined">undo</span>
+                </button>
               </div>
             } @else {
               <div class="s-free-actions">
