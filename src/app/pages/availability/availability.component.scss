@@ -2034,27 +2034,6 @@ input[type="number"].field-value {
 .av .appt-detail .ad-actions .btn-cancel .material-symbols-outlined,
 .av .appt-detail .ad-actions .btn-resched .material-symbols-outlined { font-size: 16px; }
 
-.av .appt-detail .ad-notes { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-.av .appt-detail .ad-notes-label {
-  font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.5px;
-}
-.av .appt-detail .ad-notes-input {
-  font-family: var(--font-sans); font-size: 14px; color: var(--color-primary-blue);
-  border: 1px solid var(--color-border); border-radius: 8px; padding: 11px 14px;
-  resize: vertical; outline: none; transition: border-color 0.18s var(--ease-care);
-}
-.av .appt-detail .ad-notes-input:focus { border-color: var(--color-primary-blue); }
-.av .appt-detail .ad-notes-input::placeholder { color: var(--color-muted); }
-.av .appt-detail .ad-notes-actions { display: flex; justify-content: flex-end; }
-.av .appt-detail .btn-save-notes {
-  background: #fff; color: var(--color-primary-blue); border: 1px solid var(--color-primary-blue);
-  border-radius: var(--radius-lg); padding: 8px 16px; font-weight: 600; font-size: 12px;
-  font-family: var(--font-sans); cursor: pointer;
-  transition: background 0.18s var(--ease-care), color 0.18s var(--ease-care);
-}
-.av .appt-detail .btn-save-notes:hover:not(:disabled) { background: var(--color-primary-blue); color: #fff; }
-.av .appt-detail .btn-save-notes:disabled { opacity: 0.5; cursor: not-allowed; }
-
 // ─── Editor date field — custom calendar popover ──────────────────────────────
 
 .av .date-field-wrap {

@@ -284,14 +284,6 @@ export class ApiService {
     );
   }
 
-  updateAppointmentNotes(id: number, notes: string): Observable<Appointment> {
-    return this.http.patch<Appointment>(
-      `${environment.apiUrl}/api/appointments/${id}/notes`,
-      { notes },
-      { withCredentials: true },
-    );
-  }
-
   getVideoSession(appointmentId: number): Observable<VideoSession> {
     return this.http.get<VideoSession>(
       `${environment.apiUrl}/api/appointments/${appointmentId}/video-session`,

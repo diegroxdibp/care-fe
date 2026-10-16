@@ -369,10 +369,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   selectedBlockId = signal<number | null>(null);
   selectedAppointment = signal<Appointment | null>(null);
 
-  // ─ Notas para a pessoa cliente, no painel de detalhe da sessão selecionada
-  notesDraft = signal('');
-  notesSaving = signal(false);
-
   // ─ Editor state
   selectedServiceIds = signal<Set<number>>(new Set());
   editorModality = signal<Modality>(Modality.ANY);
@@ -2433,7 +2429,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   selectSlot(event: Event, appt: Appointment): void {
     event.stopPropagation();
     this.selectedAppointment.set(appt);
-    this.notesDraft.set(appt.notes ?? '');
     this.sheetOpen.set(true);
     this.scrollPanelToTop();
   }
@@ -2462,27 +2457,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   clearSelectedAppointment(): void {
     this.selectedAppointment.set(null);
-    this.notesDraft.set('');
-  }
-
-  saveNotes(appt: Appointment): void {
-    this.notesSaving.set(true);
-    this.apiService.updateAppointmentNotes(appt.id, this.notesDraft()).subscribe({
-      next: (updated) => {
-        this.appointments.update(list =>
-          list.map(a => (a.id === appt.id ? { ...a, notes: updated.notes } : a)),
-        );
-        this.selectedAppointment.update(cur =>
-          cur && cur.id === appt.id ? { ...cur, notes: updated.notes } : cur,
-        );
-        this.notesSaving.set(false);
-        this.snackbarService.openSnackBar({ message: 'Notas salvas.' });
-      },
-      error: () => {
-        this.notesSaving.set(false);
-        this.snackbarService.openSnackBar({ message: 'Erro ao salvar as notas. Tente novamente.' });
-      },
-    });
   }
 
   cancelAppointment(appt: Appointment): void {
