@@ -44,7 +44,7 @@ import {
 import { applyCancellation, CancellationScope } from '../../shared/utils/cancellation.util';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { isPendingSeriesChange, nextSeriesOccurrence, pendingSeriesChangeFor } from '../../shared/utils/series-change.util';
-import { detectBrowserTimezone } from '../../shared/utils/timezones.util';
+import { detectBrowserTimezone, isWallTimePast } from '../../shared/utils/timezones.util';
 import {
   fromApiEndTime,
   minToTime,
@@ -2560,6 +2560,27 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   /**
+   * A primeira sessão da alteração já passou sem resposta: o backend recusa
+   * aceitá-la (error.series.changeExpired), mas ela continua a bloquear uma
+   * alteração nova à mesma série até ser retirada.
+   */
+  isSeriesChangeExpired(change: Appointment): boolean {
+    const zone = change.timeZone || this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    return isWallTimePast(change.startDate, change.startTime.slice(0, 5), zone);
+  }
+
+  /**
+   * Retirar a alteração a partir da própria série. No calendário, a célula
+   * abre sempre a série, e não a alteração por responder; sem isto, uma
+   * alteração esquecida (ou expirada) ficava para sempre a esconder
+   * "Alterar série", sem forma de a tirar.
+   */
+  withdrawPendingChange(event: Event, change: Appointment): void {
+    event.stopPropagation();
+    this.withdrawSeriesChange(change);
+  }
+
+  /**
    * Só uma série confirmada e com sessões ainda por vir se altera. Uma
    * proposta por responder cancela-se e propõe-se de novo.
    */
@@ -2625,7 +2646,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.apiService.deleteAppointment(change.id).subscribe({
         next: () => {
           this.appointments.update(list => list.filter(a => a.id !== change.id));
-          this.selectedAppointment.set(null);
+          // Retirada a partir da série, o painel fica nela: "Alterar série"
+          // volta a aparecer logo ali.
+          this.selectedAppointment.update(cur => (cur?.id === change.id ? null : cur));
           this.snackbarService.openSnackBar({ message: 'Alteração retirada.' });
         },
         error: () => {},

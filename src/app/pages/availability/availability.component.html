@@ -1076,9 +1076,18 @@
     } @else if (canEditSeries(appt)) {
       @if (pendingChangeOf(appt); as change) {
         <p class="ad-series-note">
-          Alteração enviada a partir de {{ fmtDateKey(change.startDate) }} — aguardando a resposta de
-          {{ slotPatientFirstName(appt) }}.
+          @if (isSeriesChangeExpired(change)) {
+            A alteração a partir de {{ fmtDateKey(change.startDate) }} expirou sem resposta de
+            {{ slotPatientFirstName(appt) }}. Retire-a para poder alterar a série de novo.
+          } @else {
+            Alteração enviada a partir de {{ fmtDateKey(change.startDate) }} — aguardando a resposta de
+            {{ slotPatientFirstName(appt) }}.
+          }
         </p>
+        <button class="btn-invite-recurring" (click)="withdrawPendingChange($event, change)">
+          <span translate="no" class="material-symbols-outlined">undo</span>
+          Retirar alteração
+        </button>
       } @else {
         <button class="btn-invite-recurring" (click)="openEditSeriesDialog($event, appt)">
           <span translate="no" class="material-symbols-outlined">event_repeat</span>
