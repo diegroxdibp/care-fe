@@ -70,7 +70,6 @@ export interface BuiltSession {
   isRecurring: boolean;
   duration: string;
   payment: string;
-  notes?: string;
   professionals: SessionCounterpart[];
   /**
    * Proposta recorrente por responder (status PENDING). Ainda não é uma
@@ -454,7 +453,6 @@ export function buildSessions(
         isRecurring: !!appt.isRecurring,
         duration,
         payment,
-        notes: appt.notes,
         professionals,
         pending,
         startInstant: resolved.startInstant,
