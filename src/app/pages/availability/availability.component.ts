@@ -2549,6 +2549,18 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * alteração esquecida (ou expirada) ficava para sempre a esconder
    * "Alterar série", sem forma de a tirar.
    */
+  /**
+   * Na grelha, a célula mostra a série e não a alteração por responder: sem
+   * isto, nada indicava que a série tinha uma alteração à espera — ou uma que
+   * expirou sem ser aceite.
+   */
+  seriesChangeState(appt: Appointment | undefined | null): 'pending' | 'expired' | null {
+    if (!appt || appt.status !== 'CONFIRMED' || !appt.isRecurring) return null;
+    const change = this.pendingChangeOf(appt);
+    if (!change) return null;
+    return this.isSeriesChangeExpired(change) ? 'expired' : 'pending';
+  }
+
   withdrawPendingChange(event: Event, change: Appointment): void {
     event.stopPropagation();
     this.withdrawSeriesChange(change);

@@ -291,6 +291,15 @@ export class ApiService {
     );
   }
 
+  /** Mais minutos na chamada de hoje desta marcação - só a pessoa profissional (ou admin). */
+  extendAppointmentCall(appointmentId: number, minutes: number): Observable<VideoSession> {
+    return this.http.post<VideoSession>(
+      `${environment.apiUrl}/api/appointments/${appointmentId}/extend`,
+      { minutes },
+      { withCredentials: true },
+    );
+  }
+
   createRoom(payload: CreateRoomPayload): Observable<Room> {
     return this.http.post<Room>(
       `${environment.apiUrl}/api/rooms`,

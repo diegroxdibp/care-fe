@@ -623,6 +623,7 @@ input[type="number"].field-value {
       &.remoto { background: var(--color-secondary-green); }
       &.any { background: var(--color-secondary-cyan); }
       &.pending-ring { background: var(--color-white); box-shadow: inset 0 0 0 2.5px var(--color-pending); }
+      &.expired-ring { background: var(--color-white); box-shadow: inset 0 0 0 2.5px var(--color-error); }
     }
 
     .material-symbols-outlined {
@@ -1735,6 +1736,15 @@ input[type="number"].field-value {
   box-shadow: inset 0 0 0 2px var(--color-pending);
 }
 
+// Série com uma alteração que expirou sem resposta: mesmo anel, na cor de erro.
+.av .block .b-band.change-expired::after,
+.av .m-block .mb-band.change-expired::after {
+  content: ""; position: absolute; inset: 0; z-index: 2;
+  pointer-events: none;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px var(--color-error);
+}
+
 // Biweekly/monthly blocks on a week they don't actually occur - dimmed, with a note,
 // rather than hidden, so the professional still sees where the recurring slot lives.
 // Numa semana em que a vaga não ocorre, aquele horário está de facto livre.
@@ -1814,6 +1824,15 @@ input[type="number"].field-value {
   padding: 1px 7px; border-radius: var(--radius-pill);
   background: var(--color-pending-soft); color: var(--color-pending-ink);
   font-size: 10px; font-weight: 700; letter-spacing: 0.2px;
+
+  &.expired {
+    background: color-mix(in srgb, var(--color-error) 10%, var(--color-white));
+    color: var(--color-error);
+  }
+}
+
+.av .slot-row.change-expired {
+  background: color-mix(in srgb, var(--color-error) 6%, var(--color-white));
 }
 
 .av .slot-row .s-free-actions {

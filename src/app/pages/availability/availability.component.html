@@ -50,6 +50,7 @@
               </span>
               <span class="lg-sep"></span>
               <span class="lg"><span class="sw pending-ring"></span>Proposta pendente</span>
+              <span class="lg"><span class="sw expired-ring"></span>Alteração não aceita</span>
             </div>
           </div>
 
@@ -123,7 +124,8 @@
                             [class.free]="!slot.booked && !slot.closed"
                             [class.closed]="slot.closed"
                             [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
-                            [class.pending]="slot.appointment?.status === 'PENDING'"
+                            [class.pending]="slot.appointment?.status === 'PENDING' || seriesChangeState(slot.appointment) === 'pending'"
+                            [class.change-expired]="seriesChangeState(slot.appointment) === 'expired'"
                             [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                             [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
                             (click)="slot.booked && slot.appointment ? selectBandSlot($event, block, slot.appointment) : null"
@@ -419,7 +421,8 @@
                     [class.free]="!slot.booked && !slot.closed"
                     [class.closed]="slot.closed"
                     [class.sel-slot]="slot.appointment && slot.appointment.id === selectedAppointment()?.id"
-                    [class.pending]="slot.appointment?.status === 'PENDING'"
+                    [class.pending]="slot.appointment?.status === 'PENDING' || seriesChangeState(slot.appointment) === 'pending'"
+                    [class.change-expired]="seriesChangeState(slot.appointment) === 'expired'"
                     [class.appt-presencial]="slot.appointment ? apptModalityLabel(slot.appointment) === 'presencial' : false"
                     [class.appt-remoto]="slot.appointment ? apptModalityLabel(slot.appointment) === 'remoto' : false"
                     (click)="slot.booked && slot.appointment ? selectBandSlot($event, block, slot.appointment) : null"
@@ -562,7 +565,7 @@
       </div>
       <div class="slot-list">
         @for (slot of bookedSlotsForBlock(selectedBlock()!); track slot.time; let si = $index) {
-          <div [class]="'slot-row ' + (slot.booked ? 'booked' : slot.closed ? 'closed' : 'free') + (slot.appointment?.status === 'PENDING' ? ' pending' : '')"
+          <div [class]="'slot-row ' + (slot.booked ? 'booked' : slot.closed ? 'closed' : 'free') + (slot.appointment?.status === 'PENDING' || seriesChangeState(slot.appointment) === 'pending' ? ' pending' : '') + (seriesChangeState(slot.appointment) === 'expired' ? ' change-expired' : '')"
                (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
                [style.cursor]="slot.booked && slot.appointment ? 'pointer' : 'default'">
             @if (slot.booked && slot.appointment) {
@@ -582,6 +585,10 @@
                   </span>
                   @if (slot.appointment.status === 'PENDING') {
                     <span class="pending-tag">Pendente</span>
+                  } @else if (seriesChangeState(slot.appointment) === 'pending') {
+                    <span class="pending-tag">Alteração pendente</span>
+                  } @else if (seriesChangeState(slot.appointment) === 'expired') {
+                    <span class="pending-tag expired">Alteração não aceita</span>
                   }
                 </div>
               } @else if (slot.closed) {

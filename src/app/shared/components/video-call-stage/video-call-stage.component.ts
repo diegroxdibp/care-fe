@@ -116,8 +116,13 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   @Input({ required: true }) fetchSession!: () => Observable<VideoSession>;
   @Input() title: string | null = null;
   @Input() leaveRoute: string[] = ['/dashboard'];
-  /** Só as salas avulsas passam isto - a janela de uma marcação não se estende. */
-  @Input() extendSession: ((minutes: number) => Observable<{ closesAt: string }>) | null = null;
+  /**
+   * Como estender a chamada. O backend decide quem pode (session.canExtend):
+   * numa sala avulsa quem a criou, numa marcação a pessoa profissional.
+   * Numa marcação o fim combinado (endsAt) e o fecho são instantes diferentes,
+   * por isso vêm os dois.
+   */
+  @Input() extendSession: ((minutes: number) => Observable<{ closesAt: string; endsAt?: string }>) | null = null;
   /** Também só as salas avulsas - tira o acesso no backend antes de tirar da chamada. */
   @Input() removeParticipant: ((userId: number) => Observable<void>) | null = null;
 
@@ -441,7 +446,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       next: (room) => {
         this.extending.set(false);
         this.extendMenuOpen.set(false);
-        this.setWindow(room.closesAt);
+        this.setWindow(room.closesAt, room.endsAt);
         this.call?.sendAppMessage({ kind: ROOM_EXTENDED_KIND }, '*');
       },
       error: (err: HttpErrorResponse) => {

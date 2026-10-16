@@ -12,6 +12,7 @@ import { VideoCallStageComponent } from '../../shared/components/video-call-stag
   template: `
     <app-video-call-stage
       [fetchSession]="fetchSession"
+      [extendSession]="extendSession"
       [title]="title()"
       [leaveRoute]="['/dashboard']"
     />
@@ -27,6 +28,7 @@ export class AppointmentRoomComponent implements OnInit {
   readonly title = signal<string | null>(null);
 
   readonly fetchSession = () => this.apiService.getVideoSession(this.appointmentId);
+  readonly extendSession = (minutes: number) => this.apiService.extendAppointmentCall(this.appointmentId, minutes);
 
   ngOnInit(): void {
     const me = this.sessionService.user();

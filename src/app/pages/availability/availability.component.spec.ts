@@ -122,9 +122,22 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
       .find(b => b.textContent?.includes(label));
   }
 
+  it('marca a série com uma alteração ainda por responder', () => {
+    component.appointments.update(list =>
+      list.map(a => (a.id === 83 ? { ...a, startDate: '2026-10-29' } : a)));
+    fixture.detectChanges();
+
+    expect(component.seriesChangeState(series)).toBe('pending');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.b-band.pending')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.change-expired')).toBeNull();
+  });
+
   it('atualiza o painel e a grelha logo depois de retirar', () => {
     const block = component.blocks()[0];
     expect(component.hasPendingProposal(block)).toBe(true);
+    // A célula mostra a série; a borda diz que a alteração expirou sem resposta.
+    expect(component.seriesChangeState(series)).toBe('expired');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.b-band.change-expired')).not.toBeNull();
 
     component.selectSlot(new Event('click'), series);
     fixture.detectChanges();
@@ -141,6 +154,7 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     expect(button('Alterar série')).toBeDefined();
     expect(component.hasPendingProposal(component.blocks()[0])).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('.pending')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.change-expired')).toBeNull();
     // Nada foi pedido de novo ao servidor: é o estado local que se atualiza.
     expect(apiService['getProfessionalAppointments']).toHaveBeenCalledTimes(1);
   });

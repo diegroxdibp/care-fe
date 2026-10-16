@@ -200,6 +200,26 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
       jest.advanceTimersByTime(1_000); // 18:05
       expect(component.state()).toBe('ended');
     });
+
+    it('a pessoa profissional estende +30: o fim passa às 18:30 e o fecho às 18:35', async () => {
+      const extendSession = jest.fn(() =>
+        of({ closesAt: '2026-10-06T18:35:00Z', endsAt: '2026-10-06T18:30:00Z' }));
+      await join({ session: { ...appointmentSession(), canExtend: true }, extendSession });
+      expect(component.canExtend()).toBe(true);
+
+      component.extend(30);
+
+      expect(extendSession).toHaveBeenCalledWith(30);
+      expect(component.endsAtLabel()).toBe('15:30');
+      expect(component.closesAtLabel()).toBe('15:35');
+      expect(fakeCall.sendAppMessage).toHaveBeenCalledWith({ kind: 'room-extended' }, '*');
+
+      // O fecho antigo (18:05) já não corta a chamada, nem há aviso às 17:55.
+      at('2026-10-06T17:55:00Z');
+      expect(component.endingSoon()).toBe(false);
+      jest.advanceTimersByTime(10 * 60_000 + 1_000);
+      expect(component.state()).toBe('in-call');
+    });
   });
 
   it('ao chegar ao fecho mostra que o horário terminou, em vez de voltar ao painel sem explicação', async () => {
@@ -231,7 +251,7 @@ describe('VideoCallStageComponent — horário de fecho da sala', () => {
     expect(component.canExtend()).toBe(false);
   });
 
-  it('numa marcação (sem extendSession) não há botão de estender', async () => {
+  it('sem extendSession não há botão de estender', async () => {
     await join({ session: session({ canExtend: true }) });
     expect(component.canExtend()).toBe(false);
   });
