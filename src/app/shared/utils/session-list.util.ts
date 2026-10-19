@@ -68,6 +68,8 @@ export interface BuiltSession {
   price?: string;
   recurrence: string;
   isRecurring: boolean;
+  /** Um lugar numa sessão de grupo — cancelar é deixar esse lugar (ou sair do grupo). */
+  isGroup: boolean;
   duration: string;
   payment: string;
   professionals: SessionCounterpart[];
@@ -459,7 +461,7 @@ export function buildSessions(
         month: MONTHS[resolved.date.getMonth()],
         who,
         whoInitials: initialsFor(who),
-        service: serviceName,
+        service: appt.group ? `${serviceName} · em grupo` : serviceName,
         startTime: resolved.startTime,
         endTime: resolved.endTime,
         mode,
@@ -469,6 +471,7 @@ export function buildSessions(
         price,
         recurrence,
         isRecurring: !!appt.isRecurring,
+        isGroup: !!appt.group,
         duration,
         payment,
         professionals,

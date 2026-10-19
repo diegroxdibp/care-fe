@@ -9,6 +9,8 @@ export interface CancelSessionDialogData {
   /** Quando definido, pede (obrigatória) a mensagem que segue para a pessoa cliente. */
   justificationLabel?: string;
   justificationPlaceholder?: string;
+  /** Um lugar num grupo: "esta e as seguintes" é sair do grupo, e diz-se assim. */
+  group?: boolean;
 }
 
 export type CancelSessionScope = CancellationScope;
@@ -28,15 +30,19 @@ export interface CancelSessionDialogResult {
   imports: [ReactiveFormsModule, MatDialogModule],
   template: `
     <div class="dialog">
-      <h3>Cancelar sessão</h3>
+      <h3>{{ data.group ? 'Cancelar o seu lugar' : 'Cancelar sessão' }}</h3>
       <p class="body">
-        Esta sessão faz parte de uma série recorrente. O que deseja cancelar?
+        @if (data.group) {
+          Você é membro deste grupo. O grupo continua para as outras pessoas.
+        } @else {
+          Esta sessão faz parte de uma série recorrente. O que deseja cancelar?
+        }
       </p>
 
       <label class="opt">
         <input type="radio" value="SINGLE" [formControl]="scopeCtrl" />
         <span>
-          <strong>Apenas esta sessão</strong>
+          <strong>{{ data.group ? 'Só esta data' : 'Apenas esta sessão' }}</strong>
           <small>{{ data.occurrenceLabel }}. As demais se mantêm.</small>
         </span>
       </label>
@@ -44,8 +50,12 @@ export interface CancelSessionDialogResult {
       <label class="opt">
         <input type="radio" value="THIS_AND_FOLLOWING" [formControl]="scopeCtrl" />
         <span>
-          <strong>Esta e todas as seguintes</strong>
-          <small>Encerra a série a partir desta data. As sessões passadas se mantêm.</small>
+          <strong>{{ data.group ? 'Sair do grupo a partir desta data' : 'Esta e todas as seguintes' }}</strong>
+          <small>
+            {{ data.group
+              ? 'Deixa o seu lugar nas próximas sessões. As que já aconteceram se mantêm.'
+              : 'Encerra a série a partir desta data. As sessões passadas se mantêm.' }}
+          </small>
         </span>
       </label>
 

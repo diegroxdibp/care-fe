@@ -613,7 +613,10 @@ export class DashboardPageComponent implements OnInit {
       ? this.dialog.open(CancelSessionDialogComponent, {
           width: '460px',
           panelClass: 'care-dialog',
-          data: { occurrenceLabel: `${session.fullDow}, ${session.day} de ${session.month}` },
+          data: {
+            occurrenceLabel: `${session.fullDow}, ${session.day} de ${session.month}`,
+            group: session.isGroup,
+          },
         })
       : this.dialog.open(ConfirmDialogComponent, {
           width: '440px',

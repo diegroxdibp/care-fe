@@ -408,3 +408,17 @@ describe('canJoinSession / isCallOvertime — chamada estendida', () => {
     expect(isCallOvertime(session, new Date('2026-10-06T10:02:00Z'))).toBe(false);
   });
 });
+
+describe('buildSessions — lugar num grupo', () => {
+  it('marca a sessão como de grupo e di-lo no serviço', () => {
+    const [session] = buildSessions([makeAppointment({ group: true })], [SERVICE], options());
+    expect(session.isGroup).toBe(true);
+    expect(session.service).toContain('· em grupo');
+  });
+
+  it('uma sessão individual fica como estava', () => {
+    const [session] = buildSessions([makeAppointment()], [SERVICE], options());
+    expect(session.isGroup).toBe(false);
+    expect(session.service).not.toContain('grupo');
+  });
+});

@@ -53,4 +53,6 @@ export interface Appointment {
    * ocorrência (yyyy-MM-dd, no fuso da marcação) e minutos a mais.
    */
   callExtensions?: { occurrenceDate: string; extraMinutes: number }[];
+  /** Sessão de uma vaga de grupo: a pessoa cliente tem um lugar, não a vaga. */
+  group?: boolean;
 }
