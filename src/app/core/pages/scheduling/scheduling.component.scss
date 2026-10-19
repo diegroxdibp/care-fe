@@ -1021,3 +1021,20 @@
 
   @media (max-width: 640px) { width: 100%; }
 }
+
+// Vaga de grupo: quantos lugares sobram nesse dia.
+.slot-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-tint);
+  color: var(--color-secondary-indigo);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+
+  .material-symbols-outlined { font-size: 15px; }
+}

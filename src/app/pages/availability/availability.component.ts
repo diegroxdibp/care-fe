@@ -64,6 +64,11 @@ import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Appointment } from '../../shared/models/appointment.model';
 import { Invitation, SlotVisibility } from '../../shared/models/invitation.model';
 import { invitationAsAppointment } from '../../shared/utils/invitation.util';
+import {
+  GroupDateMoveDialogComponent,
+  GroupDateMoveDialogData,
+  GroupDateMoveDialogResult,
+} from '../../shared/components/group-date-move-dialog/group-date-move-dialog.component';
 import { ScreenSizeService } from '../../shared/services/screen-size.service';
 import { SessionService } from '../../shared/services/session.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
@@ -220,7 +225,12 @@ interface PreviewBlock {
 
 interface SlotInfo {
   time: string;
+  /** Alguém tem lugar (numa vaga individual: a vaga está tomada). */
   booked: boolean;
+  /** Não cabe mais ninguém: numa vaga individual igual a booked, num grupo só com os lugares todos. */
+  full?: boolean;
+  /** Todas as pessoas com lugar nessa data — num grupo, mais do que uma. */
+  appointments?: Appointment[];
   /** A vaga recorrente foi fechada só no dia que está à vista. */
   closed?: boolean;
   appointment?: Appointment;
@@ -253,7 +263,15 @@ interface TherapistBlock {
   priceBRL?: number;
   /** Pública aparece no Agendar; privada só se preenche por convite. */
   visibility: SlotVisibility;
+  /** Individual (uma pessoa por data) ou de grupo (até `capacity`). */
+  format: SessionFormat;
+  capacity: number;
 }
+
+type SessionFormat = 'INDIVIDUAL' | 'GROUP';
+
+/** O teto de lugares de um grupo — o mesmo do backend (AvailabilityService.MAX_GROUP_CAPACITY). */
+const MAX_GROUP_CAPACITY = 20;
 
 // ─── Backend → frontend enum maps ─────────────────────────────────────────────
 
@@ -378,6 +396,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   editorModality = signal<Modality>(Modality.ANY);
   editorFrequency = signal<'once' | 'weekly'>('weekly');
   editorVisibility = signal<SlotVisibility>('PUBLIC');
+  editorFormat = signal<SessionFormat>('INDIVIDUAL');
+  /** Texto do campo — validado em capacityErrorMessage. */
+  editorCapacity = signal<string>('8');
   editorRecurrencePattern = signal<RecurrenceFrequency>(RecurrenceFrequency.WEEKLY);
   selectedWeekdays = signal<Set<DayOfWeek>>(new Set());
   editorDate = signal<string>('');
@@ -569,8 +590,33 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * de uma vaga só por se abrir o editor).
    */
   readonly editorServices = computed(() =>
-    this.services().filter(s => s.active !== false || this.selectedServiceIds().has(s.id)),
+    this.services()
+      .filter(s => (String(s.format) === 'GROUP' ? 'GROUP' : 'INDIVIDUAL') === this.editorFormat())
+      .filter(s => s.active !== false || this.selectedServiceIds().has(s.id)),
   );
+
+  /** Lugares de um grupo: 2 a 20. Só se mostra depois de tentar guardar. */
+  readonly capacityErrorMessage = computed<string | null>(() => {
+    if (!this.attemptedSave() || this.editorFormat() !== 'GROUP') return null;
+    const n = Number(this.editorCapacity());
+    return Number.isInteger(n) && n >= 2 && n <= MAX_GROUP_CAPACITY
+      ? null
+      : `Um grupo tem de ter entre 2 e ${MAX_GROUP_CAPACITY} lugares.`;
+  });
+
+  private capacityValue(): number {
+    return this.editorFormat() === 'GROUP' ? Number(this.editorCapacity()) : 1;
+  }
+
+  /**
+   * Individual ou grupo muda que serviços cabem na vaga: os do outro formato
+   * saem da seleção (o backend recusa-os) e entram os deste.
+   */
+  setEditorFormat(format: SessionFormat): void {
+    if (this.editorFormat() === format) return;
+    this.editorFormat.set(format);
+    this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
+  }
 
   readonly selectedBlock = computed(() =>
     this.blocks().find(b => b.id === this.selectedBlockId()) ?? null,
@@ -971,6 +1017,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorPrice.set(formatPriceForEditor(block.price, this.decimalSeparator));
     this.editorPriceBRL.set(formatPriceForEditor(block.priceBRL, this.decimalSeparator));
     this.editorVisibility.set(block.visibility);
+    this.editorFormat.set(block.format);
+    this.editorCapacity.set(String(block.format === 'GROUP' ? block.capacity : 8));
   }
 
   startMove(event: PointerEvent, block: TherapistBlock, colIndex: number): void {
@@ -1079,7 +1127,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const slotEnd = minToTime(timeToMin(slotStart) + dur);
           return {
             id: s.backendId,
-            slot: this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility),
+            slot: this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility, block.format, block.capacity),
           };
         });
         this.apiService.updateAvailabilityBlock(edits).subscribe({
@@ -1223,6 +1271,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorPrice.set('');
     this.editorPriceBRL.set('');
     this.editorVisibility.set('PUBLIC');
+    this.editorFormat.set('INDIVIDUAL');
+    this.editorCapacity.set('8');
     this.attemptedSave.set(false);
   }
 
@@ -1337,7 +1387,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const existing = existingId !== null ? this.blocks().find(b => b.id === existingId) : undefined;
     const isLockedByBookings = this.isEditingLockedBlock();
 
-    const formError = this.serviceErrorMessage() || this.localErrorMessage()
+    const formError = this.capacityErrorMessage() || this.serviceErrorMessage() || this.localErrorMessage()
       || this.priceErrorMessage() || this.priceBRLErrorMessage()
       || this.weekdayErrorMessage() || this.dateErrorMessage();
     if (formError) {
@@ -1372,6 +1422,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         price: isLockedByBookings ? existing.price : parsePriceInput(this.editorPrice(), this.decimalSeparator),
         priceBRL: isLockedByBookings ? existing.priceBRL : parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
         visibility: this.editorVisibility(),
+        // Com sessões marcadas o formato fica; os lugares mudam à parte (_syncCapacity).
+        format: isLockedByBookings ? existing.format : this.editorFormat(),
+        capacity: this.capacityValue(),
       };
 
       if (!this.validateHonorsBookings(updated)) {
@@ -1396,6 +1449,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         // Ao contrário do resto, pública/privada muda mesmo com sessões marcadas.
         if (existing.visibility !== updated.visibility) {
           this._syncVisibility(updated, existingId);
+        }
+        if (existing.format === 'GROUP' && existing.capacity !== updated.capacity) {
+          this._syncCapacity(existing, updated, existingId);
         }
       } else {
         this._deleteAndRecreateBlock(existing, updated, existingId);
@@ -1536,7 +1592,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(b.endTime, newEnd, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility, b.format, b.capacity,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1647,7 +1703,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(newStart, b.startTime, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility, b.format, b.capacity,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1833,6 +1889,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       price: parsePriceInput(this.editorPrice(), this.decimalSeparator),
       priceBRL: parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
       visibility: this.editorVisibility(),
+      format: this.editorFormat(),
+      capacity: this.capacityValue(),
     };
 
     this.blocks.update(bs => [...bs, tempBlock]);
@@ -1847,6 +1905,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
           isRecurring ? this.editorRecurrencePattern() : undefined,
           this.editorVisibility(),
+          this.editorFormat(),
+          this.capacityValue(),
         ),
       )
     );
@@ -1892,6 +1952,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     priceBRL?: number,
     recurrenceFrequency?: RecurrenceFrequency,
     visibility: SlotVisibility = 'PUBLIC',
+    format: SessionFormat = 'INDIVIDUAL',
+    capacity = 1,
   ): AvailabilityPayload {
     return {
       professionalServiceIds: services.map(s => s.id),
@@ -1909,6 +1971,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         : undefined,
       modality: toBackendModality(modality),
       visibility,
+      format,
+      capacity: format === 'GROUP' ? capacity : undefined,
     };
   }
 
@@ -2019,7 +2083,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         const sameModality = normalizeModality(av.modality) === normalizeModality(last.modality);
         // Uma vaga privada e uma pública nunca são o mesmo bloco: mudam de
         // forma diferente (só a privada aceita convites fora do Agendar).
-        const sameVisibility = (av.visibility ?? 'PUBLIC') === (last.visibility ?? 'PUBLIC');
+        const sameVisibility = (av.visibility ?? 'PUBLIC') === (last.visibility ?? 'PUBLIC')
+          && (av.format ?? 'INDIVIDUAL') === (last.format ?? 'INDIVIDUAL')
+          && (av.capacity ?? 1) === (last.capacity ?? 1);
         if (sameDay && sameModality && sameVisibility && av.startTime === last.endTime
           && this._sameServiceSet(av.services, last.services)) {
           group.push(av);
@@ -2061,6 +2127,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       price: first.price,
       priceBRL: first.priceBRL,
       visibility: first.visibility ?? 'PUBLIC',
+      format: first.format ?? 'INDIVIDUAL',
+      capacity: first.capacity ?? 1,
     };
   }
 
@@ -2112,7 +2180,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return settleAll(slotTimes.map(t =>
       this.apiService.createAvailability(this.buildSlotPayload(
         block.services, block.modality, block.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-        block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility,
+        block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility, block.format, block.capacity,
       )),
     ));
   }
@@ -2123,6 +2191,92 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ever appending at the end) correctly handles growing/shrinking from either edge, and
   // even both at once. validateHonorsBookings() has already rejected any change that would
   // strand a booked slot outside the new grid, so every slot in `toRemove` is guaranteed free.
+  /** Lugares de cada vaga do grupo — vale mesmo com sessões marcadas. */
+  private _syncCapacity(existing: TherapistBlock, updated: TherapistBlock, blockId: number): void {
+    const ops = updated.backendSlots
+      .filter(s => s.backendId > 0)
+      .map(s => this.apiService.changeAvailabilityCapacity(s.backendId, updated.capacity));
+    if (ops.length === 0) return;
+    forkJoin(ops).subscribe({
+      next: () => this.snackbarService.openSnackBar({ message: `O grupo agora tem ${updated.capacity} lugares.` }),
+      // O interceptor já diz em que dia há mais pessoas do que os lugares novos.
+      error: () => this.blocks.update(bs => bs.map(b => b.id === blockId ? { ...b, capacity: existing.capacity } : b)),
+    });
+  }
+
+  /** "terça, 27/10 · 18:00" — a data do grupo em vista, para os diálogos. */
+  private groupDateLabel(block: TherapistBlock, slotTime: string): string {
+    const key = this.blockDateKey(block) ?? '';
+    const d = new Date(key + 'T00:00:00');
+    const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
+    return `${dow}, ${this.fmtDayMonth(key)} · ${slotTime}`;
+  }
+
+  cancelGroupDate(event: Event, block: TherapistBlock, slotIndex: number): void {
+    event.stopPropagation();
+    const slot = block.backendSlots[slotIndex];
+    const date = this.blockDateKey(block);
+    const people = this.bookedSlotsForBlock(block)[slotIndex]?.appointments?.length ?? 0;
+    if (!slot || !date) return;
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Cancelar esta data do grupo',
+        message: `${this.groupDateLabel(block, slot.slotTime)}: ${people} ${people === 1 ? 'pessoa é avisada' : 'pessoas são avisadas'} `
+          + 'como num cancelamento individual, e a data fecha. As outras datas do grupo continuam.',
+        confirmLabel: 'Cancelar data',
+        justificationLabel: 'Motivo (vai para as pessoas do grupo):',
+        justificationPlaceholder: 'Ex.: feriado, viagem.',
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe((result: ConfirmDialogResult | false) => {
+      if (!result) return;
+      this.apiService.cancelGroupDate(slot.backendId, date, result.justification).subscribe({
+        next: (r) => {
+          this.snackbarService.openSnackBar({ message: `Data cancelada. ${r.clients} ${r.clients === 1 ? 'pessoa avisada' : 'pessoas avisadas'}.` });
+          this.loadInitialData();
+        },
+        error: () => {},
+      });
+    });
+  }
+
+  moveGroupDate(event: Event, block: TherapistBlock, slotIndex: number): void {
+    event.stopPropagation();
+    const slot = block.backendSlots[slotIndex];
+    const date = this.blockDateKey(block);
+    const people = this.bookedSlotsForBlock(block)[slotIndex]?.appointments?.length ?? 0;
+    const professionalId = this.sessionService.user()?.id;
+    if (!slot || !date || !professionalId) return;
+    this.apiService.getAvailabilitiesByProfessionalId(professionalId).subscribe({
+      next: (avails) => {
+        const ref = this.dialog.open(GroupDateMoveDialogComponent, {
+          width: '460px',
+          panelClass: 'care-dialog',
+          data: {
+            fromLabel: this.groupDateLabel(block, slot.slotTime),
+            fromAvailabilityId: slot.backendId,
+            fromDate: date,
+            people,
+            groupSlots: avails.filter(a => a.format === 'GROUP'),
+          } satisfies GroupDateMoveDialogData,
+        });
+        ref.afterClosed().subscribe((result: GroupDateMoveDialogResult | null) => {
+          if (!result) return;
+          this.apiService.moveGroupDate(slot.backendId, date, result.targetAvailabilityId, result.targetDate).subscribe({
+            next: (r) => {
+              this.snackbarService.openSnackBar({ message: `Data do grupo mudada. ${r.clients} ${r.clients === 1 ? 'pessoa avisada' : 'pessoas avisadas'}.` });
+              this.loadInitialData();
+            },
+            error: () => {},
+          });
+        });
+      },
+      error: () => {},
+    });
+  }
+
   /** Pública/privada de cada vaga do bloco — vale mesmo com sessões marcadas. */
   private _syncVisibility(updated: TherapistBlock, blockId: number): void {
     const ops = updated.backendSlots
@@ -2167,7 +2321,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (toAddTimes.length > 0) {
       const createOps = toAddTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
-          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency, existing.visibility,
+          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency, existing.visibility, existing.format, existing.capacity,
         ))
       );
       forkJoin(createOps).subscribe({
@@ -2218,7 +2372,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       const createOps = slotTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
           updated.services, updated.modality, updated.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-          updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency, updated.visibility,
+          updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency, updated.visibility, updated.format, updated.capacity,
         )),
       );
 
@@ -2324,9 +2478,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (block.backendSlots.length === slots.length && block.backendSlots.every(s => s.backendId > 0)) {
       const dateKey = this.blockDateKey(block);
       return block.backendSlots.map((s) => {
-        const appointment = appts.find(a => a.availabilityId === s.backendId);
+        // Num grupo várias pessoas partilham a vaga nessa data.
+        const appointments = appts.filter(a => a.availabilityId === s.backendId);
+        const appointment = appointments[0];
         const closed = !appointment && !!dateKey && !!s.closedDates?.includes(dateKey);
-        return { time: s.slotTime, booked: !!appointment, closed, appointment };
+        const full = appointments.length >= block.capacity;
+        return { time: s.slotTime, booked: !!appointment, full, closed, appointment, appointments };
       });
     }
     // Legacy/transition mode: match appointments by slot start time
@@ -2338,7 +2495,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   /** Ocupação de uma vaga concreta, resolvida a partir das sessões da semana. */
   private isSlotBooked(block: TherapistBlock, slot: BackendSlot): boolean {
-    return this.appointmentsForBlock(block).some(a => a.availabilityId === slot.backendId);
+    // "Tomada" é cheia: num grupo ainda se convida enquanto houver lugar.
+    return this.appointmentsForBlock(block).filter(a => a.availabilityId === slot.backendId).length >= block.capacity;
   }
 
   bookedCount(block: TherapistBlock): number {
@@ -2504,7 +2662,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * da lista de "Sessões geradas".
    */
   selectBandSlot(event: Event, block: TherapistBlock, appt: Appointment): void {
-    if (this.bookedSlotsForBlock(block).length === 1) {
+    // Num grupo a faixa é de várias pessoas: abre-se o bloco, com a lista.
+    if (block.format !== 'GROUP' && this.bookedSlotsForBlock(block).length === 1) {
       this.selectSlot(event, appt);
     } else {
       this.selectBlock(event, block);

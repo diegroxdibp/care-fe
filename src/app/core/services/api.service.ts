@@ -19,6 +19,9 @@ export interface AvailabilityPayload {
   price?: number;
   priceBRL?: number;
   visibility?: 'PUBLIC' | 'PRIVATE';
+  format?: 'INDIVIDUAL' | 'GROUP';
+  /** Só numa vaga de grupo (2 a 20). */
+  capacity?: number;
 }
 import { Roles } from '../../shared/enums/roles.enum';
 import { AppointmentPayload } from '../../shared/models/appointment-payload.model';
@@ -346,6 +349,31 @@ export class ApiService {
 
   withdrawInvitation(id: number): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/api/invitations/${id}`, { withCredentials: true });
+  }
+
+  /** Lugares de uma vaga de grupo — subir sempre; baixar só se nenhuma data ficar acima. */
+  changeAvailabilityCapacity(id: number, capacity: number): Observable<AvailabilityModel> {
+    return this.http.put<AvailabilityModel>(
+      `${environment.apiUrl}/api/availability/${id}/capacity`, { capacity }, { withCredentials: true },
+    );
+  }
+
+  /** Cancela uma data inteira de um grupo: cada pessoa é avisada, e a data fecha. */
+  cancelGroupDate(availabilityId: number, date: string, justification?: string): Observable<{ clients: number }> {
+    return this.http.post<{ clients: number }>(
+      `${environment.apiUrl}/api/availability/${availabilityId}/dates/${date}/cancel`,
+      { justification }, { withCredentials: true },
+    );
+  }
+
+  /** Muda uma data inteira de um grupo para outra vaga de grupo com lugar para todos. */
+  moveGroupDate(
+    availabilityId: number, date: string, targetAvailabilityId: number, targetDate: string,
+  ): Observable<{ clients: number }> {
+    return this.http.post<{ clients: number }>(
+      `${environment.apiUrl}/api/availability/${availabilityId}/dates/${date}/move`,
+      { targetAvailabilityId, targetDate }, { withCredentials: true },
+    );
   }
 
   /** Pública ou privada — vale mesmo com sessões marcadas na vaga. */

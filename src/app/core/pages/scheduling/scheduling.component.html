@@ -19,7 +19,7 @@
         <div class="field-inner">
           <span class="field-label">Escolha um serviço <span class="req">*</span></span>
           <span class="field-value" [class.placeholder]="!selectedService">
-            {{ selectedService ? serviceName(selectedService.name) : 'Selecione' }}
+            {{ selectedService ? serviceLabel(selectedService) : 'Selecione' }}
           </span>
         </div>
         <span translate="no" class="material-symbols-outlined field-icon">expand_more</span>
@@ -38,7 +38,7 @@
               class="dropdown-option"
               [class.selected]="selectedService?.id === svc.id"
               (click)="selectService(svc)">
-              <span class="option-name">{{ serviceName(svc.name) }}</span>
+              <span class="option-name">{{ serviceLabel(svc) }}</span>
               @if (svc.price) {
                 <span class="option-meta">{{ svc.price }}</span>
               }
@@ -175,6 +175,12 @@
 
               <button type="button" class="slot-header" (click)="toggleSlot(slot.id)">
                 <span class="slot-time">{{ fmtTime(slot.startTime, slot.timeZone) }} – {{ fmtTime(slot.endTime, slot.timeZone) }}</span>
+                @if (slot.format === 'GROUP') {
+                  <span class="slot-group">
+                    <span translate="no" class="material-symbols-outlined">groups</span>
+                    Grupo · {{ seatsLeft(slot, selectedDay!) }} {{ seatsLeft(slot, selectedDay!) === 1 ? 'vaga' : 'vagas' }}
+                  </span>
+                }
 
                 <span class="slot-affordances">
                   @for (m of modalityWords(slot); track m; let last = $last) {

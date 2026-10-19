@@ -114,9 +114,11 @@ export function firstSeriesConflict(
     recurrenceFrequency: frequency,
     excludedDates: [],
   };
+  // Ocupada é cheia: uma pessoa numa vaga individual, a capacidade num grupo.
+  const capacity = slot.capacity ?? 1;
   for (let key = startKey; key <= horizon; key = addDays(key, 1)) {
     if (!seriesOccursOn(proposed, key)) continue;
-    if (others.some(o => seriesOccursOn(o, key))) return key;
+    if (others.filter(o => seriesOccursOn(o, key)).length >= capacity) return key;
   }
   return null;
 }

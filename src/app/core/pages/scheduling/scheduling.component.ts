@@ -117,7 +117,8 @@ export class SchedulingComponent implements OnDestroy {
     const svcCtrl = this.schedulingService.schedulingForm.controls[SchedulingFormControls.SELECTED_SERVICE];
 
     this.apiService.getServices().pipe(take(1)).subscribe((services: ProfessionalService[]) => {
-      this.schedulingService.services = services;
+      // Só serviços ligados - desligar um serviço tira-o do Agendar.
+      this.schedulingService.services = services.filter(s => s.active !== false);
 
       const wantedService = this.route.snapshot.queryParamMap.get('service');
       const preselected = wantedService
@@ -213,6 +214,17 @@ export class SchedulingComponent implements OnDestroy {
 
   serviceName(name: string): string {
     return ProfessionalSessionService[name as keyof typeof ProfessionalSessionService] || name;
+  }
+
+  /** O nome, e "em grupo" quando é a versão em grupo do serviço. */
+  serviceLabel(svc: ProfessionalService): string {
+    const name = this.serviceName(svc.name);
+    return String(svc.format) === 'GROUP' ? `${name} · em grupo` : name;
+  }
+
+  /** Lugares livres numa vaga de grupo nesse dia (as cheias já não aparecem). */
+  seatsLeft(slot: AvailabilityModel, day: string): number {
+    return (slot.capacity ?? 1) - (slot.seatsTaken?.[day] ?? 0);
   }
 
   /**

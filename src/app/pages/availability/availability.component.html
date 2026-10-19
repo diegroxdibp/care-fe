@@ -144,7 +144,7 @@
                               </span>
                             </div>
                             @if (slot.booked && slot.appointment) {
-                              <span class="bd-svc">{{ slotServiceName(slot.appointment) }}</span>
+                              <span class="bd-svc">{{ block.format === 'GROUP' ? 'Grupo · ' + (slot.appointments?.length ?? 0) + '/' + block.capacity : slotServiceName(slot.appointment) }}</span>
                               <span class="bd-name">{{ slotPatientFirstName(slot.appointment) }}</span>
                             } @else if (slot.closed) {
                               <span class="bd-name">fechado</span>
@@ -441,7 +441,7 @@
                       </span>
                     </div>
                     @if (slot.booked && slot.appointment) {
-                      <span class="bd-svc">{{ slotServiceName(slot.appointment) }}</span>
+                      <span class="bd-svc">{{ block.format === 'GROUP' ? 'Grupo · ' + (slot.appointments?.length ?? 0) + '/' + block.capacity : slotServiceName(slot.appointment) }}</span>
                       <span class="bd-name">{{ slotPatientFirstName(slot.appointment) }}</span>
                     } @else if (slot.closed) {
                       <span class="bd-name">fechado</span>
@@ -570,6 +570,58 @@
       </div>
       <div class="slot-list">
         @for (slot of bookedSlotsForBlock(selectedBlock()!); track slot.time; let si = $index) {
+          @if (selectedBlock()!.format === 'GROUP') {
+            <!-- Grupo: várias pessoas na mesma data -->
+            <div class="slot-row group-row" [class.closed]="slot.closed" [class.booked]="slot.booked">
+              <span class="s-dot group-dot"><span translate="no" class="material-symbols-outlined">groups</span></span>
+              <span class="s-time">{{ slot.time }}</span>
+              <div class="s-body">
+                @if (slot.closed) {
+                  <div class="s-name">Fechado neste dia</div>
+                  <div class="s-meta">O resto da série continua aberto</div>
+                } @else {
+                  <div class="s-name">Grupo · {{ slot.appointments?.length ?? 0 }}/{{ selectedBlock()!.capacity }} lugares</div>
+                  @if (slot.appointments?.length) {
+                    <div class="group-people">
+                      @for (a of slot.appointments; track a.id) {
+                        <button class="person-chip" [class.pending]="a.status === 'PENDING'" (click)="selectSlot($event, a)">
+                          {{ slotPatientName(a) }}
+                          @if (a.status === 'PENDING') { <span class="pending-tag">Pendente</span> }
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="s-meta">Ninguém ainda</div>
+                  }
+                }
+              </div>
+              <div class="s-free-actions">
+                @if (slot.closed) {
+                  <button class="s-propose" (click)="reopenSlot($event, selectedBlock()!, si)" title="Reabrir neste dia">
+                    <span translate="no" class="material-symbols-outlined">undo</span>
+                  </button>
+                } @else {
+                  @if (!slot.full) {
+                    <button class="s-propose" (click)="openProposeDialog($event, selectedBlock()!, si)" title="Enviar convite">
+                      <span translate="no" class="material-symbols-outlined">send</span>
+                    </button>
+                  }
+                  @if (slot.booked) {
+                    <button class="s-propose" (click)="moveGroupDate($event, selectedBlock()!, si)" title="Mudar a data do grupo">
+                      <span translate="no" class="material-symbols-outlined">edit_calendar</span>
+                    </button>
+                    <button class="s-rm" (click)="cancelGroupDate($event, selectedBlock()!, si)" title="Cancelar esta data do grupo">
+                      <span translate="no" class="material-symbols-outlined">event_busy</span>
+                    </button>
+                  } @else {
+                    <button class="s-rm" (click)="removeSlot($event, selectedBlock()!, si)" title="Remover horário">
+                      <span translate="no" class="material-symbols-outlined">close</span>
+                    </button>
+                  }
+                }
+              </div>
+            </div>
+          } @else {
           <div [class]="'slot-row ' + (slot.booked ? 'booked' : slot.closed ? 'closed' : 'free') + (slot.appointment?.status === 'PENDING' || seriesChangeState(slot.appointment) === 'pending' ? ' pending' : '') + (seriesChangeState(slot.appointment) === 'expired' ? ' change-expired' : '')"
                (click)="slot.booked && slot.appointment ? selectSlot($event, slot.appointment) : null"
                [style.cursor]="slot.booked && slot.appointment ? 'pointer' : 'default'">
@@ -635,6 +687,7 @@
               </div>
             }
           </div>
+          }
         }
       </div>
     </div>
@@ -803,6 +856,56 @@
         }
       </div>
     </div>
+  </div>
+
+  <!-- Individual ou grupo -->
+  <div class="be-section" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
+    <label class="control-label">
+      Formato
+      @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
+        <span class="fixed-tag">fixo</span>
+      }
+    </label>
+    <div class="seg">
+      <button
+        [class.on]="editorFormat() === 'INDIVIDUAL'"
+        [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
+        (click)="setEditorFormat('INDIVIDUAL')"
+      >
+        Individual
+      </button>
+      <button
+        [class.on]="editorFormat() === 'GROUP'"
+        [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
+        (click)="setEditorFormat('GROUP')"
+      >
+        <span translate="no" class="material-symbols-outlined seg-icon">groups</span>
+        Grupo
+      </button>
+    </div>
+    @if (editorFormat() === 'GROUP') {
+      <div class="field capacity-field" [class.has-error]="capacityErrorMessage()" @revealSection>
+        <div class="field-inner">
+          <span class="field-label">Lugares por data</span>
+          <input
+            class="field-value"
+            type="number"
+            inputmode="numeric"
+            min="2"
+            max="20"
+            [value]="editorCapacity()"
+            (input)="editorCapacity.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      @if (capacityErrorMessage(); as err) {
+        <span class="field-error">{{ err }}</span>
+      }
+      <p class="hint">Pessoas clientes por data, até 20. Pode subir sempre; baixar só se nenhuma data por vir ficar acima.</p>
+      @if (editorServices().length === 0) {
+        <p class="hint">Ainda não oferece nenhum serviço em grupo. Ligue a versão em grupo no seu perfil, em Serviços.</p>
+      }
+    }
   </div>
 
   <!-- Quem encontra a vaga -->

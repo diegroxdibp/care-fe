@@ -2180,3 +2180,40 @@ input[type="number"].field-value {
   vertical-align: -2px;
   margin-right: 2px;
 }
+
+// Vaga de grupo no editor: os lugares por data.
+.av .capacity-field { margin-top: 12px; max-width: 200px; }
+
+// Vaga de grupo na lista de sessões: várias pessoas na mesma data.
+.av .slot-row.group-row { align-items: flex-start; }
+.av .slot-row .group-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-secondary-indigo);
+  background: none;
+
+  .material-symbols-outlined { font-size: 18px; }
+}
+.av .group-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.av .person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { border-color: var(--color-primary-blue); }
+  &.pending { border-color: var(--color-pending); background: var(--color-pending-soft); }
+}

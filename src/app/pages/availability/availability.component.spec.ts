@@ -190,4 +190,21 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     expect(apiService['withdrawInvitation']).toHaveBeenCalledWith(900);
     expect(component.hasPendingProposal(component.blocks()[0])).toBe(false);
   });
+
+  it('num grupo a vaga só fica cheia quando os lugares acabam, e a faixa mostra quantos', () => {
+    const group = { ...component.blocks()[0], format: 'GROUP' as const, capacity: 3 };
+    component.blocks.set([group]);
+    const oneOff = (id: number, clientId: number) => appointment({
+      id, clientId, clientName: 'Pessoa ' + id, startDate: '2026-10-15', endDate: '2026-10-15',
+      isRecurring: false, recurrenceFrequency: undefined,
+    });
+    component.appointments.set([oneOff(201, 31), oneOff(202, 32)]);
+    fixture.detectChanges();
+
+    const [slot] = component.bookedSlotsForBlock(component.blocks()[0]);
+    expect(slot.booked).toBe(true);
+    expect(slot.full).toBe(false);
+    expect(slot.appointments?.length).toBe(2);
+    expect(text()).toContain('Grupo · 2/3');
+  });
 });

@@ -149,6 +149,20 @@ describe('firstSeriesConflict', () => {
     recurrenceFrequency: 'BIWEEKLY', excludedDates: ['2026-10-15'],
   });
 
+  it('in a group with room, a member series fits alongside another', () => {
+    const group = { ...thursday, format: 'GROUP' as const, capacity: 2 };
+    expect(firstSeriesConflict(group, 'WEEKLY', '2026-10-22', [biweekly])).toBeNull();
+  });
+
+  it('a group is only full when its seats run out', () => {
+    const group = { ...thursday, format: 'GROUP' as const, capacity: 2 };
+    const another = series({
+      id: 83, startDate: '2026-10-29', dayOfWeek: 'THURSDAY' as unknown as DayOfWeek, recurrenceFrequency: 'WEEKLY',
+    });
+    // 29/10: a quinzenal e a semanal nova - os dois lugares.
+    expect(firstSeriesConflict(group, 'WEEKLY', '2026-10-22', [biweekly, another])).toBe('2026-10-29');
+  });
+
   it('lets a biweekly series sit on the alternating weeks', () => {
     expect(firstSeriesConflict(thursday, 'BIWEEKLY', '2026-10-22', [biweekly])).toBeNull();
   });

@@ -39,6 +39,11 @@ export interface AvailabilityModel {
   services: ProfessionalService[];
   /** Pública aparece no Agendar; privada só se preenche por convite. */
   visibility?: 'PUBLIC' | 'PRIVATE';
+  /** Individual (uma pessoa por data) ou de grupo (até `capacity`). */
+  format?: 'INDIVIDUAL' | 'GROUP';
+  capacity?: number;
+  /** Numa vaga de grupo: lugares tomados por data (as datas cheias também vêm em bookedDates). */
+  seatsTaken?: Record<string, number>;
 }
 
 export const emptyAvailability: AvailabilityModel = {
