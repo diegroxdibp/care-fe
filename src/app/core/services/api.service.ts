@@ -3,6 +3,7 @@ import { SchedulingService } from './../../shared/services/scheduling.service';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AvailabilityModel } from '../../shared/models/availability.model';
+import { Invitation, InvitationPayload, InvitationPreview } from '../../shared/models/invitation.model';
 
 export interface AvailabilityPayload {
   professionalServiceIds: number[];
@@ -16,6 +17,7 @@ export interface AvailabilityPayload {
   address?: string;
   price?: number;
   priceBRL?: number;
+  visibility?: 'PUBLIC' | 'PRIVATE';
 }
 import { Roles } from '../../shared/enums/roles.enum';
 import { AppointmentPayload } from '../../shared/models/appointment-payload.model';
@@ -273,6 +275,64 @@ export class ApiService {
       `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}/respond`,
       { accept },
       { withCredentials: true },
+    );
+  }
+
+  // ─ Convites ───────────────────────────────────────────────────────────────
+
+  createInvitation(payload: InvitationPayload): Observable<Invitation> {
+    return this.http.post<Invitation>(`${environment.apiUrl}/api/invitations`, payload, { withCredentials: true });
+  }
+
+  /** Os convites ainda em aberto que a pessoa profissional enviou — reservam as suas vagas. */
+  getSentInvitations(): Observable<Invitation[]> {
+    return this.http.get<Invitation[]>(`${environment.apiUrl}/api/invitations/sent`, { withCredentials: true });
+  }
+
+  /** Os convites ainda em aberto para esta conta. */
+  getReceivedInvitations(): Observable<Invitation[]> {
+    return this.http.get<Invitation[]>(`${environment.apiUrl}/api/invitations/received`, { withCredentials: true });
+  }
+
+  /** Sem sessão iniciada: o bastante para mostrar o convite e criar a conta. */
+  previewInvitation(token: string): Observable<InvitationPreview> {
+    return this.http.get<InvitationPreview>(
+      `${environment.apiUrl}/api/invitations/preview/${encodeURIComponent(token)}`,
+      { withCredentials: true },
+    );
+  }
+
+  getInvitation(token: string): Observable<Invitation> {
+    return this.http.get<Invitation>(
+      `${environment.apiUrl}/api/invitations/${encodeURIComponent(token)}`,
+      { withCredentials: true },
+    );
+  }
+
+  acceptInvitation(token: string): Observable<Appointment> {
+    return this.http.post<Appointment>(
+      `${environment.apiUrl}/api/invitations/${encodeURIComponent(token)}/accept`, {}, { withCredentials: true },
+    );
+  }
+
+  declineInvitation(token: string): Observable<Invitation> {
+    return this.http.post<Invitation>(
+      `${environment.apiUrl}/api/invitations/${encodeURIComponent(token)}/decline`, {}, { withCredentials: true },
+    );
+  }
+
+  resendInvitation(id: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/api/invitations/${id}/resend`, {}, { withCredentials: true });
+  }
+
+  withdrawInvitation(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/api/invitations/${id}`, { withCredentials: true });
+  }
+
+  /** Pública ou privada — vale mesmo com sessões marcadas na vaga. */
+  changeAvailabilityVisibility(id: number, visibility: 'PUBLIC' | 'PRIVATE'): Observable<AvailabilityModel> {
+    return this.http.put<AvailabilityModel>(
+      `${environment.apiUrl}/api/availability/${id}/visibility`, { visibility }, { withCredentials: true },
     );
   }
 

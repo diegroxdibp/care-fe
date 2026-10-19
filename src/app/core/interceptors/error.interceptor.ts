@@ -17,6 +17,8 @@ const SELF_HANDLED_ENDPOINTS = [
   '/video-session',
   '/extend',
   '/removed-users',
+  // A página do convite mostra "não encontrado" no próprio sítio.
+  '/api/invitations/preview/',
 ];
 
 // The one-shot GET each SSE service fires when (re)connecting — retried

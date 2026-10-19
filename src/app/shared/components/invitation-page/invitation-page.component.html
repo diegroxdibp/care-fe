@@ -1,0 +1,101 @@
+<div class="panel invitation-page">
+  <div class="panel-header">
+    <h2>Convite</h2>
+  </div>
+
+  <div class="body">
+    @if (state() === 'loading') {
+      <div class="state">
+        <p>Carregando convite...</p>
+      </div>
+    } @else if (state() === 'not-found') {
+      <div class="state error">
+        <span translate="no" class="material-symbols-outlined">error</span>
+        <p>Não encontramos este convite. Confira o link do email, ou peça um novo convite à pessoa profissional.</p>
+      </div>
+    } @else {
+      <div class="card">
+        <p class="lead">
+          @if (isSeries()) {
+            <strong>{{ professionalName() }}</strong> convidou você para um acompanhamento
+            {{ frequencyLabel().toLowerCase() }}.
+          } @else {
+            <strong>{{ professionalName() }}</strong> convidou você para uma sessão.
+          }
+        </p>
+
+        <div class="rows">
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">medical_services</span>
+            <div><div class="k">Serviço</div><div class="v">{{ serviceName() }}</div></div>
+          </div>
+          @if (when(); as w) {
+            <div class="row">
+              <span translate="no" class="material-symbols-outlined">{{ isSeries() ? 'event_repeat' : 'event' }}</span>
+              <div>
+                <div class="k">{{ isSeries() ? 'Primeira sessão' : 'Dia e horário' }}</div>
+                <div class="v">{{ w.weekday }}, {{ w.date }} · {{ w.time }}</div>
+              </div>
+            </div>
+          }
+          <div class="row">
+            <span translate="no" class="material-symbols-outlined">location_on</span>
+            <div><div class="k">Modalidade</div><div class="v">{{ modalityLabel() }}</div></div>
+          </div>
+        </div>
+
+        @if (message(); as m) {
+          <div class="invite-message">
+            <div class="k">Mensagem de {{ professionalName() }}</div>
+            <p>{{ m }}</p>
+          </div>
+        }
+
+        @if (status() !== 'PENDING') {
+          <p class="already">
+            @switch (status()) {
+              @case ('ACCEPTED') { Este convite já foi aceito. }
+              @case ('DECLINED') { Este convite foi recusado. }
+              @case ('WITHDRAWN') { {{ professionalName() }} retirou este convite. }
+              @case ('EXPIRED') { A sessão deste convite já começou. Peça a {{ professionalName() }} um novo convite. }
+            }
+          </p>
+          @if (state() === 'ready') {
+            <div class="actions">
+              <button class="btn-accept" (click)="goToDashboard()">Ir para o painel</button>
+            </div>
+          }
+        } @else if (state() === 'logged-out') {
+          <p class="invite-hint">
+            Este convite foi enviado para <strong>{{ invitedEmail() }}</strong>.
+            @if (preview()?.accountExists) {
+              Entre com essa conta para responder.
+            } @else {
+              Para responder, crie sua conta na Care com esse email.
+            }
+          </p>
+          <div class="actions">
+            @if (preview()?.accountExists) {
+              <button class="btn-accept" (click)="signIn()">Entrar para responder</button>
+            } @else {
+              <button class="btn-decline" (click)="signIn()">Já tenho conta</button>
+              <button class="btn-accept" (click)="signUp()">Criar conta</button>
+            }
+          </div>
+        } @else if (state() === 'other-account') {
+          <p class="already">
+            Este convite foi enviado para <strong>{{ invitedEmail() }}</strong>, e você entrou como
+            <strong>{{ signedInEmail() }}</strong>. Entre com a conta desse email para responder.
+          </p>
+        } @else {
+          <div class="actions">
+            <button class="btn-decline" [disabled]="responding()" (click)="decline()">Recusar</button>
+            <button class="btn-accept" [disabled]="responding()" (click)="accept()">
+              {{ responding() ? 'Processando...' : 'Aceitar' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

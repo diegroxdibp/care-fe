@@ -62,6 +62,8 @@ import { ProfessionalService } from '../../shared/models/professional-service.mo
 import { ApiService, AvailabilityPayload } from '../../core/services/api.service';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Appointment } from '../../shared/models/appointment.model';
+import { Invitation, SlotVisibility } from '../../shared/models/invitation.model';
+import { invitationAsAppointment } from '../../shared/utils/invitation.util';
 import { ScreenSizeService } from '../../shared/services/screen-size.service';
 import { SessionService } from '../../shared/services/session.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
@@ -249,6 +251,8 @@ interface TherapistBlock {
   local?: string;
   price?: number;
   priceBRL?: number;
+  /** Pública aparece no Agendar; privada só se preenche por convite. */
+  visibility: SlotVisibility;
 }
 
 // ─── Backend → frontend enum maps ─────────────────────────────────────────────
@@ -373,6 +377,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   selectedServiceIds = signal<Set<number>>(new Set());
   editorModality = signal<Modality>(Modality.ANY);
   editorFrequency = signal<'once' | 'weekly'>('weekly');
+  editorVisibility = signal<SlotVisibility>('PUBLIC');
   editorRecurrencePattern = signal<RecurrenceFrequency>(RecurrenceFrequency.WEEKLY);
   selectedWeekdays = signal<Set<DayOfWeek>>(new Set());
   editorDate = signal<string>('');
@@ -726,6 +731,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     forkJoin({
       availabilities: this.apiService.getAvailabilitiesByProfessionalId(userId),
       appointments: this.apiService.getProfessionalAppointments(userId),
+      // Sem os convites a agenda ainda serve — só não mostra as datas que reservam.
+      invitations: this.apiService.getSentInvitations().pipe(catchError(() => of([] as Invitation[]))),
     })
       .pipe(
         // Uma tentativa extra evita que uma falha transitória (ex.: o
@@ -742,11 +749,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         if (!result) return;
         this.loadingInitialData.set(false);
         this.blocks.set(this.groupAvailabilitiesIntoBlocks(result.availabilities));
-        this.appointments.set(result.appointments.map(a => ({
-          ...a,
-          startTime: stripSec(a.startTime),
-          endTime: fromApiEndTime(a.endTime),
-        })));
+        this.appointments.set([
+          ...result.appointments.map(a => ({
+            ...a,
+            startTime: stripSec(a.startTime),
+            endTime: fromApiEndTime(a.endTime),
+          })),
+          ...result.invitations.map(invitationAsAppointment),
+        ]);
       });
   }
 
@@ -949,6 +959,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorLocal.set(block.local ?? '');
     this.editorPrice.set(formatPriceForEditor(block.price, this.decimalSeparator));
     this.editorPriceBRL.set(formatPriceForEditor(block.priceBRL, this.decimalSeparator));
+    this.editorVisibility.set(block.visibility);
   }
 
   startMove(event: PointerEvent, block: TherapistBlock, colIndex: number): void {
@@ -1057,7 +1068,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const slotEnd = minToTime(timeToMin(slotStart) + dur);
           return {
             id: s.backendId,
-            slot: this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency),
+            slot: this.buildSlotPayload(block.services, block.modality, block.isRecurring, newDate, slotStart, slotEnd, block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility),
           };
         });
         this.apiService.updateAvailabilityBlock(edits).subscribe({
@@ -1200,6 +1211,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.editorLocal.set('');
     this.editorPrice.set('');
     this.editorPriceBRL.set('');
+    this.editorVisibility.set('PUBLIC');
     this.attemptedSave.set(false);
   }
 
@@ -1348,6 +1360,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           : (this.editorModality() !== Modality.REMOTE ? this.editorLocal() : undefined),
         price: isLockedByBookings ? existing.price : parsePriceInput(this.editorPrice(), this.decimalSeparator),
         priceBRL: isLockedByBookings ? existing.priceBRL : parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
+        visibility: this.editorVisibility(),
       };
 
       if (!this.validateHonorsBookings(updated)) {
@@ -1369,6 +1382,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
       if (this.hasBookings(existing)) {
         this._syncBookedBlock(existing, updated, existingId);
+        // Ao contrário do resto, pública/privada muda mesmo com sessões marcadas.
+        if (existing.visibility !== updated.visibility) {
+          this._syncVisibility(updated, existingId);
+        }
       } else {
         this._deleteAndRecreateBlock(existing, updated, existingId);
       }
@@ -1508,7 +1525,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(b.endTime, newEnd, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1619,7 +1636,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const newSlotTimes = generateSlots(newStart, b.startTime, dur);
           const createOps = newSlotTimes.map(t =>
             this.apiService.createAvailability(this.buildSlotPayload(
-              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency,
+              b.services, b.modality, b.isRecurring, date, t, minToTime(timeToMin(t) + dur), b.local, b.price, b.priceBRL, b.recurrenceFrequency, b.visibility,
             ))
           );
           forkJoin(createOps).subscribe({
@@ -1804,6 +1821,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       local: this.editorModality() !== Modality.REMOTE ? this.editorLocal() : undefined,
       price: parsePriceInput(this.editorPrice(), this.decimalSeparator),
       priceBRL: parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
+      visibility: this.editorVisibility(),
     };
 
     this.blocks.update(bs => [...bs, tempBlock]);
@@ -1817,6 +1835,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           parsePriceInput(this.editorPrice(), this.decimalSeparator),
           parsePriceInput(this.editorPriceBRL(), this.decimalSeparator),
           isRecurring ? this.editorRecurrencePattern() : undefined,
+          this.editorVisibility(),
         ),
       )
     );
@@ -1861,6 +1880,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     price?: number,
     priceBRL?: number,
     recurrenceFrequency?: RecurrenceFrequency,
+    visibility: SlotVisibility = 'PUBLIC',
   ): AvailabilityPayload {
     return {
       professionalServiceIds: services.map(s => s.id),
@@ -1877,6 +1897,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         ? toBackendRecurrenceFrequency(recurrenceFrequency ?? RecurrenceFrequency.WEEKLY)
         : undefined,
       modality: toBackendModality(modality),
+      visibility,
     };
   }
 
@@ -1985,7 +2006,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
               && (avFreq === RecurrenceFrequency.WEEKLY ? sameWeeklyStart : av.startDate === last.startDate)
             : av.startDate === last.startDate);
         const sameModality = normalizeModality(av.modality) === normalizeModality(last.modality);
-        if (sameDay && sameModality && av.startTime === last.endTime && this._sameServiceSet(av.services, last.services)) {
+        // Uma vaga privada e uma pública nunca são o mesmo bloco: mudam de
+        // forma diferente (só a privada aceita convites fora do Agendar).
+        const sameVisibility = (av.visibility ?? 'PUBLIC') === (last.visibility ?? 'PUBLIC');
+        if (sameDay && sameModality && sameVisibility && av.startTime === last.endTime
+          && this._sameServiceSet(av.services, last.services)) {
           group.push(av);
         } else {
           flush();
@@ -2024,6 +2049,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       local: first.address,
       price: first.price,
       priceBRL: first.priceBRL,
+      visibility: first.visibility ?? 'PUBLIC',
     };
   }
 
@@ -2075,7 +2101,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return settleAll(slotTimes.map(t =>
       this.apiService.createAvailability(this.buildSlotPayload(
         block.services, block.modality, block.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-        block.local, block.price, block.priceBRL, block.recurrenceFrequency,
+        block.local, block.price, block.priceBRL, block.recurrenceFrequency, block.visibility,
       )),
     ));
   }
@@ -2086,6 +2112,25 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   // ever appending at the end) correctly handles growing/shrinking from either edge, and
   // even both at once. validateHonorsBookings() has already rejected any change that would
   // strand a booked slot outside the new grid, so every slot in `toRemove` is guaranteed free.
+  /** Pública/privada de cada vaga do bloco — vale mesmo com sessões marcadas. */
+  private _syncVisibility(updated: TherapistBlock, blockId: number): void {
+    const ops = updated.backendSlots
+      .filter(s => s.backendId > 0)
+      .map(s => this.apiService.changeAvailabilityVisibility(s.backendId, updated.visibility));
+    if (ops.length === 0) return;
+    forkJoin(ops).subscribe({
+      next: () => this.snackbarService.openSnackBar({
+        message: updated.visibility === 'PRIVATE'
+          ? 'A vaga agora é privada: só por convite. Quem já tem sessão continua igual.'
+          : 'A vaga agora é pública e aparece no Agendar.',
+      }),
+      error: () => {
+        this.blocks.update(bs => bs.map(b => b.id === blockId
+          ? { ...b, visibility: updated.visibility === 'PRIVATE' ? 'PUBLIC' : 'PRIVATE' } : b));
+      },
+    });
+  }
+
   private _syncBookedBlock(existing: TherapistBlock, updated: TherapistBlock, blockId: number): void {
     const dur = existing.sessionDuration;
     const date = this.anchorDateOf(existing);
@@ -2111,7 +2156,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (toAddTimes.length > 0) {
       const createOps = toAddTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
-          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency,
+          existing.services, existing.modality, existing.isRecurring, date, t, minToTime(timeToMin(t) + dur), existing.local, existing.price, existing.priceBRL, existing.recurrenceFrequency, existing.visibility,
         ))
       );
       forkJoin(createOps).subscribe({
@@ -2162,7 +2207,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       const createOps = slotTimes.map(t =>
         this.apiService.createAvailability(this.buildSlotPayload(
           updated.services, updated.modality, updated.isRecurring, date, t, minToTime(timeToMin(t) + dur),
-          updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency,
+          updated.local, updated.price, updated.priceBRL, updated.recurrenceFrequency, updated.visibility,
         )),
       );
 
@@ -2464,6 +2509,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.withdrawSeriesChange(appt);
       return;
     }
+    if (appt.invitationId != null) {
+      this.withdrawInvitation(appt);
+      return;
+    }
 
     // A sessão que cai é a ocorrência em vista, não a âncora da série. Sem a
     // data, o backend desmarcava a primeira sessão da série - a de hoje ficava
@@ -2521,6 +2570,42 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       error: () => {
         this.snackbarService.openSnackBar({ message: 'Erro ao cancelar a sessão. Tente novamente.' });
       },
+    });
+  }
+
+  // ─ Convites ────────────────────────────────────────────────────────────────────
+
+  private withdrawInvitation(appt: Appointment): void {
+    const invitationId = appt.invitationId;
+    if (invitationId == null) return;
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '440px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Retirar convite',
+        message: 'A data volta a ficar livre, e a pessoa convidada é avisada de que o convite foi retirado.',
+        confirmLabel: 'Retirar',
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.apiService.withdrawInvitation(invitationId).subscribe({
+        next: () => {
+          this.appointments.update(list => list.filter(a => a.id !== appt.id));
+          this.selectedAppointment.set(null);
+          this.snackbarService.openSnackBar({ message: 'Convite retirado.' });
+        },
+        error: () => {},
+      });
+    });
+  }
+
+  resendInvitation(event: Event, appt: Appointment): void {
+    event.stopPropagation();
+    if (appt.invitationId == null) return;
+    this.apiService.resendInvitation(appt.invitationId).subscribe({
+      next: () => this.snackbarService.openSnackBar({ message: `Convite reenviado para ${appt.clientEmail}.` }),
+      error: () => {},
     });
   }
 
@@ -2843,6 +2928,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             dayLabel,
             timeLabel: `${backendSlot.slotTime}–${slotEnd}`,
             slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+            slotIsRecurring: block.isRecurring,
             // Termos a que a vaga está anunciada: são o ponto de partida do
             // diálogo, para que enviar sem mexer em nada proponha a vaga tal como está.
             slotAddress: block.local,
@@ -2855,28 +2941,34 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
         ref.afterClosed().subscribe((result: ProposeRecurringDialogResult | null) => {
           if (!result) return;
-          this._sendRecurringProposal(backendSlot.backendId, result);
+          this._sendInvitation(backendSlot.backendId, result);
         });
       },
       error: () => {},
     });
   }
 
-  private _sendRecurringProposal(availabilityId: number, result: ProposeRecurringDialogResult): void {
-    this.apiService.proposeRecurringAppointment({
+  private _sendInvitation(availabilityId: number, result: ProposeRecurringDialogResult): void {
+    this.apiService.createInvitation({
       availabilityId,
-      professionalServiceId: result.professionalServiceId,
+      kind: result.kind,
       clientId: result.clientId,
+      email: result.email,
+      professionalServiceId: result.professionalServiceId,
       modality: toBackendModality(result.modality),
-      recurrenceFrequency: toBackendRecurrenceFrequency(result.recurrenceFrequency),
+      recurrenceFrequency: result.recurrenceFrequency
+        ? toBackendRecurrenceFrequency(result.recurrenceFrequency)
+        : undefined,
       address: result.address,
       price: result.price,
       priceBRL: result.priceBRL,
       startDate: result.startDate,
+      message: result.message,
     }).subscribe({
-      next: (appt) => {
-        this.appointments.update(list => [...list, appt]);
-        this.snackbarService.openSnackBar({ message: 'Proposta enviada com sucesso.' });
+      next: (invitation) => {
+        // O convite reserva a data (ou a série) até ter resposta — fica na agenda como pendente.
+        this.appointments.update(list => [...list, invitationAsAppointment(invitation)]);
+        this.snackbarService.openSnackBar({ message: `Convite enviado para ${invitation.invitedEmail}.` });
       },
       // O interceptor já mostra a recusa concreta do backend (valor fora dos
       // limites, periodicidade que a vaga não sustenta); repetir aqui uma
@@ -2939,6 +3031,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             dayLabel,
             timeLabel: `${appt.startTime}–${appt.endTime}`,
             slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
+            slotIsRecurring: true,
             slotAddress: appt.address ?? block.local,
             slotPrice: appt.price ?? block.price,
             slotPriceBRL: appt.priceBRL ?? block.priceBRL,
@@ -2951,7 +3044,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
         ref.afterClosed().subscribe((result: ProposeRecurringDialogResult | null) => {
           if (!result) return;
-          this._sendRecurringProposal(appt.availabilityId, result);
+          this._sendInvitation(appt.availabilityId, result);
         });
       },
       error: () => {},

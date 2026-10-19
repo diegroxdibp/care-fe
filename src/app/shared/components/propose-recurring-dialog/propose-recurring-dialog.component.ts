@@ -20,6 +20,7 @@ import {
 } from '../../utils/price.util';
 import { PatientSummary } from '../../models/patient.model';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
+import { InvitationKind } from '../../models/invitation.model';
 
 const PT_MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -49,6 +50,11 @@ export interface ProposeRecurringDialogData {
   timeLabel: string;
   /** A periodicidade da vaga — o ponto de partida, e o teto do que é proponível. */
   slotRecurrenceFrequency: RecurrenceFrequency;
+  /**
+   * Uma vaga de data única só se oferece nessa data; uma recorrente pode
+   * oferecer uma data só ou uma série.
+   */
+  slotIsRecurring: boolean;
   /*
    * Termos a que a vaga está anunciada. Servem de valor inicial: propor sem
    * mexer em nada tem de dar exatamente a vaga.
@@ -78,27 +84,52 @@ export interface ProposeRecurringDialogData {
 }
 
 export interface ProposeRecurringDialogResult {
+  /** Uma data só, ou uma série a partir de startDate. */
+  kind: InvitationKind;
   professionalServiceId: number;
-  clientId: number;
+  /** Alguém da lista de pacientes… */
+  clientId?: number;
+  /** …ou qualquer email, com ou sem conta Care. */
+  email?: string;
   modality: Modality;
-  recurrenceFrequency: RecurrenceFrequency;
+  /** Só numa série. */
+  recurrenceFrequency?: RecurrenceFrequency;
   address?: string;
   price?: number;
   priceBRL?: number;
-  /** yyyy-MM-dd — em que dia a série começa. */
+  /** yyyy-MM-dd — a data oferecida, ou o dia em que a série começa. */
   startDate: string;
+  /** Texto livre que segue no email do convite. */
+  message?: string;
 }
+
+/** Quem recebe o convite: alguém da lista, ou um email escrito à mão. */
+type RecipientMode = 'list' | 'email';
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 @Component({
   selector: 'app-propose-recurring-dialog',
   imports: [MatDialogModule, StyledSelectComponent],
   template: `
     <div class="dialog">
-      <h3>Propor agendamento recorrente</h3>
+      <h3>Enviar convite</h3>
       <p class="sub">{{ data.dayLabel }} · {{ data.timeLabel }}</p>
       <p class="note">
-        Os termos abaixo valem só para esta proposta. A vaga continua anunciada como está.
+        Os termos abaixo valem só para este convite. A vaga continua anunciada como está.
       </p>
+
+      @if (data.slotIsRecurring) {
+        <label class="field-label">O que oferecer</label>
+        <div class="chips">
+          <button type="button" class="chip" [class.on]="kind() === 'SERIES'" (click)="selectKind('SERIES')">
+            Acompanhamento recorrente
+          </button>
+          <button type="button" class="chip" [class.on]="kind() === 'DATE'" (click)="selectKind('DATE')">
+            Só uma data
+          </button>
+        </div>
+      }
 
       @if (data.services.length > 1) {
         <label class="field-label">Serviço</label>
@@ -132,6 +163,7 @@ export interface ProposeRecurringDialogResult {
         </div>
       }
 
+      @if (kind() === 'SERIES') {
       <label class="field-label">Periodicidade</label>
       <div class="chips">
         @for (f of proposableFrequencies(); track f) {
@@ -151,8 +183,9 @@ export interface ProposeRecurringDialogResult {
           por isso a sessão segue a mesma periodicidade.
         </p>
       }
+      }
 
-      <label class="field-label">Início da série</label>
+      <label class="field-label">{{ kind() === 'SERIES' ? 'Início da série' : 'Data da sessão' }}</label>
       <div class="field-wrap" (mousedown)="$event.stopPropagation()">
         <button
           type="button"
@@ -161,7 +194,7 @@ export interface ProposeRecurringDialogResult {
           (mousedown)="toggleCalendar()"
         >
           <div class="field-inner">
-            <span class="field-label">Primeira sessão</span>
+            <span class="field-label">{{ kind() === 'SERIES' ? 'Primeira sessão' : 'Sessão' }}</span>
             <span class="field-value" [class.placeholder]="!selectedStartDate()">
               {{ selectedStartDate() ? fmtDate(selectedStartDate()) : 'dd/mm/aaaa' }}
             </span>
@@ -279,39 +312,79 @@ export interface ProposeRecurringDialogResult {
       </div>
 
       @if (data.preselectedClientId) {
-        <label class="field-label">Paciente</label>
+        <label class="field-label">Para</label>
         <p class="preselected-client">{{ data.preselectedClientName }}</p>
       } @else {
-        <label class="field-label" for="patient-select">Paciente</label>
-        @if (loading()) {
-          <p class="hint">Carregando pacientes...</p>
-        } @else if (patients().length === 0) {
-          <p class="hint">Ainda não há pacientes com sessões com você.</p>
+        <label class="field-label">Para</label>
+        <div class="chips">
+          <button type="button" class="chip" [class.on]="recipientMode() === 'list'" (click)="recipientMode.set('list')">
+            Um paciente seu
+          </button>
+          <button type="button" class="chip" [class.on]="recipientMode() === 'email'" (click)="recipientMode.set('email')">
+            Outro email
+          </button>
+        </div>
+        @if (recipientMode() === 'list') {
+          @if (loading()) {
+            <p class="hint">Carregando pacientes...</p>
+          } @else if (patients().length === 0) {
+            <p class="hint">Ainda não há pacientes com sessões com você. Convide por email.</p>
+          } @else {
+            <div class="select-wrap">
+              <app-styled-select
+                inputId="patient-select"
+                placeholder="Selecione um paciente"
+                searchPlaceholder="Pesquisar paciente..."
+                [options]="patientOptions()"
+                [value]="selectedClientId() !== null ? String(selectedClientId()) : null"
+                (valueChange)="selectedClientId.set(+$event)"
+              />
+            </div>
+          }
         } @else {
-          <div class="select-wrap">
-            <app-styled-select
-              inputId="patient-select"
-              placeholder="Selecione um paciente"
-              searchPlaceholder="Pesquisar paciente..."
-              [options]="patientOptions()"
-              [value]="selectedClientId() !== null ? String(selectedClientId()) : null"
-              (valueChange)="selectedClientId.set(+$event)"
-            />
+          <div class="field" [class.has-error]="emailError()">
+            <div class="field-inner">
+              <span class="field-label">Email</span>
+              <input
+                class="field-value"
+                type="email"
+                autocomplete="off"
+                [value]="email()"
+                (input)="email.set($any($event.target).value)"
+                placeholder="nome@exemplo.com"
+              />
+            </div>
+            <span translate="no" class="material-symbols-outlined field-icon">mail</span>
           </div>
+          @if (emailError(); as err) { <span class="field-error">{{ err }}</span> }
+          <p class="hint tight">Quem ainda não tem conta na Care recebe um link para criar a conta com este email.</p>
         }
       }
 
-      @if (existingClientSeries(); as existing) {
+      <div class="field field-textarea">
+        <div class="field-inner">
+          <span class="field-label">Mensagem (opcional)</span>
+          <textarea
+            class="field-value"
+            maxlength="2000"
+            [value]="message()"
+            (input)="message.set($any($event.target).value)"
+            placeholder="Segue no email do convite."
+          ></textarea>
+        </div>
+      </div>
+
+      @if (kind() === 'SERIES' && existingClientSeries(); as existing) {
         <p class="warn">
           @if (existing.status === 'PENDING') {
-            <strong>{{ selectedClientName() }} já tem uma proposta pendente neste horário</strong>
+            <strong>{{ selectedClientName() }} já tem um convite pendente neste horário</strong>
             ({{ frequencyLabel(existing) }}, a partir de {{ fmtDate(existing.startDate) }}).
-            Uma nova proposta não substitui essa — as duas ficam na agenda.
+            Um novo convite não substitui esse — os dois ficam na agenda.
           } @else {
             <strong>{{ selectedClientName() }} já tem uma série neste horário</strong>
             ({{ frequencyLabel(existing) }}, a partir de {{ fmtDate(existing.startDate) }}).
             Se a ideia é mudar o dia, o horário ou a periodicidade dessa série, use "Alterar série" nela.
-            Uma nova proposta cria uma segunda série, que se soma à primeira.
+            Um novo convite cria uma segunda série, que se soma à primeira.
           }
         </p>
       }
@@ -323,7 +396,7 @@ export interface ProposeRecurringDialogResult {
       <div class="btns">
         <button class="btn-ghost" (click)="cancel()">Cancelar</button>
         <button class="btn-primary" [disabled]="!canSubmit() || sending()" (click)="submit()">
-          {{ sending() ? 'Enviando...' : 'Enviar Proposta' }}
+          {{ sending() ? 'Enviando...' : 'Enviar convite' }}
         </button>
       </div>
     </div>
@@ -375,6 +448,12 @@ export class ProposeRecurringDialogComponent implements OnInit {
   readonly selectedClientId = signal<number | null>(this.data.preselectedClientId ?? null);
   readonly selectedModality = signal<Modality>(this.bookableModalities()[0]);
   readonly selectedFrequency = signal<RecurrenceFrequency>(this.data.slotRecurrenceFrequency);
+  // Numa vaga recorrente o habitual é um acompanhamento; numa de data única só há essa data.
+  readonly kind = signal<InvitationKind>(this.data.slotIsRecurring ? 'SERIES' : 'DATE');
+
+  readonly recipientMode = signal<RecipientMode>('list');
+  readonly email = signal<string>('');
+  readonly message = signal<string>('');
 
   readonly calOpen = signal<boolean>(false);
   // A primeira data livre já vem pré-selecionada — enviar sem mexer no
@@ -438,9 +517,21 @@ export class ProposeRecurringDialogComponent implements OnInit {
   readonly priceError = computed(() => this.attemptedSubmit() ? this.priceValidity() : null);
   readonly priceBRLError = computed(() => this.attemptedSubmit() ? this.priceBRLValidity() : null);
 
+  private readonly hasRecipient = computed(() =>
+    this.data.preselectedClientId != null
+      || (this.recipientMode() === 'list' ? this.selectedClientId() !== null : this.email().trim() !== ''),
+  );
+
+  readonly emailError = computed(() => {
+    if (!this.attemptedSubmit() || this.recipientMode() !== 'email' || this.data.preselectedClientId != null) {
+      return null;
+    }
+    return EMAIL_PATTERN.test(this.email().trim()) ? null : 'Indique um email válido.';
+  });
+
   readonly canSubmit = computed(() =>
     this.selectedServiceId() !== null &&
-    this.selectedClientId() !== null &&
+    this.hasRecipient() &&
     !!this.selectedStartDate(),
   );
 
@@ -492,6 +583,8 @@ export class ProposeRecurringDialogComponent implements OnInit {
     if (dateKey < toKey(new Date())) return false;
     if (!availabilityOccursOn(av, dateKey)) return false;
     if ((av.bookedDates ?? []).includes(dateKey)) return false;
+    // Uma data só não tem semanas seguintes para pisar.
+    if (this.kind() === 'DATE') return true;
     return firstSeriesConflict(
       av, toBackendRecurrenceFrequency(this.selectedFrequency()), dateKey, this.data.slotAppointments ?? [],
     ) === null;
@@ -504,6 +597,16 @@ export class ProposeRecurringDialogComponent implements OnInit {
    */
   selectFrequency(frequency: RecurrenceFrequency): void {
     this.selectedFrequency.set(frequency);
+    const current = this.selectedStartDate();
+    if (current && this.isDateAvailable(current)) return;
+    const next = this.computeDefaultStartDate();
+    this.selectedStartDate.set(next);
+    if (next) this.calendarViewDate.set(new Date(next + 'T00:00:00'));
+  }
+
+  /** Trocar entre data e série muda que datas servem — ver selectFrequency. */
+  selectKind(kind: InvitationKind): void {
+    this.kind.set(kind);
     const current = this.selectedStartDate();
     if (current && this.isDateAvailable(current)) return;
     const next = this.computeDefaultStartDate();
@@ -610,24 +713,30 @@ export class ProposeRecurringDialogComponent implements OnInit {
     this.attemptedSubmit.set(true);
 
     const professionalServiceId = this.selectedServiceId();
-    const clientId = this.selectedClientId();
     const startDate = this.selectedStartDate();
-    if (professionalServiceId === null || clientId === null || !startDate) return;
+    if (professionalServiceId === null || !startDate || !this.hasRecipient()) return;
     if (this.priceValidity() !== null || this.priceBRLValidity() !== null) return;
+    if (this.emailError() !== null) return;
 
+    const byEmail = this.data.preselectedClientId == null && this.recipientMode() === 'email';
     const modality = this.selectedModality();
     const address = this.address().trim();
+    const message = this.message().trim();
+    const kind = this.kind();
 
     const result: ProposeRecurringDialogResult = {
+      kind,
       professionalServiceId,
-      clientId,
+      clientId: byEmail ? undefined : (this.selectedClientId() ?? undefined),
+      email: byEmail ? this.email().trim() : undefined,
       modality,
-      recurrenceFrequency: this.selectedFrequency(),
+      recurrenceFrequency: kind === 'SERIES' ? this.selectedFrequency() : undefined,
       // Uma sessão remota não tem morada.
       address: modality !== Modality.REMOTE && address ? address : undefined,
       price: parsePriceInput(this.price(), this.separator),
       priceBRL: parsePriceInput(this.priceBRL(), this.separator),
       startDate,
+      message: message || undefined,
     };
     this.dialogRef.close(result);
   }

@@ -95,6 +95,30 @@
             }
           </div>
 
+          <!-- Invitations waiting for an answer -->
+          @if (invitations().length) {
+            <div class="section-head">
+              <h2>Convites</h2>
+            </div>
+            <div class="invitations">
+              @for (inv of invitations(); track inv.id) {
+                <a class="invitation-card" [routerLink]="['/invitations', inv.token]">
+                  <span translate="no" class="material-symbols-outlined">mail</span>
+                  <div class="invitation-body">
+                    <div class="invitation-title">
+                      <strong>{{ inv.professionalName }}</strong> convidou você
+                      {{ inv.kind === 'SERIES' ? 'para um acompanhamento' : 'para uma sessão' }}
+                    </div>
+                    <div class="invitation-meta">
+                      {{ invitationService(inv) }} · {{ inv.kind === 'SERIES' ? 'a partir de ' : '' }}{{ invitationWhen(inv) }}
+                    </div>
+                  </div>
+                  <span class="invitation-cta">Ver e responder</span>
+                </a>
+              }
+            </div>
+          }
+
           <!-- Next session -->
           <div class="section-head">
             <h2>Sua próxima sessão</h2>

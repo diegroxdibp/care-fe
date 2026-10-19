@@ -2161,3 +2161,22 @@ input[type="number"].field-value {
 
   &:disabled { color: var(--color-muted); cursor: not-allowed; opacity: 0.35; }
 }
+
+// Vaga privada: um cadeado no canto, por cima das faixas.
+.av .block .b-private {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  z-index: 3;
+  pointer-events: none;
+  color: var(--color-secondary-indigo);
+  line-height: 1;
+
+  .material-symbols-outlined { font-size: 13px; }
+}
+
+.av .seg .seg-icon {
+  font-size: 14px;
+  vertical-align: -2px;
+  margin-right: 2px;
+}

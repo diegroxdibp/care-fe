@@ -1289,3 +1289,37 @@
   span.material-symbols-outlined { font-size: 17px; }
   &:hover { background: var(--color-secondary-indigo); }
 }
+
+// Convites por responder, por cima da próxima sessão.
+.invitations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 28px;
+}
+
+.invitation-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-pending);
+  border-radius: var(--radius-lg);
+  background: var(--color-pending-soft);
+  color: var(--fg-1);
+  text-decoration: none;
+  transition: background var(--dur-fast);
+
+  > .material-symbols-outlined { color: var(--color-pending-ink); font-size: 22px; flex-shrink: 0; }
+  &:hover { background: color-mix(in srgb, var(--color-pending-soft), var(--color-pending-ink) 8%); }
+}
+
+.invitation-body { flex: 1; min-width: 0; }
+.invitation-title { font-size: 15px; }
+.invitation-meta { font-size: 13px; color: var(--color-muted); margin-top: 2px; }
+.invitation-cta {
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-pending-ink);
+  white-space: nowrap;
+}

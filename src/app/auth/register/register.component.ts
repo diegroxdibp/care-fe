@@ -51,6 +51,12 @@ export class RegisterComponent implements OnInit, OnDestroy {
    * opened in a new tab. */
   @Input() next: string | null = null;
 
+  /**
+   * Vindo de um convite: o email é o convidado e não se muda — o convite só
+   * passa para uma conta com esse email (InvitationService.claimFor).
+   */
+  emailLocked = false;
+
   private authBroadcastChannel: BroadcastChannel | null = null;
   emailConfirmedElsewhere = false;
 
@@ -114,6 +120,12 @@ export class RegisterComponent implements OnInit, OnDestroy {
     // On the standalone /auth/signup route (unlike the embedded use inside
     // /scheduling/conta, which passes it explicitly) `next` only arrives as
     // a query param — this app doesn't have withComponentInputBinding().
+    const invitedEmail = this.route.snapshot.queryParamMap.get('email');
+    if (invitedEmail && this.route.snapshot.queryParamMap.get('lockEmail') === '1') {
+      this.emailCtrl.setValue(invitedEmail);
+      this.emailLocked = true;
+    }
+
     if (!this.next) {
       const fromQuery = this.route.snapshot.queryParamMap.get('next');
       if (isValidReturnPath(fromQuery)) {

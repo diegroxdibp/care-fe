@@ -19,9 +19,13 @@
         id="email"
         type="email"
         [formControl]="emailCtrl"
+        [readonly]="emailLocked"
         placeholder="seu@email.com"
         autocomplete="email"
       />
+      @if (emailLocked) {
+        <small class="hint">O convite foi enviado para este email.</small>
+      }
     </div>
 
     <div class="field" style="margin-bottom: 8px">

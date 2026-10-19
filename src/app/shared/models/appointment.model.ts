@@ -2,6 +2,7 @@ import { DayOfWeek } from '../enums/day-of-week.enum';
 import { Modality } from '../enums/modality.enum';
 
 export interface Appointment {
+  /** Negativo num convite por responder mostrado na agenda (ver invitationAsAppointment). */
   id: number;
   professionalId: number;
   professionalName: string;
@@ -27,6 +28,11 @@ export interface Appointment {
   price?: number;
   priceBRL?: number;
   status: 'PENDING' | 'CONFIRMED';
+  /**
+   * Presente quando isto não é uma marcação mas um convite por responder,
+   * mostrado na agenda da pessoa profissional como reserva da vaga.
+   */
+  invitationId?: number;
   address?: string;
   notes?: string;
   /**

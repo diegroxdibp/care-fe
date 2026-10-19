@@ -151,6 +151,18 @@ export const routes: Routes = [
       ),
   },
 
+  // A invitation link from an email. Public: someone without an account (or
+  // logged out) sees who invited them and is sent to sign up or log in, and
+  // comes back here through the return path. Outside the protected "" group
+  // for the same ordering reason as the other public routes.
+  {
+    path: 'invitations/:token',
+    loadComponent: () =>
+      import('./shared/components/invitation-page/invitation-page.component').then(
+        (m) => m.InvitationPageComponent,
+      ),
+  },
+
   // Step 1 of 5 of the scheduling flow — where AccessGuard sends a
   // logged-out visitor instead of the old blocking snackbar. Public and
   // guest-only, same as the rest of /auth; must stay outside the protected

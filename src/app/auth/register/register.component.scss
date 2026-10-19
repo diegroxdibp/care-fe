@@ -104,6 +104,14 @@ h1 {
     &:focus { border-color: palette.$primaryColorBlue; }
     &::placeholder { color: var(--color-muted); }
     &.has-error { border-color: #c0392b; }
+    // Email vindo de um convite: lê-se, mas não se muda.
+    &[readonly] { background: var(--color-surface-tint); color: var(--color-muted); }
+  }
+
+  .hint {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    color: var(--color-muted);
   }
 }
 

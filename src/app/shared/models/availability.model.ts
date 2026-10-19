@@ -37,6 +37,8 @@ export interface AvailabilityModel {
   price?: number;
   priceBRL?: number;
   services: ProfessionalService[];
+  /** Pública aparece no Agendar; privada só se preenche por convite. */
+  visibility?: 'PUBLIC' | 'PRIVATE';
 }
 
 export const emptyAvailability: AvailabilityModel = {

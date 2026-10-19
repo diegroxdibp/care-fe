@@ -29,6 +29,8 @@ import {
   RescheduleDialogResult,
 } from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
 import { Appointment } from '../../shared/models/appointment.model';
+import { Invitation } from '../../shared/models/invitation.model';
+import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
 import { Pages } from '../../shared/enums/pages.enum';
 import { ProfessionalService } from '../../shared/models/professional-service.model';
 import { Currency } from '../../shared/enums/currency.enum';
@@ -117,6 +119,8 @@ export class DashboardPageComponent implements OnInit {
   readonly Pages = Pages;
 
   readonly appointments = signal<Appointment[]>([]);
+  /** Convites ainda por responder — cada um leva à sua página (/invitations/:token). */
+  readonly invitations = signal<Invitation[]>([]);
   private readonly services = signal<ProfessionalService[]>([]);
   readonly activeView = signal<'list' | 'calendar'>(this.readStoredView());
   readonly currentUrl = signal(this.router.url);
@@ -288,6 +292,29 @@ export class DashboardPageComponent implements OnInit {
     }
 
     this.apiService.getServices().subscribe((svcs) => this.services.set(svcs));
+
+    if (user) {
+      this.apiService.getReceivedInvitations().subscribe({
+        next: (invitations) => this.invitations.set(invitations),
+        error: () => {},
+      });
+    }
+  }
+
+  /** "Quinta-feira, 22/10 · 17:00" no fuso de quem vê — o instante vem do backend. */
+  invitationWhen(invitation: Invitation): string {
+    const instant = new Date(invitation.firstSessionAt);
+    const timeZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    const weekday = new Intl.DateTimeFormat('pt-BR', { timeZone, weekday: 'long' }).format(instant);
+    const date = new Intl.DateTimeFormat('pt-BR', { timeZone, day: '2-digit', month: '2-digit' }).format(instant);
+    const time = new Intl.DateTimeFormat('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .format(instant);
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${date} · ${time}`;
+  }
+
+  invitationService(invitation: Invitation): string {
+    return ProfessionalSessionService[invitation.serviceName as keyof typeof ProfessionalSessionService]
+      ?? invitation.serviceName;
   }
 
   setView(v: 'list' | 'calendar'): void {

@@ -116,6 +116,11 @@
                           <span class="grip"></span>
                         </div>
                       }
+                      @if (block.visibility === 'PRIVATE') {
+                        <span class="b-private" title="Privada — só por convite">
+                          <span translate="no" class="material-symbols-outlined">lock</span>
+                        </span>
+                      }
                       <div class="b-bands">
                         @for (slot of bookedSlotsForBlock(block); track slot.time; let si = $index) {
                           <div
@@ -253,7 +258,7 @@
                 Voltar ao bloco
               </button>
               <div class="be-title">
-                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : 'Sessão reservada' }}
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -487,7 +492,7 @@
             </div>
             <div class="sh-body" #panelBody>
               <div class="be-title" style="margin-bottom:14px">
-                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : 'Sessão reservada' }}
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -621,11 +626,9 @@
               </div>
             } @else {
               <div class="s-free-actions">
-                @if (selectedBlock()!.isRecurring) {
-                  <button class="s-propose" (click)="openProposeDialog($event, selectedBlock()!, si)" title="Propor agendamento recorrente">
-                    <span translate="no" class="material-symbols-outlined">send</span>
-                  </button>
-                }
+                <button class="s-propose" (click)="openProposeDialog($event, selectedBlock()!, si)" title="Enviar convite">
+                  <span translate="no" class="material-symbols-outlined">send</span>
+                </button>
                 <button class="s-rm" (click)="removeSlot($event, selectedBlock()!, si)" title="Remover horário">
                   <span translate="no" class="material-symbols-outlined">close</span>
                 </button>
@@ -800,6 +803,27 @@
         }
       </div>
     </div>
+  </div>
+
+  <!-- Quem encontra a vaga -->
+  <div class="be-section">
+    <label class="control-label">Quem pode marcar</label>
+    <div class="seg">
+      <button [class.on]="editorVisibility() === 'PUBLIC'" (click)="editorVisibility.set('PUBLIC')">
+        Pública
+      </button>
+      <button [class.on]="editorVisibility() === 'PRIVATE'" (click)="editorVisibility.set('PRIVATE')">
+        <span translate="no" class="material-symbols-outlined seg-icon">lock</span>
+        Privada
+      </button>
+    </div>
+    <p class="hint">
+      @if (editorVisibility() === 'PRIVATE') {
+        Não aparece no Agendar: só quem você convidar consegue marcar.
+      } @else {
+        Aparece no Agendar para qualquer pessoa cliente.
+      }
+    </p>
   </div>
 
   <!-- Frequência -->
@@ -1096,9 +1120,17 @@
         Reagendar sessão
       </button>
     }
+    @if (appt.invitationId != null) {
+      <button class="btn-invite-recurring" (click)="resendInvitation($event, appt)">
+        <span translate="no" class="material-symbols-outlined">forward_to_inbox</span>
+        Reenviar convite
+      </button>
+    }
     <button class="btn-cancel" [disabled]="isApptPast(appt)" (click)="cancelAppointment(appt)">
       <span translate="no" class="material-symbols-outlined">close</span>
-      {{ isPendingSeriesChange(appt) ? 'Retirar alteração' : appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
+      {{ isPendingSeriesChange(appt) ? 'Retirar alteração'
+        : appt.invitationId != null ? 'Retirar convite'
+        : appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
     </button>
   </div>
 </ng-template>

@@ -14,6 +14,8 @@ import { SnackbarService } from '../../shared/services/snackbar.service';
 import { SchedulingService } from '../../shared/services/scheduling.service';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { Modality } from '../../shared/enums/modality.enum';
+import { invitationAsAppointment } from '../../shared/utils/invitation.util';
+import { Invitation } from '../../shared/models/invitation.model';
 
 const LISBON = 'Europe/Lisbon';
 const ME = 2;
@@ -89,6 +91,8 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
       getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of([thursdaySlot])),
       getProfessionalAppointments: jest.fn().mockReturnValue(of([series, expiredChange])),
       deleteAppointment: jest.fn().mockReturnValue(of(null)),
+      getSentInvitations: jest.fn().mockReturnValue(of([])),
+      withdrawInvitation: jest.fn().mockReturnValue(of(null)),
     };
 
     await TestBed.configureTestingModule({
@@ -157,5 +161,32 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.change-expired')).toBeNull();
     // Nada foi pedido de novo ao servidor: é o estado local que se atualiza.
     expect(apiService['getProfessionalAppointments']).toHaveBeenCalledTimes(1);
+  });
+
+  it('um convite enviado reserva a data como pendente, e retirá-lo liberta-a', () => {
+    const invitation = {
+      id: 900, token: 't', availabilityId: 478, professionalId: ME, professionalName: 'Dr. Teste',
+      clientId: null, clientName: null, invitedEmail: 'nova.pessoa@example.com', kind: 'DATE',
+      startDate: '2026-10-15', recurrenceFrequency: null, dayOfWeek: 'THURSDAY',
+      startTime: '17:00:00', endTime: '18:00:00', timeZone: LISBON, firstSessionAt: '2026-10-15T16:00:00Z',
+      professionalServiceId: 1, serviceName: 'MINDFULNESS', modality: 'REMOTE', status: 'PENDING',
+      createdAt: '2026-10-10T10:00:00Z',
+    } as Invitation;
+    const hold = invitationAsAppointment(invitation);
+    component.appointments.set([hold]);
+    fixture.detectChanges();
+
+    expect(component.hasPendingProposal(component.blocks()[0])).toBe(true);
+    component.selectSlot(new Event('click'), hold);
+    fixture.detectChanges();
+    expect(text()).toContain('Convite enviado');
+
+    expect(button('Retirar convite')).toBeDefined();
+    // Nesta semana de teste a data já passou e o botão fica desativado; a ação é a mesma.
+    component.cancelAppointment(hold);
+    fixture.detectChanges();
+
+    expect(apiService['withdrawInvitation']).toHaveBeenCalledWith(900);
+    expect(component.hasPendingProposal(component.blocks()[0])).toBe(false);
   });
 });
