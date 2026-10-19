@@ -42,9 +42,14 @@ import {
   CancelSessionDialogResult,
 } from '../dashboard/cancel-session-dialog.component';
 import { applyCancellation, CancellationScope } from '../../shared/utils/cancellation.util';
-import { freeSlotsOn } from '../../shared/utils/free-slots.util';
+import { availabilityOccursOn, freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { isPendingSeriesChange, nextSeriesOccurrence, pendingSeriesChangeFor } from '../../shared/utils/series-change.util';
-import { detectBrowserTimezone, isWallTimePast } from '../../shared/utils/timezones.util';
+import {
+  detectBrowserTimezone,
+  isWallTimePast,
+  wallTimeInZone,
+  zonedWallTimeToInstant,
+} from '../../shared/utils/timezones.util';
 import {
   fromApiEndTime,
   minToTime,
@@ -64,6 +69,18 @@ import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Appointment } from '../../shared/models/appointment.model';
 import { Invitation, SlotVisibility } from '../../shared/models/invitation.model';
 import { invitationAsAppointment } from '../../shared/utils/invitation.util';
+import { Commitment } from '../../shared/models/co-professional.model';
+import {
+  CoProfessionalDialogComponent,
+  CoProfessionalDialogData,
+  CoProfessionalDialogResult,
+  CoProfessionalScope,
+} from '../../shared/components/co-professional-dialog/co-professional-dialog.component';
+import {
+  CommitmentDialogComponent,
+  CommitmentDialogData,
+  CommitmentDialogResult,
+} from '../../shared/components/commitment-dialog/commitment-dialog.component';
 import {
   GroupDateMoveDialogComponent,
   GroupDateMoveDialogData,
@@ -270,6 +287,33 @@ interface TherapistBlock {
 
 type SessionFormat = 'INDIVIDUAL' | 'GROUP';
 
+/** Uma ocorrência de um compromisso na semana em vista, já no fuso de quem vê. */
+interface CommitmentItem {
+  id: string;
+  commitment: Commitment;
+  /** A data na origem (fuso da vaga) — a que conta para sair. */
+  originDate: string;
+  colIndex: number;
+  startTime: string;
+  endTime: string;
+  sessions: Appointment[];
+}
+
+function addDaysKey(key: string, days: number): string {
+  const d = new Date(key + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toKey(d);
+}
+
+/** Se a marcação acontece nessa data (na origem) — sem as datas desmarcadas. */
+function sessionOccursOn(appt: Appointment, key: string): boolean {
+  if (!appt.startDate || key < appt.startDate) return false;
+  if (appt.endDate && key > appt.endDate) return false;
+  if ((appt.excludedDates ?? []).includes(key)) return false;
+  if (!appt.isRecurring) return appt.startDate === key;
+  return occursOnDate(appt.recurrenceFrequency, new Date(appt.startDate + 'T00:00:00'), new Date(key + 'T00:00:00'));
+}
+
 /** O teto de lugares de um grupo — o mesmo do backend (AvailabilityService.MAX_GROUP_CAPACITY). */
 const MAX_GROUP_CAPACITY = 20;
 
@@ -390,6 +434,189 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   selectedBlockId = signal<number | null>(null);
   selectedAppointment = signal<Appointment | null>(null);
+
+  /** Sessões de outras pessoas profissionais em que tomo parte (docs/adr/0002). */
+  readonly commitments = signal<Commitment[]>([]);
+
+  /**
+   * As ocorrências dos compromissos na semana em vista, já no fuso de quem
+   * vê: a vaga é da dona e está no fuso dela (Lisboa às 18:00 pode ser 14:00
+   * ou 15:00 em São Paulo, conforme a época), por isso converte-se cada uma.
+   */
+  readonly commitmentItems = computed<CommitmentItem[]>(() => {
+    const days = this.weekDays().map(d => toKey(d));
+    if (days.length === 0) return [];
+    const viewerZone = this.sessionService.user()?.timeZone || detectBrowserTimezone();
+    const items: CommitmentItem[] = [];
+    for (const c of this.commitments()) {
+      const slot = c.slot;
+      // Um dia de folga de cada lado: a data na origem pode cair noutro dia aqui.
+      for (let k = addDaysKey(days[0], -1); k <= addDaysKey(days[6], 1); k = addDaysKey(k, 1)) {
+        if (k < c.fromDate || (c.untilDate && k > c.untilDate)) continue;
+        if (!availabilityOccursOn(slot, k)) continue;
+        const sessionsThatDay = c.sessions.filter(s => sessionOccursOn(s, k));
+        // Num compromisso de uma marcação só há sessão quando ela acontece.
+        if (c.appointmentId != null && sessionsThatDay.length === 0) continue;
+        const start = zonedWallTimeToInstant(k, stripSec(slot.startTime), slot.timeZone ?? 'Europe/Lisbon');
+        const end = zonedWallTimeToInstant(k, fromApiEndTime(slot.endTime), slot.timeZone ?? 'Europe/Lisbon');
+        if (!start || !end) continue;
+        const s = wallTimeInZone(start, viewerZone);
+        const e = wallTimeInZone(end, viewerZone);
+        const viewerKey = `${s.year}-${String(s.month).padStart(2, '0')}-${String(s.day).padStart(2, '0')}`;
+        const colIndex = days.indexOf(viewerKey);
+        if (colIndex < 0) continue;
+        items.push({
+          id: `${c.coProfessionalId}@${k}`,
+          commitment: c,
+          originDate: k,
+          colIndex,
+          startTime: `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}`,
+          endTime: `${String(e.hour).padStart(2, '0')}:${String(e.minute).padStart(2, '0')}`,
+          sessions: sessionsThatDay,
+        });
+      }
+    }
+    return items;
+  });
+
+  commitmentsForColumn(colIndex: number): CommitmentItem[] {
+    return this.commitmentItems().filter(i => i.colIndex === colIndex);
+  }
+
+  commitmentTopPx(item: CommitmentItem, rowH: number = ROW_H): number {
+    return hourRowIdx(item.startTime) * rowH + 3;
+  }
+
+  commitmentHeightPx(item: CommitmentItem, rowH: number = ROW_H): number {
+    const end = item.endTime <= item.startTime ? '24:00' : item.endTime;
+    return Math.max((hourRowIdx(end) - hourRowIdx(item.startTime)) * rowH - 6, 18);
+  }
+
+  openCommitment(event: Event, item: CommitmentItem): void {
+    event.stopPropagation();
+    const d = new Date(this.weekDays()[item.colIndex]);
+    const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
+    const ref = this.dialog.open(CommitmentDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: {
+        ownerName: item.commitment.ownerName,
+        whenLabel: `${dow.charAt(0).toUpperCase() + dow.slice(1)}, ${this.fmtDayMonth(toKey(d))} · ${item.startTime}–${item.endTime}`,
+        isGroup: item.commitment.slot.format === 'GROUP',
+        sessions: item.sessions,
+        originDate: item.originDate,
+      } satisfies CommitmentDialogData,
+    });
+    ref.afterClosed().subscribe((result: CommitmentDialogResult) => {
+      if (result !== 'leave') return;
+      this.apiService.endCoProfessional(item.commitment.coProfessionalId, item.originDate).subscribe({
+        next: () => {
+          this.snackbarService.openSnackBar({ message: `Você deixa de participar a partir de ${this.fmtDayMonth(item.originDate)}.` });
+          this.loadInitialData();
+        },
+        error: () => {},
+      });
+    });
+  }
+
+  /** Só um bloco já gravado (com vagas no servidor) se partilha ou passa. */
+  hasSavedSlots(block: TherapistBlock): boolean {
+    return block.backendSlots.some(s => s.backendId > 0);
+  }
+
+  /** O que se oferece ao convidar outra pessoa profissional a partir de um bloco. */
+  addCoProfessionalToBlock(): void {
+    const block = this.selectedBlock();
+    if (!block) return;
+    const slots = block.backendSlots.filter(s => s.backendId > 0);
+    if (slots.length === 0) return;
+    const date = this.blockDateKey(block);
+    const scopes: CoProfessionalScope[] = [{ value: 'slot', label: 'Todas as sessões a partir de hoje' }];
+    if (block.format === 'GROUP' && date) {
+      scopes.push({ value: 'date', label: `Só em ${this.fmtDayMonth(date)}` });
+    }
+    const ref = this.dialog.open(CoProfessionalDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: {
+        contextLabel: `${this.blockLabel(block)}${block.format === 'GROUP' ? ' · grupo' : ''}`,
+        scopes,
+      } satisfies CoProfessionalDialogData,
+    });
+    ref.afterClosed().subscribe((result: CoProfessionalDialogResult | null) => {
+      if (!result) return;
+      const once = result.scope === 'date' && date ? date : undefined;
+      forkJoin(slots.map(s => this.apiService.requestCoProfessional({
+        professionalId: result.professionalId,
+        availabilityId: s.backendId,
+        fromDate: once,
+        untilDate: once,
+        message: result.message,
+      }))).subscribe({
+        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa tem de aceitar.' }),
+        // O interceptor já diz se a pessoa tem uma sessão a essa hora.
+        error: () => {},
+      });
+    });
+  }
+
+  /** Convidar outra pessoa profissional para uma sessão (ou a série) de uma pessoa cliente. */
+  addCoProfessionalToAppointment(event: Event, appt: Appointment): void {
+    event.stopPropagation();
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    const date = (block && this.blockDateInView(block)) || appt.startDate;
+    const scopes: CoProfessionalScope[] = appt.isRecurring
+      ? [{ value: 'series', label: 'Toda a série a partir de hoje' }, { value: 'date', label: `Só em ${this.fmtDayMonth(date)}` }]
+      : [{ value: 'date', label: `Esta sessão (${this.fmtDayMonth(date)})` }];
+    const ref = this.dialog.open(CoProfessionalDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: { contextLabel: `Sessão com ${this.slotPatientName(appt)}`, scopes } satisfies CoProfessionalDialogData,
+    });
+    ref.afterClosed().subscribe((result: CoProfessionalDialogResult | null) => {
+      if (!result) return;
+      const once = result.scope === 'date' ? date : undefined;
+      this.apiService.requestCoProfessional({
+        professionalId: result.professionalId,
+        appointmentId: appt.id,
+        fromDate: once,
+        untilDate: once,
+        message: result.message,
+      }).subscribe({
+        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa tem de aceitar.' }),
+        error: () => {},
+      });
+    });
+  }
+
+  /** Passar a vaga (cada horário do bloco) a outra pessoa profissional. */
+  transferBlock(): void {
+    const block = this.selectedBlock();
+    if (!block) return;
+    const slots = block.backendSlots.filter(s => s.backendId > 0);
+    if (slots.length === 0) return;
+    const ref = this.dialog.open(CoProfessionalDialogComponent, {
+      width: '460px',
+      panelClass: 'care-dialog',
+      data: { contextLabel: this.blockLabel(block), scopes: [{ value: 'slot', label: 'A vaga' }], transfer: true } satisfies CoProfessionalDialogData,
+    });
+    ref.afterClosed().subscribe((result: CoProfessionalDialogResult | null) => {
+      if (!result) return;
+      forkJoin(slots.map(s => this.apiService.requestOwnershipTransfer(
+        s.backendId, result.professionalId, !!result.oldOwnerStays,
+      ))).subscribe({
+        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A vaga só passa quando a outra pessoa aceitar.' }),
+        error: () => {},
+      });
+    });
+  }
+
+  /** "Quinta · 18:00–19:30" — o bloco no relógio da própria pessoa profissional. */
+  private blockLabel(block: TherapistBlock): string {
+    const idx = block.weekdays[0] ? COL_TO_DOW.indexOf(block.weekdays[0]) : -1;
+    const day = idx >= 0 ? PT_DOW_LONG[idx] : (block.startDate ? this.fmtDayMonth(block.startDate) : '');
+    return `${day.charAt(0).toUpperCase() + day.slice(1)} · ${block.startTime}–${block.endTime}`;
+  }
 
   // ─ Editor state
   selectedServiceIds = signal<Set<number>>(new Set());
@@ -790,6 +1017,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       appointments: this.apiService.getProfessionalAppointments(userId),
       // Sem os convites a agenda ainda serve — só não mostra as datas que reservam.
       invitations: this.apiService.getSentInvitations().pipe(catchError(() => of([] as Invitation[]))),
+      // Onde tomo parte noutras vagas — também ocupa a minha agenda.
+      commitments: this.apiService.getCommitments().pipe(catchError(() => of([] as Commitment[]))),
     })
       .pipe(
         // Uma tentativa extra evita que uma falha transitória (ex.: o
@@ -814,6 +1043,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           })),
           ...result.invitations.map(invitationAsAppointment),
         ]);
+        this.commitments.set(result.commitments);
       });
   }
 

@@ -206,6 +206,22 @@ export const routes: Routes = [
           },
 
           {
+            path: 'co-professional-requests/:id',
+            loadComponent: () =>
+              import(
+                './shared/components/co-professional-request-page/co-professional-request-page.component'
+              ).then((m) => m.CoProfessionalRequestPageComponent),
+          },
+
+          {
+            path: 'ownership-transfers/:id',
+            loadComponent: () =>
+              import(
+                './shared/components/ownership-transfer-page/ownership-transfer-page.component'
+              ).then((m) => m.OwnershipTransferPageComponent),
+          },
+
+          {
             path: 'proposals/:id',
             loadComponent: () =>
               import(

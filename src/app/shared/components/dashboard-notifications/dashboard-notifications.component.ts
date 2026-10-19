@@ -29,6 +29,12 @@ export class DashboardNotificationsComponent {
       case 'INVITATION_ACCEPTED':    return 'check_circle';
       case 'INVITATION_DECLINED':    return 'cancel';
       case 'INVITATION_WITHDRAWN':   return 'cancel';
+      case 'CO_PROFESSIONAL_REQUEST_RECEIVED': return 'group_add';
+      case 'CO_PROFESSIONAL_REQUEST_ACCEPTED': return 'check_circle';
+      case 'CO_PROFESSIONAL_REQUEST_DECLINED': return 'cancel';
+      case 'OWNERSHIP_TRANSFER_RECEIVED': return 'swap_horiz';
+      case 'OWNERSHIP_TRANSFER_ACCEPTED': return 'check_circle';
+      case 'OWNERSHIP_TRANSFER_DECLINED': return 'cancel';
       case 'RESCHEDULE_REQUEST_RECEIVED':    return 'event_repeat';
       case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'check_circle';
       case 'RESCHEDULE_REQUEST_DECLINED':    return 'cancel';
@@ -50,6 +56,12 @@ export class DashboardNotificationsComponent {
       case 'INVITATION_ACCEPTED':    return 'type-booked';
       case 'INVITATION_DECLINED':    return 'type-cancelled';
       case 'INVITATION_WITHDRAWN':   return 'type-cancelled';
+      case 'CO_PROFESSIONAL_REQUEST_RECEIVED': return 'type-proposal';
+      case 'CO_PROFESSIONAL_REQUEST_ACCEPTED': return 'type-booked';
+      case 'CO_PROFESSIONAL_REQUEST_DECLINED': return 'type-cancelled';
+      case 'OWNERSHIP_TRANSFER_RECEIVED': return 'type-proposal';
+      case 'OWNERSHIP_TRANSFER_ACCEPTED': return 'type-booked';
+      case 'OWNERSHIP_TRANSFER_DECLINED': return 'type-cancelled';
       case 'RESCHEDULE_REQUEST_RECEIVED':    return 'type-proposal';
       case 'RESCHEDULE_REQUEST_ACCEPTED':    return 'type-rescheduled';
       case 'RESCHEDULE_REQUEST_DECLINED':    return 'type-cancelled';

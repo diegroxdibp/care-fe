@@ -1,0 +1,51 @@
+// Disponibilidade: compromissos (sessões de outras pessoas profissionais em que
+// se toma parte) e ações sobre quem participa numa vaga. Global e não no
+// componente porque a folha da Disponibilidade já está no limite de tamanho;
+// tudo fica preso a .av, a raiz dessa página.
+// Sessão de outra pessoa profissional em que tomo parte: só leitura, tracejada.
+.av .commitment {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1.5px dashed var(--color-secondary-indigo);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-tint);
+  color: var(--color-secondary-indigo);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  overflow: hidden;
+  cursor: pointer;
+
+  .material-symbols-outlined { font-size: 14px; }
+  .cm-name { font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cm-time { opacity: 0.8; }
+}
+
+.av .people-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.av .btn-people {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+
+  .material-symbols-outlined { font-size: 17px; }
+  &:hover { border-color: var(--color-primary-blue); }
+}

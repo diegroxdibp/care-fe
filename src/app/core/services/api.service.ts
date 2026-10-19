@@ -5,6 +5,13 @@ import { Observable } from 'rxjs';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Invitation, InvitationPayload, InvitationPreview } from '../../shared/models/invitation.model';
 import { MyService } from '../../shared/models/my-service.model';
+import {
+  Commitment,
+  CoProfessionalRequest,
+  CoProfessionalRequestPayload,
+  OwnershipTransfer,
+  ProfessionalSummary,
+} from '../../shared/models/co-professional.model';
 
 export interface AvailabilityPayload {
   professionalServiceIds: number[];
@@ -297,6 +304,65 @@ export class ApiService {
     return this.http.put(
       `${environment.apiUrl}/api/services/${active ? 'enable' : 'disable'}/${id}`, {},
       { withCredentials: true, responseType: 'text' },
+    );
+  }
+
+  // ─ Co-profissionais e passagem de vagas ───────────────────────────────────
+
+  /** Outras pessoas profissionais que se podem convidar — nome e foto, sem contactos. */
+  getCoProfessionalCandidates(): Observable<ProfessionalSummary[]> {
+    return this.http.get<ProfessionalSummary[]>(
+      `${environment.apiUrl}/api/co-professionals/professionals`, { withCredentials: true },
+    );
+  }
+
+  requestCoProfessional(payload: CoProfessionalRequestPayload): Observable<CoProfessionalRequest> {
+    return this.http.post<CoProfessionalRequest>(
+      `${environment.apiUrl}/api/co-professionals/requests`, payload, { withCredentials: true },
+    );
+  }
+
+  getCoProfessionalRequest(id: number): Observable<CoProfessionalRequest> {
+    return this.http.get<CoProfessionalRequest>(
+      `${environment.apiUrl}/api/co-professionals/requests/${id}`, { withCredentials: true },
+    );
+  }
+
+  respondToCoProfessionalRequest(id: number, accept: boolean): Observable<CoProfessionalRequest> {
+    return this.http.post<CoProfessionalRequest>(
+      `${environment.apiUrl}/api/co-professionals/requests/${id}/${accept ? 'accept' : 'decline'}`, {},
+      { withCredentials: true },
+    );
+  }
+
+  /** Onde tomo parte como co-profissional — para o meu calendário. */
+  getCommitments(): Observable<Commitment[]> {
+    return this.http.get<Commitment[]>(`${environment.apiUrl}/api/co-professionals/commitments`, { withCredentials: true });
+  }
+
+  /** Sair (eu) ou tirar (a dona) a partir de uma data. */
+  endCoProfessional(coProfessionalId: number, from?: string): Observable<void> {
+    const query = from ? `?from=${from}` : '';
+    return this.http.delete<void>(
+      `${environment.apiUrl}/api/co-professionals/${coProfessionalId}${query}`, { withCredentials: true },
+    );
+  }
+
+  requestOwnershipTransfer(availabilityId: number, toProfessionalId: number, oldOwnerStays: boolean): Observable<OwnershipTransfer> {
+    return this.http.post<OwnershipTransfer>(
+      `${environment.apiUrl}/api/ownership-transfers`, { availabilityId, toProfessionalId, oldOwnerStays },
+      { withCredentials: true },
+    );
+  }
+
+  getOwnershipTransfer(id: number): Observable<OwnershipTransfer> {
+    return this.http.get<OwnershipTransfer>(`${environment.apiUrl}/api/ownership-transfers/${id}`, { withCredentials: true });
+  }
+
+  respondToOwnershipTransfer(id: number, accept: boolean): Observable<OwnershipTransfer> {
+    return this.http.post<OwnershipTransfer>(
+      `${environment.apiUrl}/api/ownership-transfers/${id}/${accept ? 'accept' : 'decline'}`, {},
+      { withCredentials: true },
     );
   }
 

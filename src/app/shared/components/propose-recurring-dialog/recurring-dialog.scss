@@ -301,3 +301,17 @@ textarea.field-value {
 
   strong { font-weight: 600; }
 }
+
+// Caixa de seleção simples (ex.: "Continuar como co-profissional").
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--fg-1);
+  cursor: pointer;
+
+  input { accent-color: var(--color-primary-blue); width: 16px; height: 16px; }
+}

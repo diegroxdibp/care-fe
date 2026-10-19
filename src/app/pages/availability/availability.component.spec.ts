@@ -93,6 +93,7 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
       getProfessionalAppointments: jest.fn().mockReturnValue(of([series, expiredChange])),
       deleteAppointment: jest.fn().mockReturnValue(of(null)),
       getSentInvitations: jest.fn().mockReturnValue(of([])),
+      getCommitments: jest.fn().mockReturnValue(of([])),
       withdrawInvitation: jest.fn().mockReturnValue(of(null)),
     };
 
@@ -206,5 +207,29 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     expect(slot.full).toBe(false);
     expect(slot.appointments?.length).toBe(2);
     expect(text()).toContain('Grupo · 2/3');
+  });
+
+  it('um compromisso aparece na hora de quem vê: 14:00 em São Paulo é 18:00 em Lisboa (outubro)', () => {
+    const saoPauloSlot = (start: string, end: string) => ({
+      ...thursdaySlot, id: 900, startTime: start, endTime: end, timeZone: 'America/Sao_Paulo',
+    }) as AvailabilityModel;
+    component.commitments.set([
+      {
+        coProfessionalId: 1, ownerId: 7, ownerName: 'Marta', availabilityId: 900, fromDate: '2026-01-01',
+        slot: saoPauloSlot('14:00:00', '15:00:00'), sessions: [],
+      },
+      {
+        // 22:00 de quinta em São Paulo já é sexta, 02:00, em Lisboa.
+        coProfessionalId: 2, ownerId: 7, ownerName: 'Marta', availabilityId: 901, fromDate: '2026-01-01',
+        slot: saoPauloSlot('22:00:00', '23:00:00'), sessions: [],
+      },
+    ]);
+
+    const [afternoon, night] = component.commitmentItems();
+    expect(afternoon.colIndex).toBe(3);
+    expect(afternoon.startTime).toBe('18:00');
+    expect(night.colIndex).toBe(4);
+    expect(night.startTime).toBe('02:00');
+    expect(night.originDate).toBe('2026-10-15');
   });
 });

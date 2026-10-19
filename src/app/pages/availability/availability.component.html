@@ -86,6 +86,21 @@
                       (pointerdown)="startDragSelect($event, di)"
                     ></div>
                   }
+                  @for (c of commitmentsForColumn(di); track c.id) {
+                    <!-- Sessão de outra pessoa profissional em que tomo parte -->
+                    <div
+                      class="commitment"
+                      [style.top.px]="commitmentTopPx(c)"
+                      [style.height.px]="commitmentHeightPx(c)"
+                      (pointerdown)="$event.stopPropagation()"
+                      (click)="openCommitment($event, c)"
+                      [title]="'Com ' + c.commitment.ownerName"
+                    >
+                      <span translate="no" class="material-symbols-outlined">group</span>
+                      <span class="cm-name">com {{ c.commitment.ownerName }}</span>
+                      <span class="cm-time">{{ c.startTime }}–{{ c.endTime }}</span>
+                    </div>
+                  }
                   @for (block of blocksForColumn(di); track block.id) {
                     <div
                       class="block"
@@ -295,6 +310,18 @@
                 <span translate="no" class="material-symbols-outlined">check</span>
                 Salvar disponibilidade
               </button>
+              @if (selectedBlockId() !== null && selectedBlock() && hasSavedSlots(selectedBlock()!)) {
+                <div class="people-actions">
+                  <button class="btn-people" (click)="addCoProfessionalToBlock()">
+                    <span translate="no" class="material-symbols-outlined">group_add</span>
+                    Adicionar co-profissional
+                  </button>
+                  <button class="btn-people" (click)="transferBlock()">
+                    <span translate="no" class="material-symbols-outlined">swap_horiz</span>
+                    Passar a vaga
+                  </button>
+                </div>
+              }
               @if (selectedBlockId() !== null) {
                 @if (selectedBlock() && hasBookings(selectedBlock()!)) {
                   <div class="remove-guard">
@@ -399,6 +426,18 @@
               <div class="b-resize-handle" (pointerdown)="startPreviewResize($event, preview, MOB_ROW_H)">
                 <span class="grip"></span>
               </div>
+            </div>
+          }
+          @for (c of commitmentsForColumn(selectedDayIndex()); track c.id) {
+            <div
+              class="commitment"
+              [style.top.px]="commitmentTopPx(c, MOB_ROW_H)"
+              [style.height.px]="commitmentHeightPx(c, MOB_ROW_H)"
+              (click)="openCommitment($event, c)"
+            >
+              <span translate="no" class="material-symbols-outlined">group</span>
+              <span class="cm-name">com {{ c.commitment.ownerName }}</span>
+              <span class="cm-time">{{ c.startTime }}–{{ c.endTime }}</span>
             </div>
           }
           @for (block of mobileDayBlocks(); track block.id) {
@@ -528,6 +567,18 @@
                 <span translate="no" class="material-symbols-outlined">check</span>
                 Salvar disponibilidade
               </button>
+              @if (selectedBlockId() !== null && selectedBlock() && hasSavedSlots(selectedBlock()!)) {
+                <div class="people-actions">
+                  <button class="btn-people" (click)="addCoProfessionalToBlock()">
+                    <span translate="no" class="material-symbols-outlined">group_add</span>
+                    Adicionar co-profissional
+                  </button>
+                  <button class="btn-people" (click)="transferBlock()">
+                    <span translate="no" class="material-symbols-outlined">swap_horiz</span>
+                    Passar a vaga
+                  </button>
+                </div>
+              }
               @if (selectedBlockId() !== null && selectedBlock() && !hasBookings(selectedBlock()!)) {
                 <button class="btn-remove" (click)="removeBlock()">
                   <span translate="no" class="material-symbols-outlined">delete</span>
@@ -1221,6 +1272,12 @@
       <button class="btn-resched" [disabled]="isApptPast(appt)" (click)="openRescheduleDialog($event, appt)">
         <span translate="no" class="material-symbols-outlined">edit_calendar</span>
         Reagendar sessão
+      </button>
+    }
+    @if (appt.status === 'CONFIRMED' && appt.invitationId == null) {
+      <button class="btn-invite-recurring" (click)="addCoProfessionalToAppointment($event, appt)">
+        <span translate="no" class="material-symbols-outlined">group_add</span>
+        Adicionar co-profissional
       </button>
     }
     @if (appt.invitationId != null) {
