@@ -461,7 +461,11 @@ export function buildSessions(
         month: MONTHS[resolved.date.getMonth()],
         who,
         whoInitials: initialsFor(who),
-        service: appt.group ? `${serviceName} · em grupo` : serviceName,
+        service: [
+          serviceName,
+          appt.group ? 'em grupo' : null,
+          appt.commitmentOwner ? `com ${appt.commitmentOwner}` : null,
+        ].filter(Boolean).join(' · '),
         startTime: resolved.startTime,
         endTime: resolved.endTime,
         mode,

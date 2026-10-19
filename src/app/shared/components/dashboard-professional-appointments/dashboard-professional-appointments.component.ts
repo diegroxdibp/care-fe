@@ -1,3 +1,5 @@
+import { Commitment } from '../../models/co-professional.model';
+import { catchError, forkJoin, of } from 'rxjs';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
@@ -108,8 +110,17 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
       this.hidePastSessions.set(false);
     }
 
-    this.apiService.getProfessionalAppointments(professionalId).subscribe({
-      next: (appts) => {
+    forkJoin({
+      own: this.apiService.getProfessionalAppointments(professionalId),
+      // Sessões de outras pessoas profissionais em que tomo parte.
+      commitments: this.apiService.getCommitments().pipe(catchError(() => of([] as Commitment[]))),
+    }).subscribe({
+      next: ({ own, commitments }) => {
+        const ownIds = new Set(own.map(a => a.id));
+        const others = commitments
+          .flatMap(c => c.sessions.map(s => ({ ...s, commitmentOwner: c.ownerName })))
+          .filter((s, i, all) => !ownIds.has(s.id) && all.findIndex(o => o.id === s.id) === i);
+        const appts = [...own, ...others];
         this.appointments.set(appts);
         this.loading.set(false);
         if (highlightId) {

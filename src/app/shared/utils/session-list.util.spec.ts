@@ -416,6 +416,11 @@ describe('buildSessions — lugar num grupo', () => {
     expect(session.service).toContain('· em grupo');
   });
 
+  it('uma sessão de outra pessoa em que tomo parte diz de quem é', () => {
+    const [session] = buildSessions([makeAppointment({ group: true, commitmentOwner: 'Luane' })], [SERVICE], options());
+    expect(session.service).toContain('em grupo · com Luane');
+  });
+
   it('uma sessão individual fica como estava', () => {
     const [session] = buildSessions([makeAppointment()], [SERVICE], options());
     expect(session.isGroup).toBe(false);

@@ -55,4 +55,9 @@ export interface Appointment {
   callExtensions?: { occurrenceDate: string; extraMinutes: number }[];
   /** Sessão de uma vaga de grupo: a pessoa cliente tem um lugar, não a vaga. */
   group?: boolean;
+  /**
+   * Só no frontend: sessão de outra pessoa profissional em que tomo parte
+   * como co-profissional — o nome da dona, para a lista o dizer.
+   */
+  commitmentOwner?: string;
 }
