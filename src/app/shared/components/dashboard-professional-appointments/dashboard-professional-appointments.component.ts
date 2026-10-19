@@ -10,7 +10,9 @@ import { ProfessionalService } from '../../models/professional-service.model';
 import { PatientSummary } from '../../models/patient.model';
 import { Currency } from '../../enums/currency.enum';
 import { Pages } from '../../enums/pages.enum';
-import { BuiltSession, buildSessions, canJoinSession, isUpcomingOrOngoing } from '../../utils/session-list.util';
+import {
+  BuiltSession, buildSessions, canJoinSession, isCallOvertime, isUpcomingOrOngoing,
+} from '../../utils/session-list.util';
 import { detectBrowserTimezone } from '../../utils/timezones.util';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 
@@ -154,6 +156,10 @@ export class DashboardProfessionalAppointmentsComponent implements OnInit {
 
   canJoin(session: BuiltSession): boolean {
     return canJoinSession(session);
+  }
+
+  isOvertime(session: BuiltSession): boolean {
+    return isCallOvertime(session);
   }
 
   joinSession(session: BuiltSession): void {

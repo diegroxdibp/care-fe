@@ -41,6 +41,7 @@ import {
   SessionCounterpart as DashSessionProfessional,
   buildSessions,
   canJoinSession,
+  isCallOvertime,
   isUpcomingOrOngoing,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
@@ -557,6 +558,10 @@ export class DashboardPageComponent implements OnInit {
 
   canJoin(session: DashSession): boolean {
     return canJoinSession(session);
+  }
+
+  isOvertime(session: DashSession): boolean {
+    return isCallOvertime(session);
   }
 
   joinSession(session: DashSession): void {

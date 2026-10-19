@@ -9,6 +9,7 @@ import {
   BuildSessionsOptions,
   buildSessions,
   canJoinSession,
+  isCallOvertime,
   isUpcomingOrOngoing,
   sessionBounds,
 } from './session-list.util';
@@ -356,3 +357,54 @@ describe('buildSessions — proposta recorrente por responder', () => {
   });
 });
 
+/**
+ * Chamada estendida de dentro da videochamada: o "Entrar" do painel não pode
+ * sumir à hora original, e a sessão aparece como prolongada.
+ */
+describe('canJoinSession / isCallOvertime — chamada estendida', () => {
+  beforeAll(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-01T12:00:00Z'));
+  });
+  afterAll(() => jest.useRealTimers());
+
+  // Remota, Lisboa, 6 out 2026 (UTC+1): 10:00–11:00 = 09:00–10:00 UTC, +30 min.
+  const extended = makeAppointment({
+    startDate: '2026-10-06', endDate: '2026-10-06', startTime: '10:00', endTime: '11:00',
+    dayOfWeek: 'TUESDAY' as unknown as DayOfWeek, timeZone: LISBON,
+    callExtensions: [{ occurrenceDate: '2026-10-06', extraMinutes: 30 }],
+  });
+
+  it('o Entrar continua até 5 min depois do novo fim', () => {
+    const [session] = buildSessions([extended], [SERVICE], options());
+    expect(canJoinSession(session, new Date('2026-10-06T10:20:00Z'))).toBe(true);
+    expect(canJoinSession(session, new Date('2026-10-06T10:34:00Z'))).toBe(true);
+    expect(canJoinSession(session, new Date('2026-10-06T10:36:00Z'))).toBe(false);
+  });
+
+  it('só está em prolongamento depois do fim combinado', () => {
+    const [session] = buildSessions([extended], [SERVICE], options());
+    expect(isCallOvertime(session, new Date('2026-10-06T09:50:00Z'))).toBe(false);
+    expect(isCallOvertime(session, new Date('2026-10-06T10:10:00Z'))).toBe(true);
+    expect(isCallOvertime(session, new Date('2026-10-06T10:36:00Z'))).toBe(false);
+  });
+
+  it('mostra o novo fim no fuso de quem vê: 11:30 em Lisboa, 07:30 em São Paulo', () => {
+    expect(buildSessions([extended], [SERVICE], options())[0].extendedEndTime).toBe('11:30');
+    expect(buildSessions([extended], [SERVICE], options({ viewerTimeZone: SAO_PAULO }))[0].extendedEndTime)
+      .toBe('07:30');
+  });
+
+  it('a extensão de um dia não passa para a semana seguinte de uma série', () => {
+    const series = { ...extended, isRecurring: true, endDate: '2026-12-31', recurrenceFrequency: 'WEEKLY' } as Appointment;
+    const [first, second] = buildSessions([series], [SERVICE], options());
+    expect(first.callExtraMinutes).toBe(30);
+    expect(second.callExtraMinutes).toBe(0);
+    expect(isCallOvertime(second, new Date('2026-10-13T10:10:00Z'))).toBe(false);
+  });
+
+  it('sem extensão, nada muda: fecha às 10:05 UTC e nunca está em prolongamento', () => {
+    const [session] = buildSessions([{ ...extended, callExtensions: [] }], [SERVICE], options());
+    expect(canJoinSession(session, new Date('2026-10-06T10:06:00Z'))).toBe(false);
+    expect(isCallOvertime(session, new Date('2026-10-06T10:02:00Z'))).toBe(false);
+  });
+});

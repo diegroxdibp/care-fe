@@ -80,9 +80,14 @@
 
           <div class="actions">
             @if (canJoin(s)) {
-              <button class="btn-join" (click)="joinSession(s)">
-                <span translate="no" class="material-symbols-outlined">videocam</span>
-                Entrar na sessão
+              <button class="btn-join" [class.overtime]="isOvertime(s)" (click)="joinSession(s)">
+                @if (isOvertime(s)) {
+                  <span translate="no" class="material-symbols-outlined">more_time</span>
+                  Entrar · prolongada até {{ s.extendedEndTime }}
+                } @else {
+                  <span translate="no" class="material-symbols-outlined">videocam</span>
+                  Entrar na sessão
+                }
               </button>
             }
             <button class="btn-message" (click)="openThread(s)">
@@ -198,9 +203,14 @@
                         <div class="ad-v">{{ s.who }}</div>
                       </div>
                       @if (canJoin(s)) {
-                        <button class="btn-join" (click)="joinSession(s)">
-                          <span translate="no" class="material-symbols-outlined">videocam</span>
-                          Entrar na sessão
+                        <button class="btn-join" [class.overtime]="isOvertime(s)" (click)="joinSession(s)">
+                          @if (isOvertime(s)) {
+                            <span translate="no" class="material-symbols-outlined">more_time</span>
+                            Entrar · prolongada até {{ s.extendedEndTime }}
+                          } @else {
+                            <span translate="no" class="material-symbols-outlined">videocam</span>
+                            Entrar na sessão
+                          }
                         </button>
                       }
                       <button class="btn-message" (click)="openThread(s)">

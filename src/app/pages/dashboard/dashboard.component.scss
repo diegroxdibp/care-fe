@@ -584,6 +584,13 @@
 
   span.material-symbols-outlined { font-size: 17px; }
   &:hover { opacity: 0.88; }
+
+  // Chamada estendida e já depois do fim combinado - ver isCallOvertime.
+  &.overtime {
+    background: var(--color-pending);
+    border-color: var(--color-pending);
+    color: var(--color-pending-ink);
+  }
 }
 
 .btn-cancel {

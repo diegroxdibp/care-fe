@@ -85,6 +85,14 @@ export interface BuiltSession {
    */
   startInstant?: Date;
   endInstant?: Date;
+  /**
+   * Minutos a mais com que a chamada desta ocorrência foi estendida (0 quando
+   * não foi). A sala fica aberta até ao fim combinado + estes minutos + a
+   * margem, e o "Entrar" tem de continuar lá.
+   */
+  callExtraMinutes: number;
+  /** Novo fim, no fuso de quem vê, quando a chamada foi estendida. */
+  extendedEndTime?: string;
 }
 
 /** Do ponto de vista de quem vê a lista: a pessoa cliente vê a(s) profissional(is); a profissional vê a pessoa cliente. */
@@ -188,8 +196,27 @@ export function canJoinSession(session: BuiltSession, now: Date = new Date()): b
   const bounds = sessionBounds(session);
   if (!bounds) return false;
   const opensAt = new Date(bounds.start.getTime() - JOIN_WINDOW_BEFORE_MIN * 60_000);
-  const closesAt = new Date(bounds.end.getTime() + JOIN_WINDOW_AFTER_MIN * 60_000);
+  const closesAt = new Date(
+    bounds.end.getTime() + ((session.callExtraMinutes ?? 0) + JOIN_WINDOW_AFTER_MIN) * 60_000);
   return now >= opensAt && now <= closesAt;
+}
+
+/**
+ * A chamada foi estendida e já passou do fim combinado: a sessão está em
+ * prolongamento, e o "Entrar" continua - quem caiu da chamada pode voltar.
+ */
+export function isCallOvertime(session: BuiltSession, now: Date = new Date()): boolean {
+  if (!session.callExtraMinutes) return false;
+  const bounds = sessionBounds(session);
+  if (!bounds) return false;
+  return now >= bounds.end && canJoinSession(session, now);
+}
+
+/** "18:30" + 45 min = "19:15" - só para marcações antigas, sem instante. */
+function addMinutesToLabel(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = (((h * 60 + m + minutes) % (24 * 60)) + 24 * 60) % (24 * 60);
+  return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
 }
 
 /**
@@ -418,6 +445,8 @@ export function buildSessions(
     for (const date of dates) {
       const occurrenceKey = toDateKey(date);
       const key = `${appt.id}@${occurrenceKey}`;
+      const extraMinutes = appt.callExtensions
+        ?.find(e => e.occurrenceDate === occurrenceKey)?.extraMinutes ?? 0;
       const resolved = resolveOccurrenceDisplay(
         date,
         appt.startTime?.slice(0, 5) ?? '',
@@ -457,6 +486,16 @@ export function buildSessions(
         pending,
         startInstant: resolved.startInstant,
         endInstant: resolved.endInstant,
+        callExtraMinutes: extraMinutes,
+        extendedEndTime: !extraMinutes
+          ? undefined
+          : resolved.endInstant
+            ? (() => {
+              const wall = wallTimeInZone(
+                new Date(resolved.endInstant.getTime() + extraMinutes * 60_000), options.viewerTimeZone);
+              return `${pad2(wall.hour)}:${pad2(wall.minute)}`;
+            })()
+            : addMinutesToLabel(resolved.endTime, extraMinutes),
       });
     }
   }

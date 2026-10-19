@@ -42,4 +42,9 @@ export interface Appointment {
    * não entra nas listas de sessões (ver series-change.util.ts).
    */
   replacesAppointmentId?: number | null;
+  /**
+   * Chamadas estendidas de dentro da videochamada, só as recentes - data da
+   * ocorrência (yyyy-MM-dd, no fuso da marcação) e minutos a mais.
+   */
+  callExtensions?: { occurrenceDate: string; extraMinutes: number }[];
 }
