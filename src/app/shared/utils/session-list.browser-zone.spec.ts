@@ -2,7 +2,8 @@ import { Appointment } from '../models/appointment.model';
 import { DayOfWeek } from '../enums/day-of-week.enum';
 import { Modality } from '../enums/modality.enum';
 import { Currency } from '../enums/currency.enum';
-import { buildSessions } from './session-list.util';
+import { buildSessions, canJoinSession, sessionBounds } from './session-list.util';
+import { isWallTimePast } from './timezones.util';
 
 /**
  * O resto da suite corre com o processo em UTC/Lisboa, que no inverno são o
@@ -99,5 +100,33 @@ const runningInSaoPaulo = new Date('2026-01-15T12:00:00Z').getTimezoneOffset() =
     });
     const sessions = buildSessions([original, pendingChange], [], opts);
     expect(sessions.every(s => s.appointmentId === 1)).toBe(true);
+  });
+});
+
+/*
+ * Marcações sem fuso guardado (a série de Ash, 2026-10): o backend lia-as em
+ * Lisboa e o frontend no relógio do computador. Num computador em São Paulo a
+ * mesma sessão ficava 3 h (inverno europeu) fora do sítio - na hora mostrada,
+ * no "Entrar" e no "já passou". Agora o frontend usa Lisboa, como o backend.
+ */
+(runningInSaoPaulo ? describe : describe.skip)('sem fuso guardado, num browser em São Paulo', () => {
+  it('a sessão é lida em Lisboa, como no backend', () => {
+    // 15 jan 2026 10:00 em Lisboa (UTC+0) = 10:00 UTC = 07:00 em São Paulo.
+    const legacy = makeAppointment({
+      startDate: '2026-01-15', endDate: '2026-01-15', startTime: '10:00', endTime: '11:00',
+      isRecurring: false, dayOfWeek: 'THURSDAY' as unknown as DayOfWeek, timeZone: undefined,
+    });
+    const [session] = buildSessions([legacy], [], opts);
+    expect(sessionBounds(session)!.start.toISOString()).toBe('2026-01-15T10:00:00.000Z');
+    expect(session.startTime).toBe('07:00');
+    expect(canJoinSession(session, new Date('2026-01-15T09:57:00Z'))).toBe(true);
+    expect(canJoinSession(session, new Date('2026-01-15T12:57:00Z'))).toBe(false);
+  });
+
+  it('"já passou" também usa Lisboa, não o relógio do computador', () => {
+    // 10:30 UTC: em Lisboa as 10:00 já passaram; em São Paulo ainda são 07:30.
+    expect(isWallTimePast('2026-01-15', '10:00', undefined, new Date('2026-01-15T10:30:00Z'))).toBe(true);
+    expect(isWallTimePast('2026-07-15', '10:00', null, new Date('2026-07-15T09:30:00Z'))).toBe(true);
+    expect(isWallTimePast('2026-07-15', '10:00', null, new Date('2026-07-15T08:30:00Z'))).toBe(false);
   });
 });

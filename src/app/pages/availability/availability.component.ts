@@ -2539,8 +2539,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * alteração nova à mesma série até ser retirada.
    */
   isSeriesChangeExpired(change: Appointment): boolean {
-    const zone = change.timeZone || this.sessionService.user()?.timeZone || detectBrowserTimezone();
-    return isWallTimePast(change.startDate, change.startTime.slice(0, 5), zone);
+    return isWallTimePast(change.startDate, change.startTime.slice(0, 5), change.timeZone);
   }
 
   /**
@@ -2907,10 +2906,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
     if (!occurrenceDate) return false;
 
-    const dt = new Date(occurrenceDate + 'T00:00:00');
-    const [h, m] = appt.startTime.split(':').map(Number);
-    dt.setHours(h || 0, m || 0, 0, 0);
-    return dt.getTime() < Date.now();
+    // No fuso da marcação: com setHours era o fuso do computador, e um
+    // perfil em Lisboa num computador nos Países Baixos via a sessão passar
+    // uma hora antes.
+    return isWallTimePast(occurrenceDate, appt.startTime.slice(0, 5), appt.timeZone);
   }
 
   openInviteRecurringDialog(event: Event, appt: Appointment): void {

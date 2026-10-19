@@ -43,6 +43,7 @@ import {
   canJoinSession,
   isCallOvertime,
   isUpcomingOrOngoing,
+  sessionBounds,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
 import { environment } from '../../../environments/environment';
@@ -318,17 +319,14 @@ export class DashboardPageComponent implements OnInit {
     return date < today;
   }
 
-  /** Data/hora real de início da sessão — s.date fica à meia-noite, a hora vem de startTime. */
-  private sessionDateTime(s: DashSession): Date {
-    const dt = new Date(s.date);
-    const [h, m] = s.startTime.split(':').map(Number);
-    dt.setHours(h || 0, m || 0, 0, 0);
-    return dt;
-  }
-
-  /** Cancelar/reagendar só é permitido até 24 h antes do início da sessão. */
+  /**
+   * Cancelar/reagendar só é permitido até 24 h antes do início da sessão.
+   * O início é o instante real (startInstant), não s.date + startTime: esses
+   * são rótulos no fuso de quem vê, e setHours lia-os no fuso do computador.
+   */
   canModifySession(s: DashSession): boolean {
-    return this.sessionDateTime(s).getTime() - Date.now() >= 24 * 60 * 60 * 1000;
+    const start = sessionBounds(s)?.start;
+    return !!start && start.getTime() - Date.now() >= 24 * 60 * 60 * 1000;
   }
 
   /**

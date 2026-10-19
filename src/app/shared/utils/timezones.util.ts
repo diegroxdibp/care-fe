@@ -8,6 +8,18 @@ export interface TimezoneOption {
 const FALLBACK_TIMEZONE = 'Europe/Lisbon';
 
 /**
+ * Fuso de uma vaga ou marcação. Toda vaga e marcação tem fuso desde a V33 do
+ * backend; isto só cobre uma resposta antiga em cache. Tem de ser o mesmo do
+ * backend (SessionInstants.DEFAULT_ZONE_ID) e nunca o do computador: a hora
+ * de uma sessão é a de quem a combinou, não a de quem está a ver.
+ */
+export const SESSION_DEFAULT_TIMEZONE = 'Europe/Lisbon';
+
+export function sessionZone(timeZone: string | null | undefined): string {
+  return timeZone || SESSION_DEFAULT_TIMEZONE;
+}
+
+/**
  * Fusos que a CARE atende primeiro. Aparecem no topo da lista, na ordem abaixo;
  * os demais fusos do sistema entram depois, em ordem alfabética.
  */
@@ -136,27 +148,18 @@ export function wallTimeInZone(
 }
 
 /**
- * Verdadeiro quando esta hora de parede (numa data e, se souber, fuso) já
- * passou em relação a `now`.
- *
- * Sem fuso, cai na hora local de quem está a ver — só acontece para vagas
- * antigas gravadas sem timeZone. É pior do que converter, mas ainda assim
- * distingue hoje-já-passou de hoje-ainda-vem, que é o que falta sem isto: uma
- * vaga de hoje às 09:00 continuava a aparecer disponível às 15:00.
+ * Verdadeiro quando esta hora de parede, numa data e no fuso da vaga ou
+ * marcação, já passou em relação a `now`. Sem fuso, usa o mesmo do backend
+ * (sessionZone) - nunca o do computador de quem está a ver.
  */
 export function isWallTimePast(
   dateKey: string,
   time: string,
-  timeZone?: string,
+  timeZone?: string | null,
   now: Date = new Date(),
 ): boolean {
-  const instant = timeZone ? zonedWallTimeToInstant(dateKey, time, timeZone) : null;
-  if (instant) return instant.getTime() < now.getTime();
-
-  const [y, m, d] = dateKey.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  if ([y, m, d, hh, mm].some((n) => Number.isNaN(n))) return false;
-  return new Date(y, m - 1, d, hh, mm).getTime() < now.getTime();
+  const instant = zonedWallTimeToInstant(dateKey, time, sessionZone(timeZone));
+  return instant !== null && instant.getTime() < now.getTime();
 }
 
 /** Lista completa: fixos primeiro, depois todos os fusos suportados pelo runtime. */

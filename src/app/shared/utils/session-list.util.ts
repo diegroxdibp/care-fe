@@ -7,7 +7,7 @@ import { RecurrenceFrequency } from '../enums/recurrence-frequency.enum';
 import { Currency, formatPrice } from '../enums/currency.enum';
 import { generateOccurrences } from './recurrence.util';
 import { normalizeModality } from './modality-compatibility.util';
-import { wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
+import { sessionZone, wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
 import { REMOTE_SESSION_INFO } from './remote-session.util';
 import { isPendingSeriesChange } from './series-change.util';
 
@@ -165,23 +165,12 @@ const JOIN_WINDOW_BEFORE_MIN = 5;
 // Tem de bater com AppointmentService.JOIN_WINDOW_AFTER_MINUTES no backend.
 const JOIN_WINDOW_AFTER_MIN = 5;
 
-/** Início/fim reais (data + hora) de uma ocorrência — null quando não há horas (não devia acontecer numa sessão marcada). */
+/** Início/fim reais de uma ocorrência — null quando não há horas (não devia acontecer numa sessão marcada). */
 export function sessionBounds(session: BuiltSession): { start: Date; end: Date } | null {
   if (session.startInstant && session.endInstant) {
     return { start: session.startInstant, end: session.endInstant };
   }
-  // Marcações antigas sem fuso de origem: a hora de parede é a única coisa
-  // que há, lida no fuso do navegador.
-  if (!session.startTime || !session.endTime) return null;
-  const [sh, sm] = session.startTime.split(':').map(Number);
-  const [eh, em] = session.endTime.split(':').map(Number);
-  const start = new Date(session.date);
-  start.setHours(sh, sm, 0, 0);
-  const end = new Date(session.date);
-  end.setHours(eh, em, 0, 0);
-  // Mesma regra da durationLabel: uma sessão pode atravessar a meia-noite.
-  if (end <= start) end.setDate(end.getDate() + 1);
-  return { start, end };
+  return null;
 }
 
 /**
@@ -307,14 +296,14 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 /**
  * Recompõe (data, hora de início, hora de fim, dia da semana) de uma
  * ocorrência no fuso de quem a vê, a partir da hora de parede + fuso de
- * quem a combinou. Sem `timeZone` (marcações antigas, de antes desta coluna)
- * não há como converter — fica tal como veio, igual ao comportamento anterior.
+ * quem a combinou. Sem `timeZone` usa o fuso por omissão do backend
+ * (sessionZone), nunca o do computador.
  */
 function resolveOccurrenceDisplay(
   date: Date,
   startTime: string,
   endTime: string,
-  originTimeZone: string | undefined,
+  originTimeZone: string | null | undefined,
   viewerTimeZone: string,
 ): {
   date: Date;
@@ -325,7 +314,7 @@ function resolveOccurrenceDisplay(
   startInstant?: Date;
   endInstant?: Date;
 } {
-  if (!originTimeZone || !startTime) {
+  if (!startTime) {
     return {
       date,
       dow: DOW_ABR_BY_JS[date.getDay()],
@@ -336,7 +325,7 @@ function resolveOccurrenceDisplay(
   }
 
   const dateKey = toDateKey(date);
-  const startInstant = zonedWallTimeToInstant(dateKey, startTime, originTimeZone);
+  const startInstant = zonedWallTimeToInstant(dateKey, startTime, sessionZone(originTimeZone));
   if (!startInstant) {
     return {
       date,
@@ -351,7 +340,7 @@ function resolveOccurrenceDisplay(
   const endDateKey = endTime && minutesOf(endTime) <= minutesOf(startTime)
     ? nextDateKey(dateKey)
     : dateKey;
-  const endInstant = endTime ? zonedWallTimeToInstant(endDateKey, endTime, originTimeZone) : null;
+  const endInstant = endTime ? zonedWallTimeToInstant(endDateKey, endTime, sessionZone(originTimeZone)) : null;
 
   const startWall = wallTimeInZone(startInstant, viewerTimeZone);
   const displayDate = new Date(startWall.year, startWall.month - 1, startWall.day);
