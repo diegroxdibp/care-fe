@@ -172,6 +172,10 @@
   </div>
 
   <!-- Danger zone -->
+  @if (showBio()) {
+    <app-services-settings />
+  }
+
   <div class="danger-zone">
     <span class="danger-label">Zona de risco</span>
     <div class="danger-row">

@@ -646,7 +646,7 @@
       Serviço <span class="req">*</span>
     </label>
     <div class="chips">
-      @for (svc of services(); track svc.id) {
+      @for (svc of editorServices(); track svc.id) {
         @if (selectedBlockId() !== null && selectedBlock() && bookedSvcIds(selectedBlock()!).has(svc.id)) {
           <button class="chip booked-svc">
             {{ serviceDisplayName(svc.name) }}<span class="bdot"></span>

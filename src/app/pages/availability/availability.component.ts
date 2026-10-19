@@ -563,6 +563,15 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   previewMoveLiveCol = signal<number>(0);
 
   // ─ Computed
+  /**
+   * Os serviços que o editor oferece: os ligados no perfil, mais os que o
+   * bloco aberto já usa (um serviço desligado depois não pode desaparecer
+   * de uma vaga só por se abrir o editor).
+   */
+  readonly editorServices = computed(() =>
+    this.services().filter(s => s.active !== false || this.selectedServiceIds().has(s.id)),
+  );
+
   readonly selectedBlock = computed(() =>
     this.blocks().find(b => b.id === this.selectedBlockId()) ?? null,
   );
@@ -714,8 +723,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   loadInitialData(): void {
     this.loadError.set(false);
 
-    this.apiService.getServices().subscribe({
-      next: (svcs) => { if (svcs?.length) this.services.set(svcs); },
+    // Só os serviços desta pessoa profissional: getServices() trazia os de
+    // todas, e o editor oferecia serviços de outras pessoas.
+    this.apiService.getMyServices().subscribe({
+      next: (svcs) => { if (svcs?.length) this.services.set(svcs as unknown as ProfessionalService[]); },
       error: () => {},
     });
 
@@ -1148,7 +1159,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       }
 
       this.resetEditor();
-      this.selectedServiceIds.set(new Set(this.services().map(s => s.id)));
+      this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
       this.selectedWeekdays.set(new Set([COL_TO_DOW[colIndex]]));
       this.editorFrequency.set('weekly');
       this.editorStartTime.set(sel.startTime);
@@ -1280,7 +1291,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (sel && this.hasBookings(sel)) return;
     this.editorModality.set(m);
     const eligibleIds = new Set(
-      this.services().filter(s => isModalityCompatible(s.modality, m)).map(s => s.id),
+      this.editorServices().filter(s => isModalityCompatible(s.modality, m)).map(s => s.id),
     );
     this.selectedServiceIds.update(ids => new Set([...ids].filter(id => eligibleIds.has(id))));
   }
@@ -3144,7 +3155,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   openSheet(): void {
     this.resetEditor();
-    this.selectedServiceIds.set(new Set(this.services().map(s => s.id)));
+    this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
     const dow = COL_TO_DOW[this.selectedDayIndex()];
     this.selectedWeekdays.set(new Set([dow]));
     this.sheetOpen.set(true);

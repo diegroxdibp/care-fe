@@ -88,6 +88,7 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
 
     apiService = {
       getServices: jest.fn().mockReturnValue(of([])),
+      getMyServices: jest.fn().mockReturnValue(of([])),
       getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of([thursdaySlot])),
       getProfessionalAppointments: jest.fn().mockReturnValue(of([series, expiredChange])),
       deleteAppointment: jest.fn().mockReturnValue(of(null)),

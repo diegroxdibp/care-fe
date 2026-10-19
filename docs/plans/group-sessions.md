@@ -10,12 +10,9 @@ Work ships in four phases. Each phase is deployable on its own and leaves the ap
 
 **Each client keeps their own appointment, as today.** A member is a recurring appointment in a group slot; a drop-in is a one-off appointment in it. Everything that is per client keeps working unchanged: cancelling a date (exceptions), the 24-hour rule, emails in each client's language and time zone, the client record, messages, and the event history.
 
-**A group session record holds what the group shares.** One row per group slot and date (`group_session`), created the first time that date needs one: when its first seat is taken, or the owner acts on the date. It holds:
-- the date's state: scheduled, moved (with the new date and times) or cancelled by the owner;
-- the call extension for that date;
-- that date's co-professionals (phase 3).
+**The owner cancelling or moving a group date is done per client** (decided 2026-10-20). Cancelling 23/10 cancels that date for every client with a seat, exactly as cancelling one client's date works today; moving it reschedules each of them the way an individual reschedule does. With 8 clients that is 8 changes, but each client gets the emails, history and rules that already exist and are tested, and no screen or check has to learn a group-level override.
 
-Clients' appointments follow it. If the group session for 23/10 is moved to 24/10 at 18:00, every client with a seat on 23/10 shows and joins at 24/10 18:00, without touching their appointments. If it is cancelled, nobody has that date. Group-level actions are one change on one row, not one per client.
+**A group session record holds only what is truly shared.** One row per group slot and date (`group_session`), created when first needed: that date's call extension, and that date's co-professionals (phase 3).
 
 The Daily room belongs to the slot (`slot-{id}`), created once and sized at capacity plus professionals; each participant's token is limited to the group session's window.
 
@@ -69,7 +66,7 @@ Value: professionals can run slots that clients can't find in Agendar, and invit
 **Database**
 - `availability.session_format` (`INDIVIDUAL` | `GROUP`, existing rows `INDIVIDUAL`) and `availability.capacity` (1 for individual; 2 to 20 for group).
 - Room fields on the slot for group rooms (`video_room_name`, `video_room_url`).
-- New `group_session` table: slot, date (in the slot's time zone), status (`SCHEDULED` | `MOVED` | `CANCELLED`), new date and start and end time when moved, extra call minutes, reason. Unique on slot and date.
+- New `group_session` table: slot, date (in the slot's time zone), extra call minutes. Unique on slot and date.
 
 **Backend**
 - Profile services: "Grupo" switch per service, creating the group version (`ProfessionalServiceService.create` already accepts the format).
@@ -79,13 +76,13 @@ Value: professionals can run slots that clients can't find in Agendar, and invit
   - Lowering capacity below a future date's seats is refused, naming the date.
   - Switching format is refused while the slot has future sessions.
 - Occupancy:
-  - One helper, "who is on this slot on this date", returns the list of client appointments occurring that date, following the group session (a moved date counts at its new date; a cancelled one counts nobody).
+  - One helper, "who is on this slot on this date", returns the list of client appointments occurring that date.
   - Every "is this slot taken" check becomes "is it full", through that helper.
   - These are booking, invitations, series proposals and changes, and the booked dates Agendar shows.
   - It comes back as seats taken and left per date.
 - Drop-in booking in Agendar; membership only through an invitation of kind `SERIES`.
 - Group dates:
-  - The owner moves or cancels a group date directly: one change to its group session, notified to every client with a seat that date.
+  - The owner moves or cancels a group date directly: the existing per-client cancel or reschedule, applied to every client with a seat that date, each notified as today.
   - A move targets a free date and time in one of the owner's group slots with enough capacity for everyone with a seat.
   - Clients cancel their own seat (24-hour rule).
   - Members leave from a date.

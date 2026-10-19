@@ -4,6 +4,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Invitation, InvitationPayload, InvitationPreview } from '../../shared/models/invitation.model';
+import { MyService } from '../../shared/models/my-service.model';
 
 export interface AvailabilityPayload {
   professionalServiceIds: number[];
@@ -275,6 +276,24 @@ export class ApiService {
       `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}/respond`,
       { accept },
       { withCredentials: true },
+    );
+  }
+
+  // ─ Serviços da pessoa profissional ─────────────────────────────────────────
+
+  /** Os serviços da pessoa profissional autenticada, ligados e desligados. */
+  getMyServices(): Observable<MyService[]> {
+    return this.http.get<MyService[]>(`${environment.apiUrl}/api/services/mine`, { withCredentials: true });
+  }
+
+  createService(payload: { name: string; modality: string; format: 'INDIVIDUAL' | 'GROUP' }): Observable<MyService> {
+    return this.http.post<MyService>(`${environment.apiUrl}/api/services/create`, payload, { withCredentials: true });
+  }
+
+  setServiceActive(id: number, active: boolean): Observable<string> {
+    return this.http.put(
+      `${environment.apiUrl}/api/services/${active ? 'enable' : 'disable'}/${id}`, {},
+      { withCredentials: true, responseType: 'text' },
     );
   }
 
