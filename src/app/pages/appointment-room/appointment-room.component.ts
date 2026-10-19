@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { Observable, of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../shared/services/session.service';
@@ -32,11 +31,11 @@ export class AppointmentRoomComponent implements OnInit {
   readonly fetchSession = () => this.apiService.getVideoSession(this.appointmentId);
   readonly extendSession = (minutes: number) => this.apiService.extendAppointmentCall(this.appointmentId, minutes);
   /**
-   * Só num grupo o backend dá moderação (session.canModerate). Tirar alguém é
-   * só da chamada em curso: ao contrário de uma sala avulsa, a pessoa continua
-   * com o seu lugar e pode voltar a entrar.
+   * Só num grupo o backend dá moderação (session.canModerate). Tirar alguém
+   * fecha-lhe a chamada dessa data (o link deixa de funcionar), mas o lugar
+   * no grupo continua para as datas seguintes.
    */
-  readonly removeParticipant = (): Observable<void> => of(undefined);
+  readonly removeParticipant = (userId: number) => this.apiService.removeFromGroupCall(this.appointmentId, userId);
 
   ngOnInit(): void {
     const me = this.sessionService.user();
