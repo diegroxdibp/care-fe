@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { RegisterComponent } from '../../../../auth/register/register.component';
 import { SchedulingStepperComponent } from '../../../../shared/components/scheduling-stepper/scheduling-stepper.component';
-import { isValidSchedulingNext, storeSchedulingNext } from '../../../../shared/utils/scheduling-next.util';
+import { isValidReturnPath, storeReturnPath } from '../../../../shared/utils/return-path.util';
 
 /**
  * /scheduling/conta — step 1 of 5 of the scheduling flow. Where AccessGuard
@@ -23,11 +23,11 @@ export class AccountStepComponent {
 
   private resolveNext(): string | null {
     const fromQuery = this.route.snapshot.queryParamMap.get('next');
-    if (isValidSchedulingNext(fromQuery)) {
+    if (isValidReturnPath(fromQuery)) {
       // Persisted immediately: survives a full-page Google OAuth round trip
       // and a confirmation link opened in a new tab, neither of which keep
       // the query param around on their own.
-      storeSchedulingNext(fromQuery);
+      storeReturnPath(fromQuery);
       return fromQuery;
     }
     return null;

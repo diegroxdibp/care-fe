@@ -32,7 +32,7 @@ These touch the same tables and flows the later phases build on, so they go firs
 1. **Fill in missing time zones and make them required.**
    - Migration: copy each appointment's zone from its slot, then from the professional's profile, then Europe/Lisbon; do the same for slots. Then `NOT NULL` on both columns.
    - Frontend: drop the "no zone, use the computer's clock" fallbacks (`sessionBounds`, `isWallTimePast`, `resolveOccurrenceDisplay`), and fix the two open spots (`dashboard.component.ts` `sessionDateTime`, `availability.component.ts` `isApptPast`).
-2. **Make sign-in with Google keep `next`**, so an invitation link survives a Google login or sign-up. Email sign-up and login already keep it.
+2. **Return to any app link after login or sign-up**, so an invitation link survives login, sign-up with confirmation, onboarding and Google. Before this, only Agendar links came back; every other link landed on the dashboard, and onboarding always dropped it.
 3. **Ship the pending dashboard overtime change** (the yellow "Entrar · prolongada até" button), already built and tested locally.
 
 ---

@@ -7,7 +7,7 @@ import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
 import { FormControlsNames } from '../../shared/enums/form-controls-names.enum';
 import { AppConstants } from '../../app-constants';
-import { clearStoredSchedulingNext, isValidSchedulingNext, storeSchedulingNext } from '../../shared/utils/scheduling-next.util';
+import { clearStoredReturnPath, isValidReturnPath, storeReturnPath } from '../../shared/utils/return-path.util';
 
 @Component({
   selector: 'app-login',
@@ -27,13 +27,13 @@ export class LoginComponent {
   unconfirmed = false;
   showPassword = false;
 
-  /** Resuming a scheduling attempt made while logged out — see AccessGuard. */
+  /** Where to go back to after login (a scheduling step or a link from an email) — see AccessGuard. */
   readonly next: string | null = this.resolveNext();
 
   private resolveNext(): string | null {
     const fromQuery = this.route.snapshot.queryParamMap.get('next');
-    if (isValidSchedulingNext(fromQuery)) {
-      storeSchedulingNext(fromQuery);
+    if (isValidReturnPath(fromQuery)) {
+      storeReturnPath(fromQuery);
       return fromQuery;
     }
     return null;
@@ -59,7 +59,7 @@ export class LoginComponent {
     this.authService.signIn(this.formService.signInPayload()).subscribe({
       next: () => {
         this.submitting = false;
-        clearStoredSchedulingNext();
+        clearStoredReturnPath();
         this.router.navigateByUrl(this.next ?? '/dashboard');
       },
       error: (err) => {

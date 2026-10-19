@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
-import { clearStoredSchedulingNext, readStoredSchedulingNext } from '../../shared/utils/scheduling-next.util';
+import { clearStoredReturnPath, readStoredReturnPath } from '../../shared/utils/return-path.util';
 
 @Component({
   selector: 'app-callback',
@@ -19,8 +19,8 @@ export class CallbackComponent {
         // Google OAuth is a full-page redirect round trip, so any `next`
         // captured before it (query param on /scheduling/conta or
         // /auth/signin) only survives here via localStorage.
-        const next = readStoredSchedulingNext();
-        clearStoredSchedulingNext();
+        const next = readStoredReturnPath();
+        clearStoredReturnPath();
         this.router.navigateByUrl(next ?? '/dashboard');
       },
       error: () => {

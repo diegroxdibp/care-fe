@@ -16,6 +16,7 @@ import { BirthdateCalendarComponent } from '../birthdate-calendar/birthdate-cale
 import { CurrencyToggleComponent } from '../currency-toggle/currency-toggle.component';
 import { currencyForCountry } from '../../enums/currency.enum';
 import { allTimezones, detectBrowserTimezone, timezoneOffsetLabel } from '../../utils/timezones.util';
+import { clearStoredReturnPath, readStoredReturnPath } from '../../utils/return-path.util';
 
 @Component({
   selector: 'app-onboarding',
@@ -138,7 +139,11 @@ export class OnboardingComponent implements OnInit {
           // /onboarding e ela fica presa sem qualquer mensagem.
           this.sessionService.updateUser({ ...res, profileCompleted: true });
 
-          this.router.navigate(['/dashboard']).then((ok) => {
+          // Quem chegou por um link (um convite, uma sessão) e teve de criar
+          // a conta primeiro volta a esse link - ver AccessGuard.
+          const next = readStoredReturnPath();
+          clearStoredReturnPath();
+          this.router.navigateByUrl(next ?? '/dashboard').then((ok) => {
             this.submitting.set(false);
             if (!ok) {
               this.error =

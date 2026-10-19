@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
-import { clearStoredSchedulingNext, isValidSchedulingNext, readStoredSchedulingNext } from '../../shared/utils/scheduling-next.util';
+import { clearStoredReturnPath, isValidReturnPath, readStoredReturnPath } from '../../shared/utils/return-path.util';
 import { FormService } from '../../core/services/form.service';
 import { FormControlsNames } from '../../shared/enums/form-controls-names.enum';
 
@@ -61,8 +61,8 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
         // it's authenticated before navigating anywhere protected.
         this.authService.refreshSession().subscribe();
 
-        const next = isValidSchedulingNext(result.next) ? result.next : readStoredSchedulingNext();
-        clearStoredSchedulingNext();
+        const next = isValidReturnPath(result.next) ? result.next : readStoredReturnPath();
+        clearStoredReturnPath();
 
         // Wakes up a register/account-step tab left waiting in another tab
         // of the same browser — see RegisterComponent. The cookie just set

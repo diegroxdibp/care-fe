@@ -7,7 +7,7 @@ import { Pages } from '../../shared/enums/pages.enum';
 import { NavigationService } from '../../shared/services/navigation.service';
 import { FormControlsNames } from '../../shared/enums/form-controls-names.enum';
 import { AppConstants } from '../../app-constants';
-import { isValidSchedulingNext, storeSchedulingNext } from '../../shared/utils/scheduling-next.util';
+import { isValidReturnPath, storeReturnPath } from '../../shared/utils/return-path.util';
 
 /** Cross-tab signal: the confirm-email tab posts here so a waiting
  * register/account-step tab can react instead of sitting dead. Nothing else
@@ -116,9 +116,9 @@ export class RegisterComponent implements OnInit, OnDestroy {
     // a query param — this app doesn't have withComponentInputBinding().
     if (!this.next) {
       const fromQuery = this.route.snapshot.queryParamMap.get('next');
-      if (isValidSchedulingNext(fromQuery)) {
+      if (isValidReturnPath(fromQuery)) {
         this.next = fromQuery;
-        storeSchedulingNext(fromQuery);
+        storeReturnPath(fromQuery);
       }
     }
   }
@@ -129,7 +129,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     this.error = null;
     this.submitting = true;
     if (this.next) {
-      storeSchedulingNext(this.next);
+      storeReturnPath(this.next);
     }
     this.authService.signUp({ ...this.formService.signUpPayload(), next: this.next }).subscribe({
       next: () => {
@@ -149,7 +149,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   signUpWithGoogle(event: Event): void {
     event.preventDefault();
     if (this.next) {
-      storeSchedulingNext(this.next);
+      storeReturnPath(this.next);
     }
     window.location.href = AppConstants.apiEndpoints.loginWithGoogle;
   }
