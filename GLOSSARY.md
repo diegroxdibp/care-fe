@@ -70,8 +70,12 @@ Whether a session is individual or group. A service can allow both; a slot is al
 _Avoid_: Type, kind, mode
 
 **Target audience**:
-A group of people a service is meant for (for example adults, teenagers, couples), from a shared list.
+A group of people a service is meant for (for example adults, teenagers, couples), from a shared list. For each service an audience is either mandatory (everyone offering the service serves it) or optional (each professional chooses).
 _Avoid_: Público (in code), segment, demographic
+
+**Offering**:
+A professional's version of a service: which of its formats they offer, which of its optional audiences, and in which modality.
+_Avoid_: Professional service (in conversation), my service
 
 **Service proposal**:
 A professional's request to add a new service or target audience to the shared list, approved or rejected by the Care team.

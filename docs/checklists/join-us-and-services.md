@@ -59,8 +59,10 @@ Decided 2026-10-20 (product owner). Most of this section is **not built yet** �
     proposal and approved with it. A "both" service is a single entry — not two.
 11. **Target audiences** (público-alvo — for example adults, teenagers, couples) are also a shared list that grows
     by approval, the same way as services: proposed, approved by the Care team, then available to everyone.
-    Each service in the list has its target audiences. ❓ Can a professional narrow the audiences for their own
-    offering of a service, or are they always the service's own?
+    Each service in the list has **mandatory** audiences (anyone offering it serves them — Couples Therapy always
+    serves couples) and **optional** ones (a professional chooses whether to offer them — an LGBT+ focus within
+    Couples Therapy). A professional's offering always includes the mandatory audiences and any optional ones
+    they pick. Does the design show the two kinds, and let the professional pick the optional ones?
 12. **A slot is always one format — individual or group, never both.** A slot only offers services that allow
     its format: an individual slot lists services marked individual or both; a group slot, group or both. Every
     screen that lists services for a slot (the slot editor, Agendar, the invitation dialog) must filter this way.
