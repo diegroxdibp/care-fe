@@ -273,7 +273,7 @@
                 Voltar ao bloco
               </button>
               <div class="be-title">
-                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : 'Sessão reservada' }}
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : appt.rescheduleRequestId != null ? 'Reagendamento proposto' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -531,7 +531,7 @@
             </div>
             <div class="sh-body" #panelBody>
               <div class="be-title" style="margin-bottom:14px">
-                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : 'Sessão reservada' }}
+                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : appt.rescheduleRequestId != null ? 'Reagendamento proposto' : 'Sessão reservada' }}
                 @if (appt.status === 'PENDING') {
                   <span class="be-pending-badge">Pendente</span>
                 }
@@ -1235,6 +1235,23 @@
 
 <ng-template #apptDetailActions let-appt>
   <div class="ad-actions">
+    @if (rescheduleRequestOf(appt); as request) {
+      <p class="ad-series-note">
+        Novo horário proposto para a sessão de {{ fmtDateKey(request.occurrenceDate) }} às
+        {{ request.currentStartTime.slice(0, 5) }}. Fica reservado até {{ slotPatientFirstName(appt) }}
+        responder; a sessão continua no horário original até lá.
+      </p>
+    }
+    @if (pendingRescheduleOf(appt); as request) {
+      <p class="ad-series-note">
+        Pedido enviado para mudar esta sessão para {{ fmtDateKey(request.proposedDate) }} às
+        {{ request.proposedStartTime.slice(0, 5) }} — aguardando a resposta de {{ slotPatientFirstName(appt) }}.
+      </p>
+      <button class="btn-invite-recurring" (click)="withdrawRescheduleFromEvent($event, request.id)">
+        <span translate="no" class="material-symbols-outlined">undo</span>
+        Retirar pedido de reagendamento
+      </button>
+    }
     @if (isPendingSeriesChange(appt)) {
       <p class="ad-series-note">
         Proposta de alteração a partir de {{ fmtDateKey(appt.startDate) }}. A série atual continua valendo
@@ -1268,7 +1285,7 @@
         Convidar para regime periódico
       </button>
     }
-    @if (appt.status !== 'PENDING') {
+    @if (appt.status !== 'PENDING' && !pendingRescheduleOf(appt)) {
       <button class="btn-resched" [disabled]="isApptPast(appt)" (click)="openRescheduleDialog($event, appt)">
         <span translate="no" class="material-symbols-outlined">edit_calendar</span>
         Reagendar sessão
@@ -1290,6 +1307,7 @@
       <span translate="no" class="material-symbols-outlined">close</span>
       {{ isPendingSeriesChange(appt) ? 'Retirar alteração'
         : appt.invitationId != null ? 'Retirar convite'
+        : appt.rescheduleRequestId != null ? 'Retirar pedido'
         : appt.status === 'PENDING' ? 'Cancelar proposta' : 'Cancelar sessão' }}
     </button>
   </div>

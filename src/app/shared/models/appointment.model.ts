@@ -33,6 +33,11 @@ export interface Appointment {
    * mostrado na agenda da pessoa profissional como reserva da vaga.
    */
   invitationId?: number;
+  /**
+   * Presente quando isto é o destino de um pedido de reagendamento por
+   * responder: a vaga fica reservada, mas a sessão continua onde estava.
+   */
+  rescheduleRequestId?: number;
   address?: string;
   notes?: string;
   /**
