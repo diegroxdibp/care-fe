@@ -1,0 +1,129 @@
+<div class="cat-col" [class.cat-preview-mode]="preview()">
+  @if (notice() === 'proposal') {
+    <p class="cat-notice">Pré-visualização de uma proposta de serviço. Esta página ainda não está publicada.</p>
+  } @else if (service().privateOnly) {
+    <p class="cat-notice">
+      Serviço privado: não aparece na lista de serviços nem nos perfis. Só se participa por convite da pessoa
+      profissional.
+    </p>
+  }
+
+  <div class="cat-block">
+    <h1>{{ service().name }}</h1>
+    @for (p of service().intro; track $index) {
+      <p>{{ p }}</p>
+    }
+    @if (service().quote) {
+      <p class="quotation quotation-margins">{{ service().quote }}</p>
+    }
+    @if (service().imageUrl) {
+      <picture class="cat-image">
+        <img [src]="service().imageUrl" [alt]="service().imageAlt || ''" />
+      </picture>
+    }
+    <dl class="cat-rows">
+      @if (modalities()) {
+        <div class="cat-row"><dt>Modalidade</dt><dd>{{ modalities() }}</dd></div>
+      }
+      @if (formats()) {
+        <div class="cat-row"><dt>Formato</dt><dd>{{ formats() }}</dd></div>
+      }
+      @if (audiences()) {
+        <div class="cat-row"><dt>Público</dt><dd>{{ audiences() }}</dd></div>
+      }
+    </dl>
+  </div>
+
+  @if (service().forWhom.length) {
+    <div class="cat-block">
+      <h2>Para quem pode fazer sentido</h2>
+      <ul class="cat-list">
+        @for (item of service().forWhom; track $index) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (service().specialties.length) {
+    <div class="cat-block">
+      <h2>Especialidades</h2>
+      <ul class="cat-specialties">
+        @for (sp of service().specialties; track $index) {
+          <li>
+            <h3>{{ sp.name }}</h3>
+            @if (sp.audiences.length) {
+              <p class="cat-specialty-audience">{{ joinPt(sp.audiences) }}</p>
+            }
+            @if (sp.description) {
+              <p>{{ sp.description }}</p>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (professionals().length) {
+    <div class="cat-block">
+      <h2>{{ meetTitle() }}</h2>
+      <ul class="cat-accordion">
+        @for (p of professionals(); track p.key) {
+          <li>
+            <button
+              type="button"
+              class="cat-acc-head"
+              [attr.aria-expanded]="open() === p.key"
+              (click)="toggle(p.key)"
+            >
+              @if (p.photoUrl) {
+                <img [src]="p.photoUrl" [alt]="'Foto de ' + p.displayName" />
+              }
+              <span class="cat-acc-text">
+                <span class="cat-acc-name">{{ p.displayName }}</span>
+                @if (p.title) {
+                  <span class="cat-acc-sub">{{ p.title }}</span>
+                }
+              </span>
+              <span translate="no" class="material-symbols-outlined cat-chevron" [class.invert]="open() === p.key"
+                >expand_more</span
+              >
+            </button>
+            <div [@expandCollapse]="open() === p.key ? 'expanded' : 'collapsed'">
+              <div class="cat-acc-body">
+                @if (p.firstWhoAmI) {
+                  <p>{{ p.firstWhoAmI }}</p>
+                }
+                <dl class="cat-rows">
+                  @if (p.modalities.length) {
+                    <div class="cat-row"><dt>Modalidades</dt><dd>{{ modalityLabels(p.modalities) }}</dd></div>
+                  }
+                  @if (p.languages.length) {
+                    <div class="cat-row"><dt>Idiomas</dt><dd>{{ joinPt(p.languages) }}</dd></div>
+                  }
+                  @if (p.formats.length) {
+                    <div class="cat-row"><dt>Formato</dt><dd>{{ formatLabels(p.formats) }}</dd></div>
+                  }
+                  @if (p.audiences.length) {
+                    <div class="cat-row"><dt>Público</dt><dd>{{ joinPt(p.audiences) }}</dd></div>
+                  }
+                </dl>
+                @if (p.firstHowIWork) {
+                  <p class="cat-overline">Como trabalho</p>
+                  <p>{{ p.firstHowIWork }}</p>
+                }
+                @if (p.slug) {
+                  <a class="cat-link" [routerLink]="['/', Pages.PROFISSIONAIS, p.slug]">Ver perfil completo →</a>
+                }
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (!service().privateOnly) {
+    <button class="cat-cta" type="button" [disabled]="preview()" (click)="schedule.emit()">Agendar</button>
+  }
+</div>

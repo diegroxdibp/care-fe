@@ -1,0 +1,121 @@
+<div class="cat-col" [class.cat-preview-mode]="preview()">
+  <div class="cat-whoami">
+    <div class="cat-block">
+      <h1>{{ professional().displayName }}</h1>
+      @if (professional().title) {
+        <p class="cat-subtitle">{{ professional().title }}</p>
+      }
+      <h2>Quem sou</h2>
+      @for (p of professional().whoAmI; track $index) {
+        <p>{{ p }}</p>
+      }
+    </div>
+    @if (professional().photoUrl) {
+      <picture class="cat-photo">
+        <img [src]="professional().photoUrl" [alt]="'Foto de ' + professional().displayName" />
+      </picture>
+    }
+  </div>
+
+  @if (professional().quote) {
+    <p class="quotation quotation-margins">{{ professional().quote }}</p>
+  }
+
+  @if (professional().howIWork.length) {
+    <div class="cat-block">
+      <h2>Como trabalho</h2>
+      @for (p of professional().howIWork; track $index) {
+        <p>{{ p }}</p>
+      }
+    </div>
+  }
+
+  @if (professional().education.length || professional().experience.length) {
+    <div class="cat-block">
+      <h2>Formação e percurso profissional</h2>
+      @if (professional().education.length) {
+        <h3>Formação acadêmica e especializações</h3>
+        <ul class="cat-list">
+          @for (e of professional().education; track $index) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      }
+      @if (professional().experience.length) {
+        <h3>Experiência profissional</h3>
+        <ul class="cat-list">
+          @for (e of professional().experience; track $index) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (hasOtherInfo()) {
+    <div class="cat-block">
+      <h2>Outras informações relevantes</h2>
+      <dl class="cat-rows">
+        @if (languages()) {
+          <div class="cat-row"><dt>Idiomas de atendimento</dt><dd>{{ languages() }}</dd></div>
+        }
+        @if (modalities()) {
+          <div class="cat-row"><dt>Modalidades</dt><dd>{{ modalities() }}</dd></div>
+        }
+        @if (audiences()) {
+          <div class="cat-row"><dt>Públicos</dt><dd>{{ audiences() }}</dd></div>
+        }
+        @if (professional().areas) {
+          <div class="cat-row"><dt>Áreas de experiência</dt><dd>{{ professional().areas }}</dd></div>
+        }
+      </dl>
+      @if (professional().otherInfo) {
+        <p class="cat-other-info"><em>{{ professional().otherInfo }}</em></p>
+      }
+    </div>
+  }
+
+  @if (professional().services.length) {
+    <div class="cat-block">
+      <h2>Serviços na CARE</h2>
+      <ul class="cat-accordion">
+        @for (s of professional().services; track s.slug ?? s.name) {
+          <li>
+            <button
+              type="button"
+              class="cat-acc-head"
+              [attr.aria-expanded]="open() === (s.slug ?? s.name)"
+              (click)="toggle(s.slug ?? s.name)"
+            >
+              @if (s.imageUrl) {
+                <img class="cat-thumb-square" [src]="s.imageUrl" [alt]="s.imageAlt || ''" />
+              }
+              <span class="cat-acc-text">
+                <span class="cat-acc-name">{{ s.name }}</span>
+                <span class="cat-acc-meta">{{ s.meta }}</span>
+              </span>
+              <span
+                translate="no"
+                class="material-symbols-outlined cat-chevron"
+                [class.invert]="open() === (s.slug ?? s.name)"
+                >expand_more</span
+              >
+            </button>
+            <div [@expandCollapse]="open() === (s.slug ?? s.name) ? 'expanded' : 'collapsed'">
+              <div class="cat-acc-body">
+                @if (s.firstParagraph) {
+                  <p>{{ s.firstParagraph }}</p>
+                }
+                @if (s.slug) {
+                  <a class="cat-link" [routerLink]="['/', Pages.SERVICOS, s.slug]">Ver página do serviço →</a>
+                }
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <button class="cat-cta" type="button" [disabled]="preview()" (click)="schedule.emit()">Agendar</button>
+</div>

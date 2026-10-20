@@ -171,11 +171,22 @@
     </div>
   </div>
 
-  <!-- Danger zone -->
+  <!-- Como pessoa profissional: a página pública e os serviços vivem à parte -->
   @if (showBio()) {
-    <app-services-settings />
+    <div class="prefs">
+      <span class="prefs-label">Como pessoa profissional</span>
+      <p class="muted">
+        Este é o seu perfil pessoal. A página que clientes e outras pessoas profissionais veem — com o seu nome de
+        exibição, foto e apresentação — e os serviços que oferece editam-se à parte.
+      </p>
+      <div class="avatar-actions">
+        <a class="btn-outline-sm" routerLink="/dashboard/perfil-profissional">Perfil profissional</a>
+        <a class="btn-outline-sm" routerLink="/dashboard/servicos">Os meus serviços</a>
+      </div>
+    </div>
   }
 
+  <!-- Danger zone -->
   <div class="danger-zone">
     <span class="danger-label">Zona de risco</span>
     <div class="danger-row">

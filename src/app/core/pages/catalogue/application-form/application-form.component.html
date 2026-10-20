@@ -1,0 +1,134 @@
+<div class="cat-form-page">
+  <div class="cat-form-layout">
+    <div class="cat-card">
+      <a class="cat-link" [routerLink]="['/', Pages.JUNTE_SE]">← Junte-se a nós</a>
+
+      @switch (state()) {
+        @case ('loading') {
+          <p class="cat-empty">A carregar…</p>
+        }
+        @case ('professional') {
+          <h1>Você já faz parte da CARE</h1>
+          <p>O seu perfil profissional e os seus serviços editam-se no painel.</p>
+          <div class="cat-actions">
+            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_PROFESSIONAL_PROFILE">Perfil profissional</a>
+            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Os meus serviços</a>
+          </div>
+        }
+        @case ('pending') {
+          <span class="cat-pill-status cat-pill-pending">Pedido em análise</span>
+          <h1>O seu pedido está com a equipa da CARE</h1>
+          <p>
+            Enviado em {{ application()?.submittedAt?.slice(0, 10) }}. A equipa lê cada pedido com atenção e entra em
+            contacto pelo email da sua conta. Entretanto, continua a usar a Care como sempre.
+          </p>
+          @if (application()?.proposals?.length) {
+            <p>Propostas de serviço enviadas:</p>
+            <ul class="cat-list">
+              @for (s of application()!.proposals; track s.id) {
+                <li>{{ s.name }}</li>
+              }
+            </ul>
+          }
+        }
+        @case ('approved') {
+          <span class="cat-pill-status">Pedido aprovado</span>
+          <h1>Boas-vindas à CARE</h1>
+          <p>O seu perfil profissional está publicado. Ajuste os seus serviços e abra disponibilidade no painel.</p>
+          <div class="cat-actions">
+            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Os meus serviços</a>
+            <a class="cat-btn-pill" [routerLink]="['/', Pages.AVAILABILITY]">Disponibilidade</a>
+          </div>
+        }
+        @case ('sent') {
+          <span class="cat-pill-status">Pedido enviado</span>
+          <h1>Obrigado!</h1>
+          <p>
+            O seu pedido chegou à equipa da CARE
+            @if (application()?.proposals?.length) {
+              , com {{ application()!.proposals.length === 1 ? 'uma proposta de serviço' : application()!.proposals.length + ' propostas de serviço' }}
+            }
+            . Vai receber a resposta por email e numa notificação aqui na Care.
+          </p>
+        }
+        @case ('form') {
+          <h1>Pedido para fazer parte da CARE</h1>
+          @if (application()?.status === 'REJECTED') {
+            <div class="cat-notice">
+              <strong>O pedido anterior não foi aprovado.</strong>
+              @if (application()?.reviewNote) {
+                Nota da equipa: {{ application()!.reviewNote }}
+              }
+              Pode rever e enviar de novo.
+            </div>
+          }
+
+          <app-profile-fields
+            [value]="profile()"
+            (valueChange)="profile.set($event)"
+            [attempted]="attempted()"
+            [languages]="options()?.languages ?? []"
+            [accountEmail]="accountEmail()"
+          />
+
+          <fieldset class="cat-fieldset">
+            <legend>Serviços realizados na CARE</legend>
+            <p class="cat-hint">
+              Marque os serviços da lista que realiza. Depois da aprovação ajusta formatos, modalidade e especialidades
+              em Os meus serviços.
+            </p>
+            @for (s of services(); track s.id) {
+              <label class="cat-check">
+                <input type="checkbox" [checked]="serviceIds().includes(s.id)" (change)="toggleService(s.id)" />
+                {{ s.name }}
+              </label>
+            }
+
+            @for (p of proposals(); track p.key; let i = $index) {
+              <div class="cat-subcard">
+                <div class="cat-subcard-head">
+                  <button type="button" class="cat-subcard-toggle" [attr.aria-expanded]="p.open" (click)="toggleProposal(p.key)">
+                    <span class="cat-subcard-title">
+                      <span class="cat-overline">Proposta de novo serviço</span>
+                      <strong>{{ p.content.name || 'Sem nome' }}</strong>
+                    </span>
+                    <span translate="no" class="material-symbols-outlined" [class.invert]="p.open">expand_more</span>
+                  </button>
+                  <button type="button" class="cat-btn-text" (click)="removeProposal(p.key)">Remover</button>
+                </div>
+                @if (p.open) {
+                  <div class="cat-subcard-body">
+                    <app-service-fields
+                      [value]="p.content"
+                      (valueChange)="setProposal(p.key, $event)"
+                      [attempted]="attempted()"
+                      [audiences]="options()?.audiences ?? []"
+                      [idPrefix]="'prop' + i"
+                    />
+                  </div>
+                }
+              </div>
+            }
+            <button type="button" class="cat-btn-dashed" (click)="addProposal()">+ Propor um novo serviço</button>
+          </fieldset>
+
+          @if (attempted() && missing().length) {
+            <p class="cat-error-box" role="alert">Campos obrigatórios em falta: {{ missing().join(', ') }}.</p>
+          }
+          @if (serverError()) {
+            <p class="cat-error-box" role="alert">{{ serverError() }}</p>
+          }
+          <div class="cat-actions">
+            <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="sending()" (click)="submit()">
+              {{ sending() ? 'A enviar…' : 'Enviar pedido' }}
+            </button>
+          </div>
+        }
+      }
+    </div>
+
+    @if (state() === 'form') {
+      <app-form-preview [professional]="profileView()" [services]="proposalViews()" />
+    }
+  </div>
+</div>

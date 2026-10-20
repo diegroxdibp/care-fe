@@ -296,17 +296,6 @@ export class ApiService {
     return this.http.get<MyService[]>(`${environment.apiUrl}/api/services/mine`, { withCredentials: true });
   }
 
-  createService(payload: { name: string; modality: string; format: 'INDIVIDUAL' | 'GROUP' }): Observable<MyService> {
-    return this.http.post<MyService>(`${environment.apiUrl}/api/services/create`, payload, { withCredentials: true });
-  }
-
-  setServiceActive(id: number, active: boolean): Observable<string> {
-    return this.http.put(
-      `${environment.apiUrl}/api/services/${active ? 'enable' : 'disable'}/${id}`, {},
-      { withCredentials: true, responseType: 'text' },
-    );
-  }
-
   // ─ Co-profissionais e passagem de vagas ───────────────────────────────────
 
   /** Outras pessoas profissionais que se podem convidar — nome e foto, sem contactos. */

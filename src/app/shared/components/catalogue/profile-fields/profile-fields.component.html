@@ -1,0 +1,113 @@
+<fieldset class="cat-fieldset">
+  <legend>Identificação</legend>
+  <div class="cat-field">
+    <span class="cat-label">Fotografia</span>
+    <app-image-field [tile]="true" [url]="value().photoUrl" (urlChange)="patch({ photoUrl: $event })" />
+  </div>
+  <div class="cat-field">
+    <label for="pf-name">Nome *</label>
+    <input
+      class="cat-input"
+      [class.cat-invalid]="attempted() && errors().displayName"
+      id="pf-name"
+      type="text"
+      maxlength="160"
+      [value]="value().displayName"
+      (input)="patch({ displayName: text($event) })"
+    />
+    <p class="cat-hint">O nome com que aparece como pessoa profissional — pode ser diferente do nome da sua conta.</p>
+  </div>
+  <div class="cat-field">
+    <label for="pf-title">Título profissional</label>
+    <input
+      class="cat-input"
+      id="pf-title"
+      type="text"
+      maxlength="200"
+      [value]="value().title ?? ''"
+      (input)="patch({ title: text($event) })"
+      placeholder="Ex.: Psicóloga · Analista Corporal Reichiana"
+    />
+  </div>
+  @if (accountEmail()) {
+    <div class="cat-field">
+      <span class="cat-label">Email</span>
+      <input class="cat-input" type="email" [value]="accountEmail()" disabled />
+      <p class="cat-hint">
+        O email e o telefone da sua conta servem apenas para contacto com a equipa da CARE e não aparecem na página.
+      </p>
+    </div>
+  }
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>A. Quem sou</legend>
+  <div class="cat-field">
+    <label for="pf-whoami">Apresentação *</label>
+    <textarea
+      class="cat-input"
+      [class.cat-invalid]="attempted() && errors().whoAmI"
+      id="pf-whoami"
+      rows="8"
+      [value]="value().whoAmI"
+      (input)="patch({ whoAmI: text($event) })"
+    ></textarea>
+    <p class="cat-hint">Na primeira pessoa. Separe os parágrafos com uma linha em branco.</p>
+  </div>
+  <div class="cat-field">
+    <label for="pf-quote">Citação (opcional)</label>
+    <textarea class="cat-input" id="pf-quote" rows="3" [value]="value().quote ?? ''"
+      (input)="patch({ quote: text($event) })"></textarea>
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>B. Formação e percurso profissional</legend>
+  <div class="cat-field">
+    <label for="pf-education">Formação acadêmica e especializações</label>
+    <textarea class="cat-input" id="pf-education" rows="5" [value]="educationText()"
+      (input)="patch({ education: text($event).split('\n') })"
+      placeholder="2013: Graduação em Psicologia, Universidade…"></textarea>
+    <p class="cat-hint">Uma por linha: "ano: formação, instituição".</p>
+  </div>
+  <div class="cat-field">
+    <label for="pf-experience">Experiência profissional</label>
+    <textarea class="cat-input" id="pf-experience" rows="5" [value]="experienceText()"
+      (input)="patch({ experience: text($event).split('\n') })"></textarea>
+    <p class="cat-hint">Uma por linha.</p>
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>C. Como trabalho</legend>
+  <div class="cat-field">
+    <label for="pf-how">Como trabalho</label>
+    <textarea class="cat-input" id="pf-how" rows="6" [value]="value().howIWork ?? ''"
+      (input)="patch({ howIWork: text($event) })"></textarea>
+    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>D. Outras informações relevantes</legend>
+  <div class="cat-field">
+    <span class="cat-label">Idiomas de atendimento</span>
+    <div class="cat-chips" role="group" aria-label="Idiomas de atendimento">
+      @for (l of languages(); track l.code) {
+        <button type="button" class="cat-chip" [attr.aria-pressed]="value().languages.includes(l.code)"
+          (click)="toggleLanguage(l.code)">{{ l.name }}</button>
+      }
+    </div>
+    <p class="cat-hint">As modalidades, os formatos e os públicos vêm dos serviços que oferece.</p>
+  </div>
+  <div class="cat-field">
+    <label for="pf-areas">Áreas de experiência</label>
+    <input class="cat-input" id="pf-areas" type="text" [value]="value().areas ?? ''"
+      (input)="patch({ areas: text($event) })" placeholder="Ex.: trauma, clínica intercultural, saúde da mulher" />
+  </div>
+  <div class="cat-field">
+    <label for="pf-other">Outras informações</label>
+    <textarea class="cat-input" id="pf-other" rows="3" [value]="value().otherInfo ?? ''"
+      (input)="patch({ otherInfo: text($event) })"></textarea>
+  </div>
+</fieldset>

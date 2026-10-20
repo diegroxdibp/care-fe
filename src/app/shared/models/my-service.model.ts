@@ -1,13 +1,18 @@
 /**
- * Um serviço como a API o devolve (valores crus do backend, não os rótulos
- * de ProfessionalService): nome da lista da Care, formato e modalidade.
+ * Uma oferta da própria pessoa profissional como a API a devolve (valores
+ * crus do backend): o serviço da lista, os formatos e a modalidade.
  */
 export interface MyService {
   id: number;
   professionalId: number;
-  /** Chave de ProfessionalSessionService, ex.: 'MINDFULNESS'. */
+  serviceId: number;
+  serviceSlug: string;
+  /** Chave antiga do serviço (ex.: 'MINDFULNESS') ou o nome, para os novos. */
   name: string;
-  format: 'INDIVIDUAL' | 'GROUP';
+  /** O nome do serviço na lista. */
+  label: string;
+  offersIndividual: boolean;
+  offersGroup: boolean;
   modality: 'ANY' | 'LOCAL' | 'REMOTE';
   active: boolean;
 }

@@ -7,10 +7,12 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { take, Subscription } from 'rxjs';
 import { ApiService } from '../../services/api.service';
+import { CatalogueApiService } from '../../services/catalogue-api.service';
+import { BookableProfessional, CareService } from '../../../shared/models/catalogue.model';
 import { SchedulingService } from '../../../shared/services/scheduling.service';
 import { SchedulingFormControls } from '../../../shared/enums/scheduling-form-controls.enum';
 import { SchedulingSteps } from '../../../shared/enums/scheduling-steps.enum';
@@ -34,9 +36,36 @@ const PT_MONTHS = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
+/** Links antigos (?service=MINDFULNESS) para o endereço do serviço na lista. */
+const LEGACY_SERVICE_SLUGS: Record<string, string> = {
+  REICHIAN_BODY_ANALYSIS: 'analise-corporal-reichiana',
+  MINDFULNESS: 'mindfulness',
+  SOMATIC_EXPERIENCE: 'somatic-experiencing',
+  SUPERVISION: 'supervisao-em-analise-reichiana',
+};
+
+/**
+ * Um serviço da lista como escolha do Agendar. id = o do serviço da lista;
+ * a oferta (o que se marca) vem da pessoa profissional escolhida.
+ */
+function choiceOf(s: CareService): ProfessionalService {
+  return {
+    id: s.id,
+    serviceId: s.id,
+    serviceSlug: s.slug,
+    name: s.name,
+    label: s.name,
+    offersIndividual: s.allowsIndividual,
+    offersGroup: s.allowsGroup,
+    modality: 'ANY' as ProfessionalService['modality'],
+    price: '',
+    active: true,
+  };
+}
+
 @Component({
   selector: 'app-scheduling',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './scheduling.component.html',
   styleUrl: './scheduling.component.scss',
   animations: [
@@ -62,6 +91,7 @@ const PT_MONTHS = [
 })
 export class SchedulingComponent implements OnDestroy {
   private readonly apiService = inject(ApiService);
+  private readonly catalogueApi = inject(CatalogueApiService);
   private readonly route = inject(ActivatedRoute);
   readonly schedulingService = inject(SchedulingService);
   private readonly sessionService = inject(SessionService);
@@ -116,13 +146,15 @@ export class SchedulingComponent implements OnDestroy {
   constructor() {
     const svcCtrl = this.schedulingService.schedulingForm.controls[SchedulingFormControls.SELECTED_SERVICE];
 
-    this.apiService.getServices().pipe(take(1)).subscribe((services: ProfessionalService[]) => {
-      // Só serviços ligados - desligar um serviço tira-o do Agendar.
-      this.schedulingService.services = services.filter(s => s.active !== false);
+    // A lista partilhada: um serviço por entrada (não um por pessoa e formato),
+    // sem os privados (esses só por convite).
+    this.catalogueApi.services().pipe(take(1)).subscribe((services: CareService[]) => {
+      this.schedulingService.services = services.map(choiceOf);
 
-      const wantedService = this.route.snapshot.queryParamMap.get('service');
-      const preselected = wantedService
-        ? services.find((s) => s.name === wantedService)
+      const wanted = this.route.snapshot.queryParamMap.get('service');
+      const wantedSlug = wanted ? (LEGACY_SERVICE_SLUGS[wanted] ?? wanted) : null;
+      const preselected = wantedSlug
+        ? this.schedulingService.services.find(s => s.serviceSlug === wantedSlug)
         : null;
       if (preselected) {
         svcCtrl.setValue(preselected);
@@ -133,8 +165,24 @@ export class SchedulingComponent implements OnDestroy {
       this.schedulingService.clearChainedRelatedFields(SchedulingSteps.SERVICE_SELECTION);
       this.confirmedSlotId.set(null);
       if (svc?.id) {
-        this.apiService.getProfessionalByService(svc.id).pipe(take(1)).subscribe((p: Professional[]) => {
-          this.schedulingService.professionals = p;
+        this.catalogueApi.bookable(svc.serviceId).pipe(take(1)).subscribe((list: BookableProfessional[]) => {
+          this.schedulingService.professionals = list.map(p => ({
+            id: p.id,
+            name: p.name,
+            picture: p.picture ?? '',
+            bio: p.bio ?? '',
+            offeringId: p.offeringId,
+            slug: p.slug,
+            audiences: p.audiences,
+          }));
+          // Vindo do perfil de alguém (/profissionais/:slug → Agendar), já escolhida.
+          const wantedProfessional = Number(this.route.snapshot.queryParamMap.get('professional'));
+          const match = wantedProfessional
+            ? this.schedulingService.professionals.find(p => p.id === wantedProfessional)
+            : null;
+          if (match && !this.selectedProfessional) {
+            this.schedulingService.schedulingForm.controls[SchedulingFormControls.SELECTED_PROFESSIONAL].setValue(match);
+          }
         });
       }
     }));
@@ -146,9 +194,10 @@ export class SchedulingComponent implements OnDestroy {
       this.confirmedSlotId.set(null);
       if (prof) {
         this.apiService.getAvailabilitiesByProfessionalId(prof.id).pipe(take(1)).subscribe((av: AvailabilityModel[]) => {
-          const serviceId = this.selectedService?.id;
-          const forService = serviceId
-            ? av.filter(a => a.services?.some(s => s.id === serviceId))
+          // As vagas desta pessoa que oferecem a oferta dela deste serviço.
+          const offeringId = prof.offeringId;
+          const forService = offeringId
+            ? av.filter(a => a.services?.some(s => s.id === offeringId))
             : av;
           this.schedulingService.setAvailabilitites(forService);
         });
@@ -216,10 +265,13 @@ export class SchedulingComponent implements OnDestroy {
     return ProfessionalSessionService[name as keyof typeof ProfessionalSessionService] || name;
   }
 
-  /** O nome, e "em grupo" quando é a versão em grupo do serviço. */
+  /** O nome do serviço na lista (individual e em grupo são o mesmo serviço; cada vaga diz o seu formato). */
   serviceLabel(svc: ProfessionalService): string {
-    const name = this.serviceName(svc.name);
-    return String(svc.format) === 'GROUP' ? `${name} · em grupo` : name;
+    return svc.label || this.serviceName(svc.name);
+  }
+
+  audienceNames(prof: Professional): string {
+    return (prof.audiences ?? []).map(a => a.name).join(', ');
   }
 
   /** Lugares livres numa vaga de grupo nesse dia (as cheias já não aparecem). */

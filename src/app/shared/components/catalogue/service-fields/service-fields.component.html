@@ -1,0 +1,187 @@
+<fieldset class="cat-fieldset">
+  <legend>Identificação</legend>
+  <div class="cat-field">
+    <label [for]="idPrefix() + '-name'">Nome do serviço *</label>
+    <input
+      class="cat-input"
+      [class.cat-invalid]="attempted() && errors().name"
+      [id]="idPrefix() + '-name'"
+      type="text"
+      maxlength="160"
+      [value]="value().name"
+      (input)="patch({ name: text($event) })"
+    />
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>1. Apresentação do serviço</legend>
+  <div class="cat-field">
+    <label [for]="idPrefix() + '-intro'">Texto de apresentação *</label>
+    <textarea
+      class="cat-input"
+      [class.cat-invalid]="attempted() && errors().intro"
+      [id]="idPrefix() + '-intro'"
+      rows="8"
+      [value]="value().intro"
+      (input)="patch({ intro: text($event) })"
+    ></textarea>
+    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+  </div>
+  <div class="cat-field">
+    <label [for]="idPrefix() + '-quote'">Citação (opcional)</label>
+    <textarea
+      class="cat-input"
+      [id]="idPrefix() + '-quote'"
+      rows="3"
+      [value]="value().quote ?? ''"
+      (input)="patch({ quote: text($event) })"
+    ></textarea>
+  </div>
+  <div class="cat-field">
+    <span class="cat-label">Imagem (opcional)</span>
+    <app-image-field [url]="value().imageUrl" (urlChange)="patch({ imageUrl: $event })" />
+  </div>
+  @if (value().imageUrl) {
+    <div class="cat-field">
+      <label [for]="idPrefix() + '-alt'">Texto alternativo da imagem</label>
+      <input
+        class="cat-input"
+        [id]="idPrefix() + '-alt'"
+        type="text"
+        maxlength="300"
+        [value]="value().imageAlt ?? ''"
+        (input)="patch({ imageAlt: text($event) })"
+        placeholder="Ex.: Foto de Wilhelm Reich"
+      />
+    </div>
+  }
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>Modalidade, formato e público</legend>
+  <div class="cat-field">
+    <span class="cat-label">Modalidade *</span>
+    <div class="cat-chips" [class.cat-invalid]="attempted() && errors().modality">
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsInPerson"
+        (click)="patch({ allowsInPerson: !value().allowsInPerson })">Presencial</button>
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsRemote"
+        (click)="patch({ allowsRemote: !value().allowsRemote })">Remoto</button>
+    </div>
+  </div>
+  <div class="cat-field">
+    <span class="cat-label">Formato de atendimento *</span>
+    <div class="cat-chips" [class.cat-invalid]="attempted() && errors().format">
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsIndividual"
+        (click)="patch({ allowsIndividual: !value().allowsIndividual })">Individual</button>
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsGroup"
+        (click)="patch({ allowsGroup: !value().allowsGroup })">Em grupo</button>
+    </div>
+    <p class="cat-hint">Um ou os dois. Cada vaga é sempre de um só formato.</p>
+  </div>
+  <div class="cat-field">
+    <span class="cat-label">Público *</span>
+    <app-audience-picker
+      label="Público do serviço"
+      [options]="audiences()"
+      [invalid]="attempted() && errors().audience"
+      [selectedIds]="value().audienceIds"
+      (selectedIdsChange)="patch({ audienceIds: $event })"
+      [proposed]="value().proposedAudiences"
+      (proposedChange)="patch({ proposedAudiences: $event })"
+    />
+    <p class="cat-hint">
+      Quem oferece este serviço atende sempre estes públicos. Públicos que só algumas pessoas atendem entram como
+      especialidade.
+    </p>
+  </div>
+  <div class="cat-field">
+    <span class="cat-label">Visibilidade *</span>
+    <div class="cat-chips" [class.cat-invalid]="attempted() && errors().visibility">
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsPublic"
+        (click)="patch({ allowsPublic: !value().allowsPublic })">Público</button>
+      <button type="button" class="cat-chip" [attr.aria-pressed]="value().allowsPrivate"
+        (click)="patch({ allowsPrivate: !value().allowsPrivate })">Privado</button>
+    </div>
+    <p class="cat-hint">
+      Público: aparece na lista de serviços, nos perfis e no Agendar. Privado: só por convite da pessoa profissional;
+      não aparece em listas e não tem botão Agendar. Com os dois, cada vaga escolhe.
+    </p>
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>2. Para quem pode fazer sentido</legend>
+  <div class="cat-field">
+    <label [for]="idPrefix() + '-forwhom'">Situações e questões</label>
+    <textarea
+      class="cat-input"
+      [id]="idPrefix() + '-forwhom'"
+      rows="6"
+      [value]="forWhomText()"
+      (input)="setForWhom(text($event))"
+    ></textarea>
+    <p class="cat-hint">Uma por linha.</p>
+  </div>
+</fieldset>
+
+<fieldset class="cat-fieldset">
+  <legend>3. Especialidades (opcional)</legend>
+  <p class="cat-hint">
+    Um foco dentro do serviço, com os seus públicos — cada pessoa profissional escolhe se o oferece. Ex.: em Terapia de
+    Casal, "Casais LGBT".
+  </p>
+  @for (sp of value().specialties; track $index; let i = $index) {
+    <div class="cat-subcard">
+      <div class="cat-subcard-head">
+        <button type="button" class="cat-subcard-toggle" [attr.aria-expanded]="openSpecialties().has(i)"
+          (click)="toggleSpecialty(i)">
+          <span class="cat-subcard-title">
+            <span class="cat-overline">Especialidade</span>
+            <strong>{{ sp.name || 'Sem nome' }}</strong>
+          </span>
+          <span translate="no" class="material-symbols-outlined" [class.invert]="openSpecialties().has(i)">expand_more</span>
+        </button>
+        <button type="button" class="cat-btn-text" (click)="removeSpecialty(i)">Remover</button>
+      </div>
+      @if (openSpecialties().has(i)) {
+        <div class="cat-subcard-body">
+          <div class="cat-field">
+            <label [for]="idPrefix() + '-sp-name-' + i">Nome *</label>
+            <input
+              class="cat-input"
+              [class.cat-invalid]="attempted() && !sp.name.trim()"
+              [id]="idPrefix() + '-sp-name-' + i"
+              type="text"
+              maxlength="160"
+              [value]="sp.name"
+              (input)="patchSpecialty(i, { name: text($event) })"
+            />
+          </div>
+          <div class="cat-field">
+            <label [for]="idPrefix() + '-sp-desc-' + i">Descrição (opcional)</label>
+            <textarea
+              class="cat-input"
+              [id]="idPrefix() + '-sp-desc-' + i"
+              rows="3"
+              [value]="sp.description ?? ''"
+              (input)="patchSpecialty(i, { description: text($event) })"
+            ></textarea>
+          </div>
+          <div class="cat-field">
+            <span class="cat-label">Público</span>
+            <app-audience-picker
+              [label]="'Público de ' + (sp.name || 'especialidade')"
+              [options]="audiences()"
+              [selectedIds]="sp.audienceIds"
+              (selectedIdsChange)="patchSpecialty(i, { audienceIds: $event })"
+              [proposed]="sp.proposedAudiences"
+              (proposedChange)="patchSpecialty(i, { proposedAudiences: $event })"
+            />
+          </div>
+        </div>
+      }
+    </div>
+  }
+  <button type="button" class="cat-btn-dashed" (click)="addSpecialty()">+ Adicionar especialidade</button>
+</fieldset>

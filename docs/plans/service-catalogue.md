@@ -1,31 +1,93 @@
-# Shared service list, target audiences and offerings: implementation plan
+# Shared service list, professional profiles and applications: implementation plan
 
-Terms follow `GLOSSARY.md` (service, format, target audience, offering, service proposal). Decided with the
-product owner on 2026-10-20; the design side is tracked in `docs/checklists/join-us-and-services.md` (section C).
+Terms follow `GLOSSARY.md` (service, private service, format, modality, target audience, specialty, offering,
+service proposal, service change proposal, application, personal profile, professional profile). Decided with the
+product owner on 2026-10-20, in two sessions: the catalogue model first, then crossing it with the design handoff
+from Claude Design ("Páginas dinâmicas de serviços": service page, professional page, service form, professional
+form, combined preview, Junte-se a nós). The handoff's HTML files are a visual reference, not code to copy.
 
 ## What changes, in one paragraph
 
-Today services are a fixed list in code (4 names) and each professional has one row per name **and** format.
-After this work, Care has a **shared service list** that grows when the Care team approves a professional's
-**proposal**. Each service says which **formats** it allows (individual, group, or both) and which **target
-audiences** it serves — some **mandatory** (everyone offering it serves them), some **optional** (each
-professional chooses). Each professional has one **offering** per service they provide: which of its allowed
-formats, which optional audiences, which modality, on or off. A slot is always exactly one format and only offers
-services whose offering includes that format.
+Today services are a fixed list in code (4 names), each professional has one row per name **and** format, the
+public service pages and the three `/bio/...` pages are hard-coded components, and nobody can become a
+professional without an admin. After this work Care has a **shared service list** that grows by approval, each
+service has a **public page** generated from its data, each professional has a **professional profile** (public
+page, separate from their personal profile), and anyone with an account can send an **application** to become a
+professional, optionally proposing services in the same form. The Care team reviews everything in a new **admin
+area**.
+
+## Decisions (2026-10-20)
+
+**Services**
+- A service says which **formats** (individual, group), **modalities** (in person, remote) and **visibilities**
+  (public slots, private slots) it allows — one or both of each. A slot is always exactly one of each.
+- A **private service** (allows private slots only) is reached only by invitation: it has no Agendar button and is
+  left out of the service lists and professional profiles; its page is reachable by its link only.
+- A service's own **target audiences are mandatory**. **Specialties** (name, optional description, their own
+  audiences) bring the **optional** audiences. An offering picks which specialties it offers.
+- Public page content belongs to the service: intro (paragraphs), quote, image + alt text, "Para quem pode fazer
+  sentido" (one item per line), specialties.
+- **Service change proposals**: a professional who offers a service can propose changes to it (one pending per
+  person per service); the admin approves or rejects with a note. Admins edit directly. Approval and direct edits
+  run the same checks: removing a format / modality / visibility / specialty in use is refused naming who uses it;
+  adding a mandatory audience to a service that already has offerings is refused (add it as a specialty).
+- New **target audiences** can be proposed inside any service or specialty; they are approved with it.
+- **Languages** (PT, ES, EN, FR, IT) are a fixed list managed by admins; no proposals.
+- The page address (**slug**) is generated from the name and set by the admin on approval; old slugs keep
+  redirecting.
+
+**People**
+- To **apply**, a person signs up or logs in first (onboarding already collects time zone, currency, language).
+  The application is their professional profile plus the existing services they offer (checkboxes) plus any
+  number of service proposals. One application at a time. While waiting the person is still a client and sees
+  "Pedido em análise"; rejected → sees the note, can edit and send again; approved → notification + email, the
+  professional role is added and the professional profile is published.
+- The admin decides each item separately: the application, then each proposal. A proposal can only be approved
+  once its proposer is a professional. Rejecting the application rejects its proposals.
+- Approving an application turns each ticked service into an **offering** switched on with every allowed format
+  and modality and no specialties; the professional fine-tunes it in Perfil → Serviços.
+- **Professional profile** — separate from the personal profile, with its own **display name** (defaults to the
+  account name), photo, title, "Quem sou", quote, education, experience, "Como trabalho", languages, areas,
+  other information. Modalities, formats and audiences shown on it are **derived** from the offerings. It is used
+  wherever the person appears as a professional (their page, service pages, Agendar, co-professional picker,
+  clients' session lists, video call); the personal profile everywhere else.
+- After approval professionals edit their professional profile without review; **every save that changes
+  something emails `admin@careclinica.com`** with the profile, its link and each changed field as before → after.
+  The same address gets an email for each new application, service proposal and service change proposal.
+- The admin can **hide** a professional profile (page returns not found; the person leaves Agendar and the
+  service pages; existing sessions untouched).
+- Existing professionals start with an empty, unpublished professional profile; until it is filled they are left
+  out of `/profissionais` and the service pages but stay bookable in Agendar (account name and photo as fallback).
+  Luane's hard-coded bio is seeded into her profile (slug `luane`), linked to her account when one professional
+  account's name starts with "Luane", otherwise left unattached for the admin to attach. Rayssa's and Yara's pages
+  are dropped.
+
+**Site**
+- New public routes: `/servicos/:slug`, `/profissionais`, `/profissionais/:slug`, `/junte-se`. Old routes
+  (`/atendimento/individual/analise-reichana`, `/mindfulness`, `/somatic-experience`,
+  `/for-professionals/supervision`, `/bio/luane`) redirect; the hard-coded pages' content is seeded into the list.
+  `/atendimento/individual` and `/atendimento/grupo` list the services allowing that format (private ones left out).
+- **Portuguese only** for now (sessions can be held in other languages; that is what "Idiomas" means). No English
+  names or content.
+- Drafts of the forms stay in the browser until sent.
+- Images: JPG / PNG / WebP up to 15 MB, reduced to ≤1200 px on the longest side in the browser and again on the
+  server (Cloudinary).
 
 ## Release order
 
-Phases 1–3 of the group-sessions plan are on staging and **not** on production. Their "Serviços" section and
-format checks use the old model, so this work ships **before** anything goes to production: production goes
-straight to the new model, and never gets a services screen that is replaced a week later.
+Phases 1–3 of the group-sessions plan are on staging and **not** on production. This work ships to staging in the
+steps below and goes to production **all at once**, together with group sessions, so production never sees the old
+services screen.
 
-Work ships in three steps, all on staging first:
+| Step | What |
+|---|---|
+| 1 | Backend: list, offerings, professional profiles, applications, proposals, change proposals, admin endpoints, data migration and seeding, admin emails, slot rules |
+| 2 | Public pages: service, professional, lists, Junte-se, redirects |
+| 3 | Forms: application (with proposals), professional profile editor, Perfil → Serviços (offerings + proposals + change proposals), slot editor / Agendar / invitation dialog on the new model |
+| 4 | Admin area: Pedidos, Serviços, Profissionais |
+| 5 | Names from the list everywhere (emails, sessions, records) replacing the code enums |
 
-| Step | Size | What |
-|---|---|---|
-| 1 | Large | Backend: data model, migration of existing data, catalogue/proposal/offering APIs, slot rules |
-| 2 | Large | Frontend: offerings editor, proposal form, admin approval screen, slot editor and Agendar on the new model |
-| 3 | Medium | Names from the list everywhere (emails, sessions, records), replacing the code enums |
+Steps 1 and 3 change the same API the current screens use, so they reach staging together.
 
 ---
 
@@ -33,114 +95,82 @@ Work ships in three steps, all on staging first:
 
 ### Data model (migration V38)
 
-- `service` — the shared list: `id`, `name_pt`, `name_en` (nullable; falls back to `name_pt`), `description`,
-  `allows_individual`, `allows_group`, `status` (`PENDING` | `APPROVED` | `REJECTED`), `proposed_by`,
-  `created_at`, `reviewed_by`, `reviewed_at`, `review_note`.
-- `target_audience` — the shared list of audiences: `id`, `name_pt`, `name_en`, `status`, `proposed_by`,
-  review fields as above.
-- `service_audience` — `service_id`, `audience_id`, `mandatory` (boolean). Primary key on the pair.
+- `care_service` — the shared list: `slug` (unique), `name`, `status` (`PENDING` | `APPROVED` | `REJECTED`),
+  `allows_individual`, `allows_group`, `allows_in_person`, `allows_remote`, `allows_public`, `allows_private`,
+  `intro`, `quote`, `image_url`, `image_alt`, `for_whom`, `legacy_key` (the old enum key, for the 4 existing
+  ones), `proposed_by`, `application_id`, `created_at`, `reviewed_by`, `reviewed_at`, `review_note`.
+- `target_audience` — `name`, `status`, `proposed_by`, review fields. `care_service_audience` — the service's
+  (mandatory) audiences.
+- `service_specialty` — `service_id`, `name`, `description`, `position`; `specialty_audience`.
+- `care_language` — `code`, `name`; seeded PT, ES, EN, FR, IT.
 - `professional_service` becomes the **offering** (same table, so every foreign key from slots, appointments,
-  invitations and reschedule requests keeps working):
-  - add `service_id` (→ `service`), `offers_individual`, `offers_group`;
-  - keep `modality`, `active`, `professional_id`;
-  - new uniqueness: one offering per professional + service + modality;
-  - `offering_audience` — `offering_id`, `audience_id`: the optional audiences this professional chose.
-- After the data is moved: drop `professional_service.session_format` and `professional_service.name`.
+  invitations and reschedule requests keeps working): add `care_service_id`, `offers_individual`, `offers_group`;
+  `session_modality` stays (ANY = both); `offering_specialty`; one offering per professional + service. `name`
+  keeps the service's key until step 5; `session_format` is dropped.
+- `professional_profile` — `user_id` (nullable only for the unattached Luane seed), `slug`, `display_name`, `title`,
+  `photo_url`, `who_am_i`, `quote`, `education`, `experience`, `how_i_work`, `areas`, `other_info`,
+  `status` (`DRAFT` | `PUBLISHED` | `HIDDEN`), `updated_at`; `professional_profile_language`.
+- `professional_application` — `user_id`, `status`, `created_at`, review fields; `application_service` (the
+  ticked existing services).
+- `service_change_proposal` — `service_id`, `proposed_by`, `content` (the proposed service, JSON), `status`,
+  `created_at`, review fields.
 
-### Moving today's data (same migration, in order)
+### Moving today's data (same migration)
 
-1. Insert the 4 current services as `APPROVED` list entries, with their Portuguese and English names from
-   `SessionService` / `messages`. Both formats allowed, so nothing that exists today becomes invalid.
-2. Point every `professional_service` row at its list entry by name.
-3. Merge rows that only differed by format (same professional + name + modality) into one offering:
-   `offers_individual` / `offers_group` from which rows existed and were active. Repoint
-   `availability_services`, `appointment`, `invitation` and `reschedule_request` from the removed duplicates to
-   the kept row, then delete the duplicates.
-4. Production only has individual rows today, so there it is a straight one-to-one move; staging also has the
-   group rows created during testing.
-
-### Rules
-
-- A proposal creates a `PENDING` service (and any new `PENDING` audiences it names). Nobody can offer it until it
-  is `APPROVED`.
-- Approval (role `ADMIN`):
-  - approves the service and the new audiences it brought;
-  - the admin can fix the names and add the English name;
-  - creates the proposer's offering switched on, with every allowed format and no optional audiences picked;
-  - notifies the proposer (notification + email).
-- Rejection: the service and its new audiences become `REJECTED`, with a note shown to the proposer.
-- An offering's formats must be a subset of the service's; its optional audiences a subset of the service's
-  optional audiences. Mandatory audiences are always included and can't be removed.
-- A slot's format must be offered by every offering it lists (replaces today's per-row format check).
-- Turning a format off in an offering is refused while a future slot of that format offers it, naming the slot
-  (same idea as changing a slot's format).
-- A service already approved can't be deleted in this version (nothing asks for it yet).
+1. Insert the 4 current services as approved list entries with their page content from the hard-coded components,
+   allowing both formats, both modalities and both visibilities, so nothing that exists becomes invalid.
+2. Point every `professional_service` row at its entry by name; merge rows of the same professional + service
+   (formats from the rows that existed and were active; modality ANY when they differed); repoint
+   `availability_services`, `appointment`, `invitation`, `reschedule_request` to the kept row.
+3. Create an empty draft professional profile per professional; seed Luane's.
 
 ### Endpoints
 
-- `GET /api/catalogue/services` — approved services with formats and audiences (mandatory/optional). Public
-  (Agendar and the join-us pages need it before login).
-- `GET /api/catalogue/audiences` — approved audiences. Public.
-- `POST /api/catalogue/proposals` — professional: `{ namePt, nameEn?, description?, allowsIndividual,
-  allowsGroup, audiences: [{ audienceId? , newAudienceNamePt?, mandatory }] }`.
-- `GET /api/catalogue/proposals/mine` — professional: their proposals and status.
-- `GET /api/catalogue/proposals` — admin: pending proposals.
-- `POST /api/catalogue/proposals/{id}/approve` `{ namePt?, nameEn?, audienceNames? }` and
-  `POST /api/catalogue/proposals/{id}/reject` `{ note }` — admin.
-- `GET /api/offerings/mine` — professional: their offerings (on and off).
-- `PUT /api/offerings/{serviceId}` — professional: `{ offersIndividual, offersGroup, modality,
-  optionalAudienceIds, active }`, create or update.
-- The current `/api/services/mine|create|enable|disable` are removed in the same release (only the profile's
-  Serviços section uses them, and it is rebuilt in step 2).
+Public (`permitAll`, exempt in `ProfileCompletionFilter`):
+- `GET /api/catalogue/options` — approved audiences, languages.
+- `GET /api/catalogue/services?format=` — approved, listable services (no private-only).
+- `GET /api/catalogue/services/{slug}` — page data, with the professionals offering it (published profiles,
+  derived formats / modalities / audiences); private-only services reachable here.
+- `GET /api/professionals`, `GET /api/professionals/{slug}` — published profiles with derived data and listable
+  services.
+
+Signed in:
+- `POST /api/catalogue/images` — upload a service image, returns its URL.
+- `GET|PUT /api/applications/mine`, `POST /api/applications/mine/submit`, `POST /api/applications/mine/photo`.
+- `GET|PUT /api/professional-profile/mine`, `POST .../photo` — professional.
+- `GET /api/offerings/mine`, `PUT /api/offerings/{serviceId}` — professional.
+- `POST /api/catalogue/proposals`, `GET /api/catalogue/proposals/mine` — professional.
+- `POST /api/catalogue/services/{id}/change-proposals`, `GET /api/catalogue/change-proposals/mine` — offerers.
+
+Admin (`ADMIN`):
+- `GET /api/admin/requests` — pending applications, service proposals, change proposals.
+- `POST /api/admin/applications/{id}/approve {slug}` / `reject {note}`.
+- `POST /api/admin/services/{id}/approve {slug, …edits}` / `reject {note}`.
+- `POST /api/admin/change-proposals/{id}/approve` / `reject {note}`.
+- `GET /api/admin/services`, `PUT /api/admin/services/{id}`.
+- `GET /api/admin/professionals`, `PUT /api/admin/professionals/{profileId}`, `…/hide`, `…/show`, `…/attach`.
+
+The current `/api/services/create|enable|disable` are removed; `/api/services/mine` and `/getAll` return offerings
+in the new shape until step 5.
+
+### Rules
+
+- Nobody can offer a service that is not approved.
+- An offering's formats and modality must be allowed by its service; its specialties must be the service's.
+- A slot's format, modality and visibility must be allowed by every service it lists, and its format offered by
+  every offering it lists.
+- Turning a format off in an offering is refused while a future slot of that format offers it, naming the slot.
 
 ### Tests
 
-- Migration: a professional with an individual and a group row of the same service ends with one offering
-  offering both, and every slot, appointment and invitation still points at a row that exists.
-- Proposal → approval → the proposer can create a slot with it; before approval, refused.
-- Offering rules: formats and optional audiences outside the service's are refused; mandatory audiences can't be
-  dropped; a format in use by a future slot can't be turned off.
-- Slot rule: a group slot refuses an offering without group; an individual slot refuses one without individual.
+Migration merge; proposal → approval → slot; offering and slot rules; change-proposal checks; application approval
+(role added, profile published, offerings created); profile-change email diff; public endpoints never expose email
+or phone.
 
----
+## Steps 2–5
 
-## Step 2 — Frontend
-
-- **Profile → Serviços** becomes the offerings editor:
-  - each approved service with an on/off switch;
-  - the formats it allows (individual and/or group);
-  - its optional audiences as chips to pick, and the mandatory ones shown as fixed;
-  - the modality.
-- **Propor um serviço** (from the same section):
-  - name;
-  - description;
-  - which formats;
-  - audiences from the list, or new ones, each marked mandatory or optional.
-
-  Below the form, the professional's proposals with their status and the Care team's note.
-- **Admin → Pedidos de serviços** (new, role `ADMIN`): pending proposals with approve (adjusting names and the
-  English name) or reject (with a note). The app has no admin area today; this is its first screen, behind a
-  new admin guard.
-- **Slot editor**: the services list is the professional's active offerings that include the slot's format.
-- **Agendar**: the service picker comes from the shared list (one entry per service, no duplicates per format);
-  each slot card shows its format; the professional card shows the audiences they serve.
-- **Invitation dialog**: services filtered by the slot's format, as in the slot editor.
-- **Join-us pages** (being designed in another session): consume the public catalogue endpoints and the
-  proposal endpoint.
-
-## Step 3 — Names from the list
-
-Service names come from the code today: `SessionService.labelFor` in 6 places in care-be (emails, messages) and
-the `ProfessionalSessionService` map in 11 files in care-fe. They switch to the list's name, in the reader's
-language (`name_en` falling back to `name_pt`). The DTOs that carry a service id also carry its name, so screens
-stop looking names up.
-
----
-
-## Open points (with the default this plan uses)
-
-1. **English names**: proposals are in Portuguese; the admin adds the English name on approval, and English
-   readers see the Portuguese name until then. Default: as described.
-2. **Agendar filtering by audience** (a client picks "casais" and sees only professionals serving couples):
-   default is to show audiences on the professional card in this step, and add filtering later.
-3. **Withdrawing an approved service from the list**: not in this version.
+Frontend work follows the handoff layout and its README rules, using the design tokens in
+`colors_and_type.css` (adding `--fg-muted-2: #6f7789` and `--color-error-soft: #fbefee`), the existing header and
+footer, `_service-page.scss`, `[@expandCollapse]` for accordions, and `Pages` for routes. Previews never navigate.
+Admin area behind a new admin guard. Step 5 replaces `SessionService.labelFor` (care-be) and the
+`ProfessionalSessionService` map (care-fe) with the list's names and drops `professional_service.name`.

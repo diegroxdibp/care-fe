@@ -4,6 +4,7 @@ import { Pages } from './shared/enums/pages.enum';
 import { AccessGuard } from './auth/auth.guard';
 import { AuthOnlyGuard } from './auth/authOnly.guard';
 import { AvailabilityAccessGuard } from './auth/availability-access.guard';
+import { AdminGuard } from './auth/admin.guard';
 import { GuestOnlyGuard } from './auth/guest-only.guard';
 import { pendingBookingGuard } from './core/pages/scheduling/confirm/pending-booking.guard';
 import { HomeComponent } from './core/pages/home/home.component';
@@ -18,52 +19,61 @@ export const routes: Routes = [
     component: HomeComponent,
   },
 
-  // páginas usando HomeComponent
+  // A lista de serviços (docs/plans/service-catalogue.md): /atendimento e os
+  // dois formatos, a página de cada serviço e de cada pessoa profissional, e o
+  // "Junte-se a nós". Públicas.
   {
     path: Pages.ATENDIMENTO,
-    component: HomeComponent,
+    loadComponent: () =>
+      import('./core/pages/catalogue/services-catalogue-list.component').then(
+        (m) => m.ServicesCatalogueListComponent,
+      ),
   },
   {
     path: Pages.ATENDIMENTO_INDIVIDUAL,
-    component: HomeComponent,
+    data: { format: 'INDIVIDUAL' },
+    loadComponent: () =>
+      import('./core/pages/catalogue/services-catalogue-list.component').then(
+        (m) => m.ServicesCatalogueListComponent,
+      ),
   },
   {
     path: Pages.ATENDIMENTO_GRUPO,
-    component: HomeComponent,
-  },
-
-  // páginas isoladas
-  {
-    path: Pages.ANALISE_REICHANA,
+    data: { format: 'GROUP' },
     loadComponent: () =>
-      import(
-        './shared/components/analise-corporal-reichana/analise-corporal-reichana.component'
-        ).then((m) => m.AnaliseCorporalReichanaComponent),
-  },
-
-  {
-    path: Pages.MINDFULLNESS,
-    loadComponent: () =>
-      import('./shared/components/mindfulness/mindfulness.component').then(
-        (m) => m.MindfulnessComponent,
+      import('./core/pages/catalogue/services-catalogue-list.component').then(
+        (m) => m.ServicesCatalogueListComponent,
       ),
   },
-
   {
-    path: Pages.SOMATIC_EXPERIENCE,
+    path: `${Pages.SERVICOS}/:slug`,
     loadComponent: () =>
-      import(
-        './shared/components/somatic-experience/somatic-experience.component'
-        ).then((m) => m.SomaticExperienceComponent),
+      import('./core/pages/catalogue/service-page.component').then((m) => m.ServicePageComponent),
+  },
+  {
+    path: Pages.PROFISSIONAIS,
+    loadComponent: () =>
+      import('./core/pages/catalogue/professionals-list.component').then((m) => m.ProfessionalsListComponent),
+  },
+  {
+    path: `${Pages.PROFISSIONAIS}/:slug`,
+    loadComponent: () =>
+      import('./core/pages/catalogue/professional-page.component').then((m) => m.ProfessionalPageComponent),
+  },
+  {
+    path: Pages.JUNTE_SE,
+    pathMatch: 'full',
+    loadComponent: () => import('./core/pages/catalogue/join-us.component').then((m) => m.JoinUsComponent),
   },
 
-  {
-    path: Pages.SUPERVISION,
-    loadComponent: () =>
-      import('./shared/components/supervision/supervision.component').then(
-        (m) => m.SupervisionComponent,
-      ),
-  },
+  // Os endereços das páginas fixas de antes levam às páginas novas.
+  { path: Pages.ANALISE_REICHANA, redirectTo: `${Pages.SERVICOS}/analise-corporal-reichiana` },
+  { path: Pages.MINDFULLNESS, redirectTo: `${Pages.SERVICOS}/mindfulness` },
+  { path: Pages.SOMATIC_EXPERIENCE, redirectTo: `${Pages.SERVICOS}/somatic-experiencing` },
+  { path: Pages.SUPERVISION, redirectTo: `${Pages.SERVICOS}/supervisao-em-analise-reichiana` },
+  { path: Pages.LUANE, redirectTo: `${Pages.PROFISSIONAIS}/luane` },
+  { path: `${Pages.BIO}/:name`, redirectTo: Pages.PROFISSIONAIS },
+  { path: Pages.BIO, redirectTo: Pages.PROFISSIONAIS },
 
   {
     path: Pages.ABOUT,
@@ -78,22 +88,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./core/pages/contact/contact.component').then(
         (m) => m.ContactComponent,
-      ),
-  },
-
-  {
-    path: Pages.BIO,
-    loadComponent: () =>
-      import('./shared/components/biography/biography.component').then(
-        (m) => m.BiographyComponent,
-      ),
-  },
-
-  {
-    path: `${Pages.BIO}/:name`,
-    loadComponent: () =>
-      import('./shared/components/biography/biography.component').then(
-        (m) => m.BiographyComponent,
       ),
   },
 
@@ -190,6 +184,44 @@ export const routes: Routes = [
 
         children: [
           {
+            // O perfil profissional (página pública), separado do perfil pessoal.
+            path: 'perfil-profissional',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/catalogue/professional-profile-editor/professional-profile-editor.component'
+              ).then((m) => m.ProfessionalProfileEditorComponent),
+          },
+
+          {
+            // As ofertas: que serviços da lista oferece e como.
+            path: 'servicos',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import('./shared/components/catalogue/offerings-editor/offerings-editor.component').then(
+                (m) => m.OfferingsEditorComponent,
+              ),
+          },
+
+          {
+            path: 'servicos/propor',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/catalogue/service-proposal-page/service-proposal-page.component'
+              ).then((m) => m.ServiceProposalPageComponent),
+          },
+
+          {
+            path: 'servicos/:serviceId/alterar',
+            canMatch: [AvailabilityAccessGuard],
+            loadComponent: () =>
+              import(
+                './shared/components/catalogue/service-proposal-page/service-proposal-page.component'
+              ).then((m) => m.ServiceProposalPageComponent),
+          },
+
+          {
             path: 'profile',
             loadComponent: () =>
               import(
@@ -283,6 +315,50 @@ export const routes: Routes = [
               import(
                 './shared/components/dashboard-client-record/dashboard-client-record.component'
               ).then((m) => m.DashboardClientRecordComponent),
+          },
+        ],
+      },
+
+      {
+        // O pedido para fazer parte da Care pede sessão: quem não tem conta
+        // cria uma e volta aqui (junte-se está na lista de return paths).
+        path: Pages.JUNTE_SE_PEDIDO,
+        loadComponent: () =>
+          import('./core/pages/catalogue/application-form/application-form.component').then(
+            (m) => m.ApplicationFormComponent,
+          ),
+      },
+
+      {
+        path: Pages.ADMIN,
+        canMatch: [AdminGuard],
+        loadComponent: () => import('./pages/admin/admin-shell.component').then((m) => m.AdminShellComponent),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'pedidos' },
+          {
+            path: 'pedidos',
+            loadComponent: () =>
+              import('./pages/admin/admin-requests.component').then((m) => m.AdminRequestsComponent),
+          },
+          {
+            path: 'servicos',
+            loadComponent: () =>
+              import('./pages/admin/admin-services.component').then((m) => m.AdminServicesComponent),
+          },
+          {
+            path: 'servicos/:id',
+            loadComponent: () =>
+              import('./pages/admin/admin-services.component').then((m) => m.AdminServicesComponent),
+          },
+          {
+            path: 'profissionais',
+            loadComponent: () =>
+              import('./pages/admin/admin-professionals.component').then((m) => m.AdminProfessionalsComponent),
+          },
+          {
+            path: 'profissionais/:id',
+            loadComponent: () =>
+              import('./pages/admin/admin-professionals.component').then((m) => m.AdminProfessionalsComponent),
           },
         ],
       },

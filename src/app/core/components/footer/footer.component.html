@@ -29,6 +29,9 @@
               (keydown.space)="$event.preventDefault(); navigateTo(Pages.SCHEDULING)"
             >Agendar</a>
           </li>
+          <li><a [routerLink]="'/' + Pages.ATENDIMENTO">Serviços</a></li>
+          <li><a [routerLink]="'/' + Pages.PROFISSIONAIS">Profissionais</a></li>
+          <li><a [routerLink]="'/' + Pages.JUNTE_SE">Junte-se a nós</a></li>
         </ul>
       </div>
 

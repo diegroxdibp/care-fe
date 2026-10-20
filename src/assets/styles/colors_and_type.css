@@ -158,6 +158,8 @@
   --color-pending: #f0a500;          /* awaiting an answer — the agenda's yellow ring */
   --color-pending-ink: #b25e00;      /* text on a pending badge */
   --color-pending-soft: #fff3e0;     /* pending badge / row wash */
+  --color-error-soft: #fbefee;       /* "campos em falta" box behind --color-error */
+  --color-hint: #6f7789;             /* form hints and secondary notes (service/profile forms) */
 
   /* ---- Semantic foreground ---- */
   --fg-1: var(--color-primary-blue);     /* primary text */

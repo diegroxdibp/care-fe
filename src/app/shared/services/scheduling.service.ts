@@ -124,7 +124,10 @@ export class SchedulingService {
     };
     const payload = {
       availabilityId: fc[SchedulingFormControls.SELECTED_AVAILABILITY].value?.id,
-      professionalServiceId: fc[SchedulingFormControls.SELECTED_SERVICE].value?.id,
+      // A oferta da pessoa escolhida; o serviço selecionado é o da lista partilhada.
+      professionalServiceId:
+        fc[SchedulingFormControls.SELECTED_PROFESSIONAL].value?.offeringId
+        ?? fc[SchedulingFormControls.SELECTED_SERVICE].value?.id,
       appointmentDate: fc[SchedulingFormControls.SELECTED_DAY].value,
       startTime: fc[SchedulingFormControls.SELECTED_AVAILABILITY].value?.startTime,
       endTime: fc[SchedulingFormControls.SELECTED_AVAILABILITY].value?.endTime,

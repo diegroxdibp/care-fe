@@ -11,7 +11,7 @@
  * redirect into an open redirect. Mirrors the backend's
  * EmailConfirmationService.VALID_NEXT_PATTERN.
  */
-const RETURN_PATH_PATTERN = /^\/(scheduling|dashboard|appointments|rooms|availability|invitations)(\/|\?|$)/;
+const RETURN_PATH_PATTERN = /^\/(scheduling|dashboard|appointments|rooms|availability|invitations|junte-se)(\/|\?|$)/;
 
 /** Só os passos do Agendar têm o tratamento "a conta é o passo 1" no AccessGuard. */
 export function isSchedulingPath(value: string | null | undefined): value is string {

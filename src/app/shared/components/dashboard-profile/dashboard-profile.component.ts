@@ -16,7 +16,7 @@ import { User } from '../../../auth/user.model';
 import {getEnumKeyByValue} from '../../utils/getEnumKeyByValue';
 import { getBrowserCountry } from '../../utils/browser-country.util';
 import { Roles } from '../../enums/roles.enum';
-import { ServicesSettingsComponent } from '../services-settings/services-settings.component';
+import { RouterLink } from '@angular/router';
 import { CountryPhoneFieldComponent } from '../country-phone-field/country-phone-field.component';
 import { StyledSelectComponent, StyledSelectOption } from '../styled-select/styled-select.component';
 import { BirthdateCalendarComponent } from '../birthdate-calendar/birthdate-calendar.component';
@@ -50,7 +50,7 @@ const MAX_PICTURE_SIZE_BYTES = 5 * 1024 * 1024;
 
 @Component({
   selector: 'app-dashboard-profile',
-  imports: [ReactiveFormsModule, MatDialogModule, CountryPhoneFieldComponent, StyledSelectComponent, BirthdateCalendarComponent, CurrencyToggleComponent, ServicesSettingsComponent],
+  imports: [ReactiveFormsModule, MatDialogModule, CountryPhoneFieldComponent, StyledSelectComponent, BirthdateCalendarComponent, CurrencyToggleComponent, RouterLink],
   templateUrl: './dashboard-profile.component.html',
   styleUrl: './dashboard-profile.component.scss',
 })

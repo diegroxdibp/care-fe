@@ -63,7 +63,7 @@ import { isModalityCompatible, normalizeModality, toBackendModality } from '../.
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { RecurrenceFrequency } from '../../shared/enums/recurrence-frequency.enum';
 import { normalizeRecurrenceFrequency, occursOnDate, toBackendRecurrenceFrequency } from '../../shared/utils/recurrence.util';
-import { ProfessionalService } from '../../shared/models/professional-service.model';
+import { offersFormat, ProfessionalService } from '../../shared/models/professional-service.model';
 import { ApiService, AvailabilityPayload } from '../../core/services/api.service';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Appointment } from '../../shared/models/appointment.model';
@@ -818,7 +818,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   readonly editorServices = computed(() =>
     this.services()
-      .filter(s => (String(s.format) === 'GROUP' ? 'GROUP' : 'INDIVIDUAL') === this.editorFormat())
+      // Só ofertas que incluem o formato da vaga, de serviços que permitem a visibilidade dela
+      // (um serviço privado só em vagas privadas).
+      .filter(s => offersFormat(s, this.editorFormat()))
+      .filter(s => this.editorVisibility() === 'PRIVATE' ? s.serviceAllowsPrivate !== false : s.serviceAllowsPublic !== false)
       .filter(s => s.active !== false || this.selectedServiceIds().has(s.id)),
   );
 

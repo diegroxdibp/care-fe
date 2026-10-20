@@ -19,6 +19,14 @@ const SELF_HANDLED_ENDPOINTS = [
   '/removed-users',
   // A página do convite mostra "não encontrado" no próprio sítio.
   '/api/invitations/preview/',
+  // Lista de serviços e perfis: as páginas mostram "não encontrado" e os
+  // formulários mostram a recusa por baixo do botão (docs/plans/service-catalogue.md).
+  '/api/catalogue/',
+  '/api/professionals',
+  '/api/applications/mine',
+  '/api/offerings/',
+  '/api/professional-profile/',
+  '/api/admin/',
 ];
 
 // The one-shot GET each SSE service fires when (re)connecting — retried

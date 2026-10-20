@@ -105,6 +105,12 @@
         <div class="prof-info">
           <h2 class="prof-name">{{ selectedProfessional.name }}</h2>
           <p class="prof-bio">{{ selectedProfessional.bio }}</p>
+          @if (audienceNames(selectedProfessional)) {
+            <p class="prof-bio"><em>Atende: {{ audienceNames(selectedProfessional) }}</em></p>
+          }
+          @if (selectedProfessional.slug) {
+            <a class="prof-bio" [routerLink]="['/profissionais', selectedProfessional.slug]">Ver perfil completo →</a>
+          }
         </div>
       </div>
     } @else {

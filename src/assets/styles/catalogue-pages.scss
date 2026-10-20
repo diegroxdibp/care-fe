@@ -1,0 +1,861 @@
+// Páginas de serviço e de perfil profissional, as listas, o "Junte-se a nós",
+// os formulários (pedido, perfil, propostas) e a área da equipa — ver o
+// handoff "Páginas dinâmicas de serviços" em care-fe/docs/plans/service-catalogue.md.
+// Global (e com prefixo cat-) porque é partilhado por muitos componentes e o
+// orçamento de estilo por componente é curto.
+@use './breakpoints.scss' as breakpoint;
+
+// ─ Página ──────────────────────────────────────────────────────────────────
+
+.cat-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background: var(--bg-page);
+}
+
+.cat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5em;
+  width: 100%;
+  max-width: var(--col-md);
+  padding: 1.5em var(--gutter-mobile) 3em;
+  box-sizing: border-box;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: var(--col-lg);
+  }
+}
+
+.cat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.cat-col h1 {
+  font-size: var(--fs-h1);
+  letter-spacing: var(--ls-h1);
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    font-size: var(--fs-display-2);
+  }
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: var(--fs-display-1);
+  }
+}
+
+.cat-col p {
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: var(--fs-body-lg);
+  }
+}
+
+.cat-subtitle {
+  font-weight: var(--fw-light);
+  font-style: italic;
+  font-size: 18px;
+  letter-spacing: 1.1px;
+  color: var(--fg-1);
+  margin: 0;
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    font-size: 24px;
+  }
+}
+
+.cat-overline {
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.cat-notice {
+  background: var(--color-surface-tint);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.cat-list {
+  list-style: disc;
+  margin: 0 0 0 1.5em;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+
+  li {
+    font-size: 18px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+    color: var(--fg-1);
+  }
+}
+
+.cat-image {
+  max-width: 500px;
+  width: 100%;
+  align-self: center;
+  margin: 0;
+
+  img {
+    width: 100%;
+    max-height: 520px;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    display: block;
+  }
+}
+
+.cat-photo {
+  margin: 0;
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 4 / 5;
+  max-height: 540px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex: 1 1 280px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 20%;
+    display: block;
+  }
+}
+
+.cat-whoami {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2em;
+  align-items: flex-start;
+
+  > .cat-block {
+    flex: 1 1 360px;
+  }
+}
+
+// Linhas label / valor
+.cat-rows {
+  border-top: 1px solid var(--color-border);
+  margin: 0;
+}
+
+.cat-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
+  gap: 4px 24px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+
+  dt {
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--fg-1);
+    align-self: center;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 18px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+    color: var(--fg-1);
+  }
+}
+
+.cat-specialties {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  > li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    padding: 1.25em 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  > li:first-child {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .cat-specialty-audience {
+    font-size: 16px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+    color: var(--fg-1);
+    margin: 0;
+    text-align: left;
+  }
+}
+
+// Acordeão de pessoas / serviços
+.cat-accordion {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+
+  > li {
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+.cat-acc-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 12px 8px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+  transition: outline-color var(--dur-fast) ease;
+  outline: 2px solid transparent;
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-purple);
+  }
+
+  img {
+    width: 64px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    flex: none;
+
+    &.cat-thumb-square {
+      height: 64px;
+    }
+  }
+
+  .cat-acc-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cat-acc-name {
+    font-size: 24px;
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-tight);
+  }
+
+  .cat-acc-sub {
+    font-size: 18px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+  }
+
+  .cat-acc-meta {
+    font-size: 16px;
+    font-style: italic;
+  }
+
+  .cat-chevron {
+    font-size: 24px;
+    display: inline-block;
+    flex: none;
+    transition: transform var(--dur-base) ease;
+
+    &.invert {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.cat-acc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  padding: 0 8px 1.25em;
+}
+
+.cat-link {
+  font-size: 18px;
+  font-weight: var(--fw-bold);
+  font-style: italic;
+  color: var(--fg-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) ease;
+
+  &:hover {
+    color: var(--color-primary-purple);
+  }
+}
+
+.cat-cta {
+  align-self: center;
+  border: none;
+  background: var(--color-primary-blue);
+  color: var(--fg-on-dark);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: var(--fw-semibold);
+  padding: 14px 30px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--dur-fast) ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+  }
+}
+
+.cat-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+
+  li {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 4px 12px;
+  }
+
+  .cat-step-n {
+    font-size: 24px;
+    font-weight: var(--fw-bold);
+    color: var(--color-primary-purple);
+    grid-row: span 2;
+  }
+
+  h3 {
+    font-size: 20px;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.cat-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5em;
+
+  a {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--fg-1);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    outline: 2px solid transparent;
+    transition: outline-color var(--dur-fast) ease;
+
+    &:hover,
+    &:focus-visible {
+      outline: 2px solid var(--color-primary-purple);
+    }
+  }
+
+  img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    object-position: 50% 20%;
+    border-radius: var(--radius-md);
+  }
+
+  .cat-card-name {
+    font-size: 22px;
+    font-weight: var(--fw-bold);
+  }
+
+  .cat-card-sub {
+    font-size: 16px;
+    font-style: italic;
+  }
+}
+
+.cat-empty {
+  font-style: italic;
+  color: var(--color-hint);
+}
+
+// Pré-visualização: nada sai da página.
+.cat-preview-mode {
+  a {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+// ─ Formulários ─────────────────────────────────────────────────────────────
+
+.cat-form-page {
+  background: var(--color-surface-tint);
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.cat-form-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2em;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1600px;
+  padding: 2em var(--gutter-mobile);
+  box-sizing: border-box;
+}
+
+.cat-card {
+  flex: 1 1 480px;
+  max-width: 800px;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  filter: var(--shadow-floating);
+  padding: 28px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+
+  @media (min-width: breakpoint.$breakpoint-sm) {
+    padding: 36px 40px;
+  }
+
+  h1 {
+    font-size: var(--fs-h1);
+  }
+
+  h2 {
+    font-size: 24px;
+  }
+}
+
+.cat-preview {
+  flex: 1 1 420px;
+  position: sticky;
+  top: 94px;
+  height: calc(100vh - 118px);
+  overflow: auto;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+
+  @media (max-width: breakpoint.$breakpoint-md) {
+    position: static;
+    height: auto;
+  }
+}
+
+.cat-preview-band {
+  background: var(--color-surface-tint);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .cat-preview-name {
+    font-style: italic;
+    font-size: 18px;
+  }
+}
+
+.cat-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+
+  legend {
+    font-size: 22px;
+    font-weight: var(--fw-bold);
+    color: var(--fg-1);
+    margin-bottom: 0.75em;
+    padding: 0;
+  }
+}
+
+.cat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  > label,
+  > .cat-label {
+    font-size: 15px;
+    font-weight: var(--fw-semibold);
+    color: var(--fg-1);
+  }
+}
+
+.cat-hint {
+  font-size: 13.5px;
+  color: var(--color-hint);
+  margin: 0;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.cat-input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--fg-1);
+  background: var(--color-white);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color var(--dur-fast) ease;
+
+  &::placeholder {
+    color: var(--color-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
+  }
+
+  &.cat-invalid {
+    border-color: var(--color-error);
+  }
+}
+
+textarea.cat-input {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &.cat-invalid .cat-chip {
+    border-color: var(--color-error);
+  }
+}
+
+.cat-chip {
+  padding: 9px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--fw-semibold);
+  background: var(--color-white);
+  color: var(--fg-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease;
+
+  &:hover {
+    border-color: var(--color-primary-purple);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--color-primary-blue);
+    border-color: var(--color-primary-blue);
+    color: var(--fg-on-dark);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &.cat-chip--pending {
+    border-style: dashed;
+    border-color: var(--color-primary-purple);
+    background: var(--color-surface-tint);
+    cursor: default;
+  }
+
+  .cat-chip-x {
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    padding: 0;
+  }
+}
+
+.cat-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .cat-input {
+    flex: 1 1 220px;
+    width: auto;
+  }
+}
+
+.cat-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: var(--fg-1);
+  cursor: pointer;
+
+  input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary-blue);
+  }
+}
+
+.cat-error-box {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  font-size: 13.5px;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin: 0;
+}
+
+.cat-error {
+  color: var(--color-error);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.cat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.cat-btn-pill {
+  border: 1px solid var(--color-primary-blue);
+  background: var(--color-white);
+  color: var(--color-primary-blue);
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  filter: var(--shadow-floating);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+
+  &:hover:not(:disabled),
+  &.cat-btn-primary {
+    background: var(--color-primary-blue);
+    color: var(--fg-on-dark);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.cat-btn-text {
+  border: none;
+  background: none;
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px;
+
+  &:hover {
+    color: var(--color-primary-purple);
+  }
+}
+
+.cat-btn-dashed {
+  border: 1px dashed var(--color-primary-purple);
+  background: var(--color-white);
+  color: var(--fg-1);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  width: 100%;
+
+  &:hover {
+    background: var(--color-surface-tint);
+  }
+}
+
+// Cartão acordeão dentro de um formulário (especialidade, proposta de serviço)
+.cat-subcard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  .cat-subcard-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--color-surface-tint);
+    padding: 12px 16px;
+  }
+
+  .cat-subcard-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    color: var(--fg-1);
+    padding: 0;
+    min-width: 0;
+  }
+
+  .cat-subcard-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    strong {
+      font-size: 17px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .cat-subcard-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+  }
+}
+
+.cat-photo-tile {
+  width: 132px;
+  height: 165px;
+  border: 1px dashed var(--color-primary-purple);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--color-hint);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  font-family: var(--font-sans);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 20%;
+  }
+}
+
+.cat-pill-status {
+  align-self: flex-start;
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-on-dark);
+  background: var(--color-secondary-green);
+
+  &.cat-pill-pending {
+    background: var(--color-pending-soft);
+    color: var(--color-pending-ink);
+  }
+
+  &.cat-pill-rejected {
+    background: var(--color-error-soft);
+    color: var(--color-error);
+  }
+
+  &.cat-pill-muted {
+    background: var(--color-surface-tint);
+    color: var(--fg-1);
+  }
+}
+
+// Área da equipa
+.cat-preview.cat-admin-preview {
+  position: static;
+  height: auto;
+  max-height: 70vh;
+}
+
+.cat-admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1em;
+}
+
+.cat-admin-item {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}

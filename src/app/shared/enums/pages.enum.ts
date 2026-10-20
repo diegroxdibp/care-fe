@@ -38,4 +38,13 @@ export enum Pages {
   LUANE = `${Pages.BIO}/luane`,
   RAYSSA = `${Pages.BIO}/rayssa`,
   YARA = `${Pages.BIO}/yara`,
+
+  // Lista partilhada de serviços e perfis profissionais (docs/plans/service-catalogue.md)
+  SERVICOS = 'servicos',
+  PROFISSIONAIS = 'profissionais',
+  JUNTE_SE = 'junte-se',
+  JUNTE_SE_PEDIDO = `${Pages.JUNTE_SE}/pedido`,
+  DASHBOARD_PROFESSIONAL_PROFILE = `${Pages.DASHBOARD}/perfil-profissional`,
+  DASHBOARD_SERVICES = `${Pages.DASHBOARD}/servicos`,
+  ADMIN = 'admin',
 }
