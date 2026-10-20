@@ -59,6 +59,24 @@ _Avoid_: Invitation (for professionals), co-host invite
 A co-professional's place in a session they don't own, which makes them busy at that time without being part of their availability.
 _Avoid_: Booking, external session
 
+## Services
+
+**Service**:
+A kind of therapy or practice in Care's shared list (for example Mindfulness), which says whether it can be offered individually, in a group, or both, and to which target audiences.
+_Avoid_: Modality (that is in person or remote), specialty, offering
+
+**Format**:
+Whether a session is individual or group. A service can allow both; a slot is always exactly one.
+_Avoid_: Type, kind, mode
+
+**Target audience**:
+A group of people a service is meant for (for example adults, teenagers, couples), from a shared list.
+_Avoid_: Público (in code), segment, demographic
+
+**Service proposal**:
+A professional's request to add a new service or target audience to the shared list, approved or rejected by the Care team.
+_Avoid_: Suggestion, service request
+
 ## People
 
 **Professional**:

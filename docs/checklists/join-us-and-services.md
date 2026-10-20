@@ -46,57 +46,75 @@ not yet on production.
 8. Phone and birth date are collected at onboarding but are **never** shown to other users. The design must not
    suggest otherwise.
 
-## C. Services
+## C. Services and target audiences
 
-9. **Services come from a fixed Care catalogue**, not free text: `REICHIAN_BODY_ANALYSIS`, `MINDFULNESS`,
-   `SOMATIC_EXPERIENCE`, `SUPERVISION` (frontend `ProfessionalSessionService` enum with display names; backend
-   `SessionService` enum). A design that lets professionals invent services needs a backend change — flag it.
-10. **Each service is offered as Individual, Group, or both.** One row per name + format + modality
-    (`ProfessionalService`). Group versions are what group slots can offer.
-11. **Modality** per service: `ANY` (Qualquer), `LOCAL` (Presencial), `REMOTE` (Remoto). The current Serviços
-    section creates services as `ANY`. Does the design let a professional restrict a service to one modality?
-12. **Turning a service off** hides it from new slots and from Agendar; slots that already offer it keep it.
-    Turning it back on reactivates the same service (not a duplicate). The copy should say this.
-13. **Prices are set on the slot, not on the service.** `CreateProfessionalServiceDTO` has no price; the slot
-    editor and the invitation dialog carry EUR (required) and BRL (optional). A "create services" page that asks
-    for a price is asking for something the backend ignores — either drop it or flag the backend change.
-14. Endpoints that exist (professional roles only, and only on your own services):
-    - `GET /api/services/mine` — your services, on and off;
-    - `POST /api/services/create` `{ name, modality, format }` — create, or reactivate if it existed;
-    - `PUT /api/services/enable/{id}`, `PUT /api/services/disable/{id}`.
-15. The existing UI for this is the "Serviços" section in the profile
-    (`src/app/shared/components/services-settings/`). Does the new page replace it, reuse it, or link to it?
-16. A professional with **no services** can't create a slot. Does the join flow make sure at least one service is
+Decided 2026-10-20 (product owner). Most of this section is **not built yet** — item 18 lists the gap.
+
+9. **The service list is shared by all of Care and grows by approval.** A professional can propose a new
+   service; the Care team approves or rejects it. Once approved it joins the list, every professional can offer
+   it, and the professional who proposed it has it switched on. Until then nobody (including the proposer) can
+   use it in a slot. Does the design cover proposing, the "waiting for approval" state, approval, and rejection
+   (with what the professional is told in each case)?
+10. **Each service in the list says how it can be offered: individual, group, or both.** This is set in the
+    proposal and approved with it. A "both" service is a single entry — not two.
+11. **Target audiences** (público-alvo — for example adults, teenagers, couples) are also a shared list that grows
+    by approval, the same way as services: proposed, approved by the Care team, then available to everyone.
+    Each service in the list has its target audiences. ❓ Can a professional narrow the audiences for their own
+    offering of a service, or are they always the service's own?
+12. **A slot is always one format — individual or group, never both.** A slot only offers services that allow
+    its format: an individual slot lists services marked individual or both; a group slot, group or both. Every
+    screen that lists services for a slot (the slot editor, Agendar, the invitation dialog) must filter this way.
+13. **Modality** per service a professional offers: `ANY` (Qualquer), `LOCAL` (Presencial), `REMOTE` (Remoto).
+    Does the design let a professional restrict a service to one modality?
+14. **Turning a service off** (for one professional) hides it from their new slots and from Agendar; slots that
+    already offer it keep it. Turning it back on reactivates the same service. The copy should say this.
+15. **Prices are set on the slot, not on the service** (EUR required, BRL optional; an invitation can change
+    them). A "create services" page that asks for a price is asking for something the backend ignores — either
+    drop it or flag the backend change.
+16. The existing UI is the "Serviços" section in the profile (`src/app/shared/components/services-settings/`),
+    with one switch per format. Under item 10 it becomes one switch per service (with its formats shown).
+    Does the new page replace it, reuse it, or link to it?
+17. A professional with **no services** can't create a slot. Does the join flow make sure at least one service is
     on before sending them to Disponibilidade?
+18. **Backend gap — what exists today versus what items 9–12 need:**
+    - Today the list is a fixed enum (`SessionService` in care-be, `ProfessionalSessionService` in care-fe:
+      `REICHIAN_BODY_ANALYSIS`, `MINDFULNESS`, `SOMATIC_EXPERIENCE`, `SUPERVISION`), with no audiences.
+    - Today each professional has one row per name **and format** (`ProfessionalService`), so "both" is two rows;
+      endpoints: `GET /api/services/mine`, `POST /api/services/create {name, modality, format}`,
+      `PUT /api/services/enable|disable/{id}`.
+    - Needed: a service list table (name, allowed formats, audiences, status), an audience list table, proposals
+      with approve/reject (an admin screen and notifications to the proposer), professionals' services pointing
+      at a list entry, and a migration that turns the 4 enum services and existing rows into list entries.
+    - The design should be built against the new model; mark which screens depend on this backend work.
 
 ## D. What services unlock afterwards (so the copy doesn't promise something else)
 
-17. **Slots** are individual (one client per date) or **group** (2 to 20 seats per date). Group slots only offer
-    group services. (`docs/adr/0001`.)
-18. **Public or private**: public slots appear in Agendar; private ones only by invitation.
-19. **Invitations** go to any email, including people without an account.
-20. **Co-professionals** and **handing a slot over** exist; the profile name and photo are what other
+19. **Slots** are individual (one client per date) or **group** (2 to 20 seats per date), and only offer services
+    that allow their format (item 12). (`docs/adr/0001`.)
+20. **Public or private**: public slots appear in Agendar; private ones only by invitation.
+21. **Invitations** go to any email, including people without an account.
+22. **Co-professionals** and **handing a slot over** exist; the profile name and photo are what other
     professionals see when choosing.
 
 ## E. Rules every new page must follow
 
-21. **Design tokens only** — colors, fonts and spacing from `src/assets/styles/colors_and_type.css`
+23. **Design tokens only** — colors, fonts and spacing from `src/assets/styles/colors_and_type.css`
     (see `CLAUDE.md`). No hard-coded values.
-22. **Copy in Brazilian Portuguese**, using the glossary's terms ("pessoa profissional", "pessoa cliente",
+24. **Copy in Brazilian Portuguese**, using the glossary's terms ("pessoa profissional", "pessoa cliente",
     "sessão", "vaga" in the UI).
-23. **Times always in the viewer's profile time zone, never the computer's.** Use `timezones.util.ts`
+25. **Times always in the viewer's profile time zone, never the computer's.** Use `timezones.util.ts`
     (`zonedWallTimeToInstant`, `wallTimeInZone`, `sessionZone`) and test Brazil (São Paulo) vs Portugal (Lisbon)
     in January and July.
-24. **New routes reached from an email or while logged out** must be added to the return-path allowlist in both
+26. **New routes reached from an email or while logged out** must be added to the return-path allowlist in both
     repos, or people land on the dashboard after logging in instead of on the page:
     `src/app/shared/utils/return-path.util.ts` (`RETURN_PATH_PATTERN`) and
     `../care-be/.../services/EmailConfirmationService.java` (`VALID_NEXT_PATTERN`).
-25. **Public pages** (no login) go *before* the protected `''` route group in `app.routes.ts`, and any
+27. **Public pages** (no login) go *before* the protected `''` route group in `app.routes.ts`, and any
     backend endpoint they call must be `permitAll` in `SecurityConfig` and exempt in `ProfileCompletionFilter`.
-26. **Privacy**: never show one person's email, phone or clinical information to another, and never list clients
+28. **Privacy**: never show one person's email, phone or clinical information to another, and never list clients
     to other clients.
-27. **Light theme only** (see project memory "Care is light-theme only").
-28. **Mobile**: works at phone width with no horizontal scroll.
+29. **Light theme only** (see project memory "Care is light-theme only").
+30. **Mobile**: works at phone width with no horizontal scroll.
 
 ## F. How to report
 
