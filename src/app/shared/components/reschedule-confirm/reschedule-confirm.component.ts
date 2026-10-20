@@ -7,7 +7,7 @@ import { SnackbarService } from '../../services/snackbar.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { RescheduleRequest } from '../../models/reschedule-request.model';
 import { normalizeModality } from '../../utils/modality-compatibility.util';
-import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { serviceLabel } from '../../utils/catalogue.util';
 import { detectBrowserTimezone, wallTimeInZone, zonedWallTimeToInstant } from '../../utils/timezones.util';
 
 const PT_MONTHS = [
@@ -121,7 +121,7 @@ export class RescheduleConfirmComponent implements OnInit {
   }
 
   private serviceDisplayName(key: string): string {
-    return ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key;
+    return serviceLabel(key);
   }
 
   /**

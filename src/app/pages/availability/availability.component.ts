@@ -92,7 +92,7 @@ import { SnackbarService } from '../../shared/services/snackbar.service';
 import { SchedulingService } from '../../shared/services/scheduling.service';
 import { SchedulingSteps } from '../../shared/enums/scheduling-steps.enum';
 import { SchedulingFormControls } from '../../shared/enums/scheduling-form-controls.enum';
-import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
+import { serviceLabel } from '../../shared/utils/catalogue.util';
 import { StyledSelectComponent, StyledSelectOption } from '../../shared/components/styled-select/styled-select.component';
 import {
   PRICE_MAX,
@@ -1212,7 +1212,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   serviceDisplayName(key: string): string {
-    return ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key;
+    return serviceLabel(key);
   }
 
   blockServiceLabel(block: TherapistBlock): string {

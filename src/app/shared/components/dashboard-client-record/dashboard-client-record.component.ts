@@ -17,7 +17,7 @@ import {
   ClientRecordNoteVisibility,
 } from '../../models/client-record.model';
 import { Currency } from '../../enums/currency.enum';
-import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { serviceLabel } from '../../utils/catalogue.util';
 import { Pages } from '../../enums/pages.enum';
 import { buildSessions, isUpcomingOrOngoing, sessionBounds } from '../../utils/session-list.util';
 import { detectBrowserTimezone } from '../../utils/timezones.util';
@@ -140,8 +140,7 @@ export class DashboardClientRecordComponent implements OnInit {
   });
 
   readonly careAreas = computed(() =>
-    (this.record()?.careAreas ?? []).map(key =>
-      ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key));
+    (this.record()?.careAreas ?? []).map(serviceLabel));
 
   /**
    * Notas agrupadas por dia no fuso de quem vê — a mesma conta que o pipe

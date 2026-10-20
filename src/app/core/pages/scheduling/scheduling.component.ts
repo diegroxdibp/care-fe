@@ -17,7 +17,7 @@ import { SchedulingService } from '../../../shared/services/scheduling.service';
 import { SchedulingFormControls } from '../../../shared/enums/scheduling-form-controls.enum';
 import { SchedulingSteps } from '../../../shared/enums/scheduling-steps.enum';
 import { Modality } from '../../../shared/enums/modality.enum';
-import { ProfessionalSessionService } from '../../../shared/enums/professional-session-service.enum';
+import { serviceLabel as listServiceName } from '../../../shared/utils/catalogue.util';
 import { AvailabilityModel } from '../../../shared/models/availability.model';
 import { Professional } from '../../../shared/models/get-professional-by-service-response.model';
 import { ProfessionalService } from '../../../shared/models/professional-service.model';
@@ -262,7 +262,7 @@ export class SchedulingComponent implements OnDestroy {
   }
 
   serviceName(name: string): string {
-    return ProfessionalSessionService[name as keyof typeof ProfessionalSessionService] || name;
+    return listServiceName(name);
   }
 
   /** O nome do serviço na lista (individual e em grupo são o mesmo serviço; cada vaga diz o seu formato). */

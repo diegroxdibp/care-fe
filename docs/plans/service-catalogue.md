@@ -75,14 +75,14 @@ area**.
 
 ## Status (2026-10-20)
 
-- **Done, committed locally, not pushed:** steps 1–4. care-be `b4d4858`, `0fb8a3a` (V38 tested on a real
-  Postgres in `MigrationsTest`, entities validated against it); care-fe `ac4a444`.
-- **Left:**
-  - Step 5: the names from the list in emails and session labels. New services already show their name, because
-    `professional_service.name` holds it.
-  - The professional profile's display name and photo in session lists, the video call and the co-professional
-    picker. Agendar and the public pages use them already.
-  - Check everything end to end on staging.
+- **Done, committed locally, not pushed:** steps 1–5. care-be `b4d4858`, `0fb8a3a`, `2eb748c` (V38 and V39
+  tested on a real Postgres in `MigrationsTest`, entities validated against them); care-fe `ac4a444` and the
+  step 5 commit.
+- Step 5 also covers the professional profile's display name and photo wherever someone appears as a
+  professional (session lists, video call, co-professional picker, emails and notifications to clients). Greetings
+  in emails sent to the professional keep the account name.
+- Service names are Portuguese only (the list has no English names), so English emails show the Portuguese name.
+- **Left:** check everything end to end on staging.
 
 ## Release order
 

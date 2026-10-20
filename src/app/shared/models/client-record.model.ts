@@ -50,7 +50,7 @@ export interface ClientRecord {
   notes: ClientRecordNote[];
   /** Pessoas profissionais com marcações com a pessoa cliente, por nome. */
   careTeam: ClientRecordAuthor[];
-  /** Chaves de ProfessionalSessionService dos serviços marcados. */
+  /** Os nomes (da lista) dos serviços marcados; dados antigos podem trazer as chaves de antes. */
   careAreas: string[];
 }
 

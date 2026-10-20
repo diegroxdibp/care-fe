@@ -38,7 +38,6 @@ import { HttpClient } from '@angular/common/http';
 import { ProfessionalModel } from '../../shared/models/professional.model';
 import { environment } from '../../../environments/environment';
 import { ProfessionalService } from '../../shared/models/professional-service.model';
-import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
 import { Professional } from '../../shared/models/get-professional-by-service-response.model';
 import { Appointment } from '../../shared/models/appointment.model';
 import { ClientRecord, ClientRecordSummary, CreateClientRecordNotePayload } from '../../shared/models/client-record.model';
@@ -81,15 +80,6 @@ export class ApiService {
   ): Observable<AvailabilityModel[]> {
     return this.http.get<AvailabilityModel[]>(
       environment.apiUrl + `/api/availability/professional/${professionalId}`,
-      { withCredentials: true },
-    );
-  }
-
-  getAvailabilititesByService(
-    sessionService: ProfessionalSessionService,
-  ): Observable<ProfessionalService[]> {
-    return this.http.get<ProfessionalService[]>(
-      environment.apiUrl + `/api/availability/service/${sessionService}`,
       { withCredentials: true },
     );
   }

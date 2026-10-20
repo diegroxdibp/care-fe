@@ -13,7 +13,6 @@ import {
   emptyProfessionalService,
   ProfessionalService,
 } from '../models/professional-service.model';
-import { ProfessionalSessionService } from '../enums/professional-session-service.enum';
 import { Professional } from '../models/get-professional-by-service-response.model';
 import { SchedulingFormModel } from '../models/input-configuration-objects/scheduling-form-controls.model';
 import { SchedulingSteps } from '../enums/scheduling-steps.enum';
@@ -63,7 +62,6 @@ export class SchedulingService {
   availabilityConfiguration = signal<AvailabilityConfigurationObject>(
     emptyAvailabilityConfiguration,
   );
-  ProfessionalSessionService = ProfessionalSessionService;
 
   /**
    * Seleção pendente entre a lista de horários e a confirmação. A rota de

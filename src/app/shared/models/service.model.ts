@@ -1,5 +1,4 @@
 import { Pages } from '../enums/pages.enum';
-import { ProfessionalSessionService } from '../enums/professional-session-service.enum';
 
 export interface Services {
   service: Service[]
@@ -17,8 +16,8 @@ export interface ServiceType {
   name: string;
   description: string;
   knowMorePage: Pages;
-  /** Backend's ProfessionalService.name (ProfessionalSessionService enum key). Omit for offerings not bookable via Scheduling (e.g. group services). */
-  sessionService?: keyof typeof ProfessionalSessionService;
+  /** O endereço (slug) do serviço na lista, para o Agendar (?service=). Omitir para os que não se agendam. */
+  sessionService?: string;
   /** Short modality/audience summary shown under the offering's name, e.g. "Individual · Adultos (18+)". */
   meta?: string;
 }

@@ -108,7 +108,7 @@ export class NavigationService {
     });
   }
 
-  /** Navigates to Scheduling, pre-selecting a service. `serviceKey` must match ProfessionalService.name as returned by the backend (the ProfessionalSessionService enum key, e.g. 'MINDFULNESS') — read by SchedulingComponent via the `service` query param. */
+  /** Abre o Agendar com um serviço já escolhido: `serviceKey` é o endereço (slug) do serviço na lista (as 4 chaves antigas também servem) — lido pelo SchedulingComponent no parâmetro `service`. */
   navigateToScheduling(serviceKey?: string): void {
     this.snackbarService.closeSnackbar();
     this.router.navigate(

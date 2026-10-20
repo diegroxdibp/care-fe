@@ -32,6 +32,27 @@ export function slugify(text: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Chaves de serviço de antes da lista partilhada (V38), que ainda aparecem em
+ * dados antigos guardados (contexto de threads, histórico). O resto já vem da
+ * API com o nome do serviço na lista.
+ */
+const LEGACY_SERVICE_NAMES: Record<string, string> = {
+  REICHIAN_BODY_ANALYSIS: 'Análise Corporal Reichiana',
+  MINDFULNESS: 'Mindfulness',
+  SOMATIC_EXPERIENCE: 'Somatic Experiencing®',
+  SUPERVISION: 'Supervisão',
+  // Rótulos em inglês gravados no contextLabel das threads antigas.
+  'Reichian Body Analysis': 'Análise Corporal Reichiana',
+  Supervision: 'Supervisão',
+};
+
+/** O nome de um serviço para mostrar: o da lista, ou o de uma chave antiga guardada. */
+export function serviceLabel(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return LEGACY_SERVICE_NAMES[raw] ?? raw;
+}
+
 export const FORMAT_LABELS: Record<FormatKey, string> = { INDIVIDUAL: 'Individual', GROUP: 'Em grupo' };
 export const MODALITY_LABELS: Record<ModalityKey, string> = { LOCAL: 'Presencial', REMOTE: 'Remoto' };
 

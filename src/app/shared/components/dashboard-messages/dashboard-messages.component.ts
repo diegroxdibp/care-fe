@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
 import { SessionService } from '../../services/session.service';
 import { ChatMessage, Thread } from '../../models/message.model';
-import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { serviceLabel } from '../../utils/catalogue.util';
 import { detectBrowserTimezone } from '../../utils/timezones.util';
 
 interface DayGroup {
@@ -12,17 +12,6 @@ interface DayGroup {
   messages: ChatMessage[];
 }
 
-/**
- * O backend grava o contextLabel da thread com o nome do serviço em inglês
- * (SessionService.getDisplayName) — traduz aqui para o mesmo português que o
- * resto da aplicação mostra, inclusive nas threads já gravadas.
- */
-const SERVICE_LABEL_PT: Record<string, string> = {
-  'Reichian Body Analysis': ProfessionalSessionService.REICHIAN_BODY_ANALYSIS,
-  Mindfulness: ProfessionalSessionService.MINDFULNESS,
-  'Somatic Experiencing®': ProfessionalSessionService.SOMATIC_EXPERIENCE,
-  Supervision: ProfessionalSessionService.SUPERVISION,
-};
 
 @Component({
   selector: 'app-dashboard-messages',
@@ -114,7 +103,7 @@ export class DashboardMessagesComponent implements OnInit, OnDestroy {
   /** "Supervision · sessão de 12 ago, 14:30" → "Supervisão · sessão de 12 ago, 14:30". */
   contextLabel(thread: Thread): string {
     const [service, ...rest] = thread.contextLabel.split(' · ');
-    const translated = SERVICE_LABEL_PT[service.trim()] ?? service;
+    const translated = serviceLabel(service.trim());
     return [translated, ...rest].join(' · ');
   }
 

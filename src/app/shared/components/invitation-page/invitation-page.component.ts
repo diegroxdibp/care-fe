@@ -8,7 +8,7 @@ import { SessionService } from '../../services/session.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { Invitation, InvitationPreview, InvitationStatus } from '../../models/invitation.model';
-import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { serviceLabel } from '../../utils/catalogue.util';
 import { normalizeRecurrenceFrequency } from '../../utils/recurrence.util';
 import { normalizeModality } from '../../utils/modality-compatibility.util';
 import { detectBrowserTimezone } from '../../utils/timezones.util';
@@ -58,7 +58,7 @@ export class InvitationPageComponent implements OnInit {
 
   readonly serviceName = computed(() => {
     const raw = this.shown()?.serviceName ?? '';
-    return ProfessionalSessionService[raw as keyof typeof ProfessionalSessionService] ?? raw;
+    return serviceLabel(raw);
   });
   readonly frequencyLabel = computed(() => normalizeRecurrenceFrequency(this.shown()?.recurrenceFrequency ?? undefined));
   readonly modalityLabel = computed(() => normalizeModality(String(this.shown()?.modality ?? '')));

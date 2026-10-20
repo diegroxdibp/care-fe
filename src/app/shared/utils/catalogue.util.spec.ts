@@ -1,5 +1,5 @@
 import { emptyServiceContent, ServiceContent } from '../models/catalogue.model';
-import { joinPt, lines, missingServiceFields, paragraphs, slugify } from './catalogue.util';
+import { joinPt, lines, missingServiceFields, paragraphs, serviceLabel, slugify } from './catalogue.util';
 import { serviceViewFromContent } from './catalogue-views.util';
 
 describe('catalogue.util', () => {
@@ -12,6 +12,13 @@ describe('catalogue.util', () => {
     expect(joinPt([])).toBe('');
     expect(joinPt(['Adultos'])).toBe('Adultos');
     expect(joinPt(['Adultos', 'Casais', 'Famílias'])).toBe('Adultos, Casais e Famílias');
+  });
+
+  it('shows list names as they are and translates the old stored keys', () => {
+    expect(serviceLabel('Terapia de Casal')).toBe('Terapia de Casal');
+    expect(serviceLabel('REICHIAN_BODY_ANALYSIS')).toBe('Análise Corporal Reichiana');
+    expect(serviceLabel('Supervision')).toBe('Supervisão');
+    expect(serviceLabel(null)).toBe('');
   });
 
   it('builds the same addresses as the backend', () => {

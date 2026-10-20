@@ -16,7 +16,7 @@ import {
   detectBrowserTimezone,
   zonedWallTimeToInstant,
 } from '../../../../shared/utils/timezones.util';
-import { ProfessionalSessionService } from '../../../../shared/enums/professional-session-service.enum';
+import { serviceLabel } from '../../../../shared/utils/catalogue.util';
 import { REMOTE_SESSION_INFO } from '../../../../shared/utils/remote-session.util';
 
 /**
@@ -83,7 +83,7 @@ export class SchedulingConfirmComponent {
       SchedulingFormControls.SELECTED_SERVICE
     ].value?.name;
     if (!raw) return '';
-    return ProfessionalSessionService[raw as keyof typeof ProfessionalSessionService] ?? raw;
+    return serviceLabel(raw);
   });
 
   readonly professionalName = computed(

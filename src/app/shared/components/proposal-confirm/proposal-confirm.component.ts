@@ -9,7 +9,7 @@ import { Appointment } from '../../models/appointment.model';
 import { normalizeModality } from '../../utils/modality-compatibility.util';
 import { normalizeRecurrenceFrequency } from '../../utils/recurrence.util';
 import { DayOfWeek } from '../../enums/day-of-week.enum';
-import { ProfessionalSessionService } from '../../enums/professional-session-service.enum';
+import { serviceLabel } from '../../utils/catalogue.util';
 import { detectBrowserTimezone, wallTimeInZone, zonedWallTimeToInstant } from '../../utils/timezones.util';
 import { nextSeriesOccurrence } from '../../utils/series-change.util';
 import { ProfessionalService } from '../../models/professional-service.model';
@@ -210,7 +210,7 @@ export class ProposalConfirmComponent implements OnInit {
   }
 
   private serviceDisplayName(key: string): string {
-    return ProfessionalSessionService[key as keyof typeof ProfessionalSessionService] ?? key;
+    return serviceLabel(key);
   }
 
   accept(): void {

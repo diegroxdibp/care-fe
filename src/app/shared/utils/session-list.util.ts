@@ -2,7 +2,7 @@ import { Appointment } from '../models/appointment.model';
 import { ProfessionalService } from '../models/professional-service.model';
 import { DayOfWeek } from '../enums/day-of-week.enum';
 import { Modality } from '../enums/modality.enum';
-import { ProfessionalSessionService } from '../enums/professional-session-service.enum';
+import { serviceLabel } from './catalogue.util';
 import { RecurrenceFrequency } from '../enums/recurrence-frequency.enum';
 import { Currency, formatPrice } from '../enums/currency.enum';
 import { generateOccurrences } from './recurrence.util';
@@ -404,7 +404,7 @@ export function buildSessions(
     const dates = pending ? allDates.slice(0, 1) : allDates;
 
     const rawServiceName = services.find(s => s.id === appt.professionalServiceId)?.name ?? '';
-    const serviceName = ProfessionalSessionService[rawServiceName as keyof typeof ProfessionalSessionService] ?? rawServiceName;
+    const serviceName = serviceLabel(rawServiceName);
 
     // appt.modality comes from the backend as the raw enum name
     // ('LOCAL'/'REMOTE'/'ANY'), not the Portuguese Modality label

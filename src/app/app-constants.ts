@@ -61,7 +61,7 @@ export const AppConstants = {
           description:
             'A análise corporal reichiana reintegra a terapia verbal à análise do corpo e tem como objetivo flexibilizar os bloqueios somáticos, considerando o ser humano como uma unidade psicossomática, na qual corpo e mente formam um sistema indissociável.',
           knowMorePage: Pages.ANALISE_REICHANA,
-          sessionService: 'REICHIAN_BODY_ANALYSIS',
+          sessionService: 'analise-corporal-reichiana',
           meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
 
@@ -70,7 +70,7 @@ export const AppConstants = {
           description:
             'A prática em Mindfulness fomenta a regulação atencional e emocional por meio de propostas com o body scan, a respiração consciente, a meditação em movimento e a atenção plena nas atividades cotidianas.',
           knowMorePage: Pages.MINDFULLNESS,
-          sessionService: 'MINDFULNESS',
+          sessionService: 'mindfulness',
           meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
 
@@ -79,7 +79,7 @@ export const AppConstants = {
           description:
             'A Somatic Experiencing® (SE) é uma prática centrada na regulação do sistema nervoso e na elaboração de experiências traumáticas através do corpo. Por meio de intervenções seguras e graduais, a SE possibilita a renegociação das respostas traumáticas, reduzindo sintomas de diversas naturezas e fortalecendo a capacidade natural de autorregulação do organismo.',
           knowMorePage: Pages.SOMATIC_EXPERIENCE,
-          sessionService: 'SOMATIC_EXPERIENCE',
+          sessionService: 'somatic-experiencing',
           meta: 'Presencial (Lisboa) e Remoto · Adultos',
         },
       ],
@@ -109,7 +109,7 @@ export const AppConstants = {
           description:
             'A supervisão na abordagem da Análise Corporal Reichiana ocorre individual e em grupos pequenos, com ênfase no atendimento individual de adultos. São encontros semanais, quinzenais ou mensais no formato presencial (em Lisboa) ou remoto.',
           knowMorePage: Pages.SUPERVISION,
-          sessionService: 'SUPERVISION',
+          sessionService: 'supervisao-em-analise-reichiana',
           meta: 'Individual ou grupal · Presencial (Lisboa) e Remoto',
         },
       ],

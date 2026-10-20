@@ -30,7 +30,7 @@ import {
 } from '../../shared/components/reschedule-dialog/reschedule-dialog.component';
 import { Appointment } from '../../shared/models/appointment.model';
 import { Invitation } from '../../shared/models/invitation.model';
-import { ProfessionalSessionService } from '../../shared/enums/professional-session-service.enum';
+import { serviceLabel } from '../../shared/utils/catalogue.util';
 import { Pages } from '../../shared/enums/pages.enum';
 import { ProfessionalService } from '../../shared/models/professional-service.model';
 import { Currency } from '../../shared/enums/currency.enum';
@@ -313,8 +313,7 @@ export class DashboardPageComponent implements OnInit {
   }
 
   invitationService(invitation: Invitation): string {
-    return ProfessionalSessionService[invitation.serviceName as keyof typeof ProfessionalSessionService]
-      ?? invitation.serviceName;
+    return serviceLabel(invitation.serviceName);
   }
 
   setView(v: 'list' | 'calendar'): void {
