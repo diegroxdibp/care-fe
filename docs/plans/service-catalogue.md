@@ -73,6 +73,17 @@ area**.
 - Images: JPG / PNG / WebP up to 15 MB, reduced to ≤1200 px on the longest side in the browser and again on the
   server (Cloudinary).
 
+## Status (2026-10-20)
+
+- **Done, committed locally, not pushed:** steps 1–4. care-be `b4d4858`, `0fb8a3a` (V38 tested on a real
+  Postgres in `MigrationsTest`, entities validated against it); care-fe `ac4a444`.
+- **Left:**
+  - Step 5: the names from the list in emails and session labels. New services already show their name, because
+    `professional_service.name` holds it.
+  - The professional profile's display name and photo in session lists, the video call and the co-professional
+    picker. Agendar and the public pages use them already.
+  - Check everything end to end on staging.
+
 ## Release order
 
 Phases 1–3 of the group-sessions plan are on staging and **not** on production. This work ships to staging in the
