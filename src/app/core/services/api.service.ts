@@ -268,6 +268,26 @@ export class ApiService {
     );
   }
 
+  /**
+   * Os pedidos por responder sobre as minhas sessões — a agenda mostra-os como
+   * pendentes na vaga de destino, que fica reservada até haver resposta.
+   */
+  getSentRescheduleRequests(): Observable<RescheduleRequest[]> {
+    return this.http.get<RescheduleRequest[]>(
+      `${environment.apiUrl}/api/appointments/reschedule-requests/sent`,
+      { withCredentials: true },
+    );
+  }
+
+  /** Desiste do pedido antes da resposta: a sessão fica onde está e a vaga de destino volta a abrir. */
+  withdrawRescheduleRequest(requestId: number): Observable<RescheduleRequest> {
+    return this.http.patch<RescheduleRequest>(
+      `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}/withdraw`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
   respondToRescheduleRequest(requestId: number, accept: boolean): Observable<RescheduleRequest> {
     return this.http.patch<RescheduleRequest>(
       `${environment.apiUrl}/api/appointments/reschedule-requests/${requestId}/respond`,

@@ -62,6 +62,8 @@ import { ProfessionalService } from '../../shared/models/professional-service.mo
 import { ApiService, AvailabilityPayload } from '../../core/services/api.service';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import { Appointment } from '../../shared/models/appointment.model';
+import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
+import { rescheduleRequestAsAppointment } from '../../shared/utils/reschedule-request.util';
 import { ScreenSizeService } from '../../shared/services/screen-size.service';
 import { SessionService } from '../../shared/services/session.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
@@ -368,6 +370,13 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   selectedBlockId = signal<number | null>(null);
   selectedAppointment = signal<Appointment | null>(null);
+
+  /**
+   * Os meus pedidos de reagendamento por responder. O destino de cada um está
+   * também em `appointments`, como pendente na vaga proposta; aqui fica o
+   * pedido inteiro, para a sessão original saber que tem um pedido em aberto.
+   */
+  readonly rescheduleRequests = signal<RescheduleRequest[]>([]);
 
   // ─ Editor state
   selectedServiceIds = signal<Set<number>>(new Set());
@@ -726,6 +735,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     forkJoin({
       availabilities: this.apiService.getAvailabilitiesByProfessionalId(userId),
       appointments: this.apiService.getProfessionalAppointments(userId),
+      // Sem eles a agenda ainda serve — só não mostra os destinos reservados.
+      rescheduleRequests: this.apiService.getSentRescheduleRequests()
+        .pipe(catchError(() => of([] as RescheduleRequest[]))),
     })
       .pipe(
         // Uma tentativa extra evita que uma falha transitória (ex.: o
@@ -742,11 +754,15 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         if (!result) return;
         this.loadingInitialData.set(false);
         this.blocks.set(this.groupAvailabilitiesIntoBlocks(result.availabilities));
-        this.appointments.set(result.appointments.map(a => ({
-          ...a,
-          startTime: stripSec(a.startTime),
-          endTime: fromApiEndTime(a.endTime),
-        })));
+        this.appointments.set([
+          ...result.appointments.map(a => ({
+            ...a,
+            startTime: stripSec(a.startTime),
+            endTime: fromApiEndTime(a.endTime),
+          })),
+          ...result.rescheduleRequests.map(rescheduleRequestAsAppointment),
+        ]);
+        this.rescheduleRequests.set(result.rescheduleRequests);
       });
   }
 
@@ -2464,6 +2480,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.withdrawSeriesChange(appt);
       return;
     }
+    if (appt.rescheduleRequestId != null) {
+      this.withdrawRescheduleRequest(appt.rescheduleRequestId);
+      return;
+    }
 
     // A sessão que cai é a ocorrência em vista, não a âncora da série. Sem a
     // data, o backend desmarcava a primeira sessão da série - a de hoje ficava
@@ -2521,6 +2541,57 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       error: () => {
         this.snackbarService.openSnackBar({ message: 'Erro ao cancelar a sessão. Tente novamente.' });
       },
+    });
+  }
+
+  // ─ Pedidos de reagendamento ───────────────────────────────────────────────────
+
+  /** O pedido por responder sobre esta marcação, na ocorrência em vista. */
+  pendingRescheduleOf(appt: Appointment): RescheduleRequest | undefined {
+    if (appt.id <= 0) return undefined;
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    return this.rescheduleRequests().find(r => r.appointmentId === appt.id && r.occurrenceDate === occurrenceDate);
+  }
+
+  /** O pedido de que esta reserva é o destino. */
+  rescheduleRequestOf(appt: Appointment): RescheduleRequest | undefined {
+    return appt.rescheduleRequestId == null
+      ? undefined
+      : this.rescheduleRequests().find(r => r.id === appt.rescheduleRequestId);
+  }
+
+  withdrawRescheduleFromEvent(event: Event, requestId: number): void {
+    event.stopPropagation();
+    this.withdrawRescheduleRequest(requestId);
+  }
+
+  private withdrawRescheduleRequest(requestId: number): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '440px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'Retirar pedido de reagendamento',
+        message: 'A sessão continua no horário original, o novo horário volta a ficar livre, '
+          + 'e a pessoa cliente é avisada de que o pedido foi retirado.',
+        confirmLabel: 'Retirar',
+      } satisfies ConfirmDialogData,
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.apiService.withdrawRescheduleRequest(requestId).subscribe({
+        next: () => {
+          this.appointments.update(list => list.filter(a => a.rescheduleRequestId !== requestId));
+          this.rescheduleRequests.update(list => list.filter(r => r.id !== requestId));
+          // Retirado a partir da sessão original, o painel continua nela; a partir
+          // da reserva, a reserva deixou de existir.
+          if (this.selectedAppointment()?.rescheduleRequestId === requestId) {
+            this.selectedAppointment.set(null);
+          }
+          this.snackbarService.openSnackBar({ message: 'Pedido de reagendamento retirado.' });
+        },
+        error: () => {},
+      });
     });
   }
 
@@ -2891,7 +2962,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * periódico depois da primeira sessão avulsa.
    */
   canInviteRecurring(appt: Appointment): boolean {
-    if (appt.isRecurring) return false;
+    if (appt.isRecurring || appt.rescheduleRequestId != null) return false;
     const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
     return !!block?.isRecurring;
   }
@@ -3007,8 +3078,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Envia o pedido. A agenda não muda nada — a sessão continua onde está até a
-   * pessoa cliente responder, e por isso não há aqui nada para recarregar.
+   * Envia o pedido. A sessão continua onde está até a pessoa cliente
+   * responder; o que muda na agenda é o destino, que fica reservado.
    */
   private _sendRescheduleRequest(
     appt: Appointment,
@@ -3025,9 +3096,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       occurrenceDate,
       reason: result.reason,
     }).subscribe({
-      next: () => {
+      next: (request) => {
+        // O destino fica reservado até haver resposta — na agenda, como pendente.
+        this.appointments.update(list => [...list, rescheduleRequestAsAppointment(request)]);
+        this.rescheduleRequests.update(list => [...list, request]);
         this.snackbarService.openSnackBar({
-          message: 'Pedido enviado. A sessão só muda depois que a pessoa cliente aceitar.',
+          message: 'Pedido enviado. O novo horário fica reservado, e a sessão só muda depois que a pessoa cliente aceitar.',
         });
         this.clearSelectedAppointment();
       },

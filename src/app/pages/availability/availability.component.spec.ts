@@ -14,6 +14,8 @@ import { SnackbarService } from '../../shared/services/snackbar.service';
 import { SchedulingService } from '../../shared/services/scheduling.service';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { Modality } from '../../shared/enums/modality.enum';
+import { RescheduleRequest } from '../../shared/models/reschedule-request.model';
+import { rescheduleRequestAsAppointment } from '../../shared/utils/reschedule-request.util';
 
 const LISBON = 'Europe/Lisbon';
 const ME = 2;
@@ -89,6 +91,8 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
       getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of([thursdaySlot])),
       getProfessionalAppointments: jest.fn().mockReturnValue(of([series, expiredChange])),
       deleteAppointment: jest.fn().mockReturnValue(of(null)),
+      getSentRescheduleRequests: jest.fn().mockReturnValue(of([])),
+      withdrawRescheduleRequest: jest.fn().mockReturnValue(of(null)),
     };
 
     await TestBed.configureTestingModule({
@@ -158,4 +162,60 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     // Nada foi pedido de novo ao servidor: é o estado local que se atualiza.
     expect(apiService['getProfessionalAppointments']).toHaveBeenCalledTimes(1);
   });
+
+  /** Pedido para mover a sessão de 15/10 de outra vaga para as 17h desta (out. 2026). */
+  function rescheduleRequest(overrides: Partial<RescheduleRequest> = {}): RescheduleRequest {
+    return {
+      id: 5, appointmentId: 300, professionalId: ME, professionalName: 'Dr. Teste',
+      clientId: 20, clientName: 'Ash Barros', professionalServiceId: 1,
+      occurrenceDate: '2026-10-15', currentStartTime: '15:30:00', currentEndTime: '16:30:00',
+      currentTimeZone: LISBON, appointmentIsRecurring: false,
+      proposedAvailabilityId: 478, proposedDate: '2026-10-15',
+      proposedStartTime: '17:00:00', proposedEndTime: '18:00:00', proposedTimeZone: LISBON,
+      proposedModality: 'REMOTE', reason: 'Conflito.', requestedById: ME, requestedByName: 'Dr. Teste',
+      status: 'PENDING', createdAt: '2026-10-10T10:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('um pedido de reagendamento reserva o novo horário como pendente, e retirá-lo liberta-o', () => {
+    const request = rescheduleRequest();
+    const hold = rescheduleRequestAsAppointment(request);
+    component.appointments.set([hold]);
+    component.rescheduleRequests.set([request]);
+    fixture.detectChanges();
+
+    expect(component.hasPendingProposal(component.blocks()[0])).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.b-band.pending')).not.toBeNull();
+    component.selectSlot(new Event('click'), hold);
+    fixture.detectChanges();
+    expect(text()).toContain('Reagendamento proposto');
+    expect(text()).toContain('Novo horário proposto para a sessão de 15/10/2026 às 15:30');
+    expect(button('Reagendar sessão')).toBeUndefined();
+    expect(button('Convidar para regime periódico')).toBeUndefined();
+
+    component.cancelAppointment(hold);
+    fixture.detectChanges();
+
+    expect(apiService['withdrawRescheduleRequest']).toHaveBeenCalledWith(5);
+    expect(component.hasPendingProposal(component.blocks()[0])).toBe(false);
+    expect(component.rescheduleRequests()).toEqual([]);
+  });
+
+  it('a sessão com um pedido em aberto diz para onde vai e não deixa pedir outro', () => {
+    component.rescheduleRequests.set([rescheduleRequest({
+      appointmentId: 74, proposedAvailabilityId: 999, proposedDate: '2026-10-16', proposedStartTime: '11:00:00',
+    })]);
+    component.selectSlot(new Event('click'), series);
+    fixture.detectChanges();
+
+    expect(text()).toContain('Pedido enviado para mudar esta sessão para 16/10/2026 às 11:00');
+    expect(button('Reagendar sessão')).toBeUndefined();
+    button('Retirar pedido de reagendamento')!.click();
+    fixture.detectChanges();
+
+    expect(apiService['withdrawRescheduleRequest']).toHaveBeenCalledWith(5);
+    expect(button('Reagendar sessão')).toBeDefined();
+  });
+
 });
