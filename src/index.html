@@ -5,6 +5,32 @@
     <title>Care - Clínica Ampliada Ressignificações</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Quem lê a página sem correr JavaScript (pré-visualizações de links no
+         WhatsApp/LinkedIn, assistentes de IA, alguns motores de busca) só vê
+         este ficheiro. Estas tags e o noscript no fim do body são o que essas
+         ferramentas encontram. Servem para todas as rotas, por isso não há
+         og:url nem link canonical: apontariam toda a partilha para a
+         home. Quando houver pré-renderização, cada página terá as suas. -->
+    <meta
+      name="description"
+      content="Care é uma clínica ampliada de cuidado em saúde mental, relacional, física e social. Atendimento individual e em grupo, remoto ou presencial, em Portugal e no Brasil."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Care" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="Care - Clínica Ampliada Ressignificações" />
+    <meta
+      property="og:description"
+      content="Uma clínica ampliada de cuidado em saúde mental, relacional, física e social. Atendimento individual e em grupo, remoto ou presencial, em Portugal e no Brasil."
+    />
+    <meta
+      property="og:image"
+      content="https://careclinica.com/assets/favicon/web-app-manifest-512x512.png"
+    />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Logótipo da Care" />
+    <meta name="twitter:card" content="summary" />
     <!-- A Care só tem tema claro. Sem esta declaração, o Auto Dark Theme do
          Chrome (Android, por omissão) e equivalentes invertem a página por
          heurística: escurecem fundos e texto, mas deixam intactos os SVG com
@@ -82,5 +108,48 @@
   </head>
   <body>
     <app-root></app-root>
+    <!-- Versão em texto da home, para quem não corre JavaScript (ver o
+         comentário das meta tags no <head>). O texto vem das secções da home
+         (hero, pilares, como-funciona, confianca): se mudar lá, mude aqui. -->
+    <noscript>
+      <main class="noscript-fallback">
+        <h1>Care - Clínica Ampliada Ressignificações</h1>
+        <p>
+          Uma clínica ampliada de cuidado em saúde mental, relacional, física e
+          social. Comprometida com a ressignificação das perspectivas e práticas
+          em saúde.
+        </p>
+        <p>
+          Atendimento remoto ou presencial (Portugal e Brasil), conforme a
+          modalidade do serviço escolhido.
+        </p>
+
+        <h2>Os quatro pilares</h2>
+        <ul>
+          <li><strong>Cuidado Centrado na Pessoa:</strong> cada plano de cuidado é único e feito para a pessoa, não para um protocolo.</li>
+          <li><strong>Abordagem Integral:</strong> corpo, vivências e vínculos entram na mesma sala. Todos são protagonistas.</li>
+          <li><strong>Trabalho Transdisciplinar:</strong> abordagem que supera a fragmentação dos saberes e os integra em diálogo.</li>
+          <li><strong>Modelo Biopsicossocial:</strong> saúde como estado de bem viver e não como ausência de doença.</li>
+        </ul>
+
+        <h2>Como funciona</h2>
+        <ol>
+          <li><strong>Escolha o serviço e a pessoa profissional.</strong> Veja as abordagens disponíveis e para quem cada uma se destina antes de decidir.</li>
+          <li><strong>Veja a agenda completa.</strong> Datas, horários, modalidade de atendimento e valor aparecem antes da confirmação.</li>
+          <li><strong>Confirme e acompanhe pelo perfil.</strong> Cancelar, reagendar e revisar seus atendimentos ficam no mesmo lugar.</li>
+        </ol>
+
+        <h2>Páginas</h2>
+        <ul>
+          <li><a href="/atendimento">Atendimento</a> (<a href="/atendimento/individual">individual</a> e <a href="/atendimento/grupo">em grupo</a>)</li>
+          <li><a href="/profissionais">Profissionais</a></li>
+          <li><a href="/about">Sobre a Care</a></li>
+          <li><a href="/junte-se">Junte-se a nós</a></li>
+          <li><a href="/contact">Contato</a></li>
+        </ul>
+
+        <p>Para agendar um atendimento, ative o JavaScript no seu navegador.</p>
+      </main>
+    </noscript>
   </body>
 </html>
