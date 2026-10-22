@@ -567,3 +567,19 @@ $care-dialog-padding-mobile: 16px;
     max-height: calc(100dvh - #{$care-dialog-margin-mobile * 2} - #{$care-dialog-padding-mobile * 2});
   }
 }
+
+// Texto de reserva do <noscript> do index.html, para quem abre o site sem
+// JavaScript. Só aparece nesse caso; com JavaScript o <noscript> não renderiza.
+.noscript-fallback {
+  max-width: var(--col-md);
+  margin: 0 auto;
+  padding: var(--gutter-mobile);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--fg-1);
+
+  a {
+    color: var(--fg-link);
+  }
+}
