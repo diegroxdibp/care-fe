@@ -16,7 +16,7 @@ describe('AppComponent', () => {
 
   it('has the clinic name as its title', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance.title).toEqual('CARE - Clínica Ampliada Resignificações');
+    expect(fixture.componentInstance.title).toEqual('CARE - Clínica Ampliada Ressignificações');
   });
 
   it('shows the header and footer outside the video room', () => {
