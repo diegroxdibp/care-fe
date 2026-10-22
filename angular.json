@@ -109,6 +109,10 @@
             "staging": {
               "buildTarget": "care-fe:build:staging"
             },
+            "staging-local": {
+              "buildTarget": "care-fe:build:development",
+              "proxyConfig": "proxy.staging.conf.js"
+            },
             "development": {
               "buildTarget": "care-fe:build:development"
             }
