@@ -20,7 +20,7 @@ import { professionalViewFromPage } from '../../../shared/utils/catalogue-views.
         <div class="cat-col">
           <h1>Perfil não encontrado</h1>
           <p>Este endereço não corresponde a nenhuma pessoa profissional da Care.</p>
-          <a class="cat-link" [routerLink]="['/', Pages.PROFISSIONAIS]">Ver as pessoas profissionais →</a>
+          <a class="cat-link" routerLink="/" [fragment]="Pages.SERVICES">Ver os serviços →</a>
         </div>
       }
     </div>

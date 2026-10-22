@@ -1,5 +1,5 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { inject, NgModule } from '@angular/core';
+import { Router, RouterModule, Routes } from '@angular/router';
 import { Pages } from './shared/enums/pages.enum';
 import { AccessGuard } from './auth/auth.guard';
 import { AuthOnlyGuard } from './auth/authOnly.guard';
@@ -8,6 +8,9 @@ import { AdminGuard } from './auth/admin.guard';
 import { GuestOnlyGuard } from './auth/guest-only.guard';
 import { pendingBookingGuard } from './core/pages/scheduling/confirm/pending-booking.guard';
 import { HomeComponent } from './core/pages/home/home.component';
+
+/** Os serviços estão listados na home; as listas antigas levam até lá. */
+const toHomeServices = () => inject(Router).createUrlTree(['/'], { fragment: Pages.SERVICES });
 
 export const routes: Routes = [
   // HOME is eager (not loadComponent): it's the landing page almost every
@@ -19,42 +22,20 @@ export const routes: Routes = [
     component: HomeComponent,
   },
 
-  // A lista de serviços (docs/plans/service-catalogue.md): /atendimento e os
-  // dois formatos, a página de cada serviço e de cada pessoa profissional, e o
-  // "Junte-se a nós". Públicas.
-  {
-    path: Pages.ATENDIMENTO,
-    loadComponent: () =>
-      import('./core/pages/catalogue/services-catalogue-list.component').then(
-        (m) => m.ServicesCatalogueListComponent,
-      ),
-  },
-  {
-    path: Pages.ATENDIMENTO_INDIVIDUAL,
-    data: { format: 'INDIVIDUAL' },
-    loadComponent: () =>
-      import('./core/pages/catalogue/services-catalogue-list.component').then(
-        (m) => m.ServicesCatalogueListComponent,
-      ),
-  },
-  {
-    path: Pages.ATENDIMENTO_GRUPO,
-    data: { format: 'GROUP' },
-    loadComponent: () =>
-      import('./core/pages/catalogue/services-catalogue-list.component').then(
-        (m) => m.ServicesCatalogueListComponent,
-      ),
-  },
+  // A lista de serviços (docs/plans/service-catalogue.md): a página de cada
+  // serviço e de cada pessoa profissional, e o "Junte-se a nós". Públicas.
+  // Não há páginas de lista: os serviços estão na home, e a cada perfil
+  // chega-se pelos serviços. pathMatch full, para não apanhar os endereços
+  // antigos de baixo (/atendimento/individual/...).
+  { path: Pages.ATENDIMENTO, pathMatch: 'full', redirectTo: toHomeServices },
+  { path: Pages.ATENDIMENTO_INDIVIDUAL, pathMatch: 'full', redirectTo: toHomeServices },
+  { path: Pages.ATENDIMENTO_GRUPO, pathMatch: 'full', redirectTo: toHomeServices },
   {
     path: `${Pages.SERVICOS}/:slug`,
     loadComponent: () =>
       import('./core/pages/catalogue/service-page.component').then((m) => m.ServicePageComponent),
   },
-  {
-    path: Pages.PROFISSIONAIS,
-    loadComponent: () =>
-      import('./core/pages/catalogue/professionals-list.component').then((m) => m.ProfessionalsListComponent),
-  },
+  { path: Pages.PROFISSIONAIS, pathMatch: 'full', redirectTo: toHomeServices },
   {
     path: `${Pages.PROFISSIONAIS}/:slug`,
     loadComponent: () =>
@@ -72,8 +53,8 @@ export const routes: Routes = [
   { path: Pages.SOMATIC_EXPERIENCE, redirectTo: `${Pages.SERVICOS}/somatic-experiencing` },
   { path: Pages.SUPERVISION, redirectTo: `${Pages.SERVICOS}/supervisao-em-analise-reichiana` },
   { path: Pages.LUANE, redirectTo: `${Pages.PROFISSIONAIS}/luane` },
-  { path: `${Pages.BIO}/:name`, redirectTo: Pages.PROFISSIONAIS },
-  { path: Pages.BIO, redirectTo: Pages.PROFISSIONAIS },
+  { path: `${Pages.BIO}/:name`, redirectTo: toHomeServices },
+  { path: Pages.BIO, redirectTo: toHomeServices },
 
   {
     path: Pages.ABOUT,

@@ -29,8 +29,14 @@
               (keydown.space)="$event.preventDefault(); navigateTo(Pages.SCHEDULING)"
             >Agendar</a>
           </li>
-          <li><a [routerLink]="'/' + Pages.ATENDIMENTO">Serviços</a></li>
-          <li><a [routerLink]="'/' + Pages.PROFISSIONAIS">Profissionais</a></li>
+          <li>
+            <a
+              tabindex="0"
+              (click)="navigateTo(Pages.HOME, Pages.SERVICES)"
+              (keydown.enter)="navigateTo(Pages.HOME, Pages.SERVICES)"
+              (keydown.space)="$event.preventDefault(); navigateTo(Pages.HOME, Pages.SERVICES)"
+            >Serviços</a>
+          </li>
           <li><a [routerLink]="'/' + Pages.JUNTE_SE">Junte-se a nós</a></li>
         </ul>
       </div>

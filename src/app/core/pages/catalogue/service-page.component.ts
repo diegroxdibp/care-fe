@@ -25,7 +25,7 @@ import { cardViewFrom, serviceViewFrom } from '../../../shared/utils/catalogue-v
         <div class="cat-col">
           <h1>Serviço não encontrado</h1>
           <p>Este endereço não corresponde a nenhum serviço publicado.</p>
-          <a class="cat-link" [routerLink]="['/', Pages.ATENDIMENTO]">Ver todos os serviços →</a>
+          <a class="cat-link" routerLink="/" [fragment]="Pages.SERVICES">Ver todos os serviços →</a>
         </div>
       }
     </div>

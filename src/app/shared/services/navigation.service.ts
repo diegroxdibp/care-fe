@@ -47,7 +47,7 @@ export class NavigationService {
       (item) => item.destination !== Pages.AVAILABILITY,
     );
   });
-  private routesWithAnchor = [`/${Pages.ATENDIMENTO}`, '/', '/contact'];
+  private routesWithAnchor = ['/', '/contact'];
   readonly currentUrl: BehaviorSubject<string> = new BehaviorSubject('/');
   private previousBaseUrl: string | null = null;
 

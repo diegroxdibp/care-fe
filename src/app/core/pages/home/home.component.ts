@@ -6,7 +6,6 @@ import { PilaresComponent } from '../../../shared/components/pilares/pilares.com
 import { QuoteBandComponent } from '../../../shared/components/quote-band/quote-band.component';
 import { ComoFuncionaComponent } from '../../../shared/components/como-funciona/como-funciona.component';
 import { ConfiancaComponent } from '../../../shared/components/confianca/confianca.component';
-import { Pages } from '../../../shared/enums/pages.enum';
 import { AppConstants } from '../../../app-constants';
 import { NavigationService } from '../../../shared/services/navigation.service';
 import { FaqComponent } from '../../../shared/components/faq/faq.component';
@@ -40,7 +39,6 @@ export class HomeComponent {
     const url = this.navigationService.router.url;
 
     const routeSectionMap: { [key: string]: string } = {
-      [`/${Pages.ATENDIMENTO}`]: 'atendimento',
       '/about': 'about',
       '/contact': 'contact',
     };
