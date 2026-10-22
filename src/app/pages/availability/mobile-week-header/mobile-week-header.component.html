@@ -1,0 +1,46 @@
+<div class="m-top">
+  <div class="m-title">
+    {{ monthLabel() }}
+    <small>Disponibilidades · {{ weekRangeLabel() }}</small>
+  </div>
+  <div class="m-actions">
+    <div class="m-icon-wrap">
+      <button
+        class="m-icon"
+        [class.active]="weekNavOpen()"
+        [attr.aria-expanded]="weekNavOpen()"
+        aria-label="Navegação semanal"
+        (click)="weekNavOpen.set(!weekNavOpen())"
+      >
+        <span translate="no" class="material-symbols-outlined">calendar_view_week</span>
+      </button>
+      @if (weekNavOpen()) {
+        <div class="m-week-pop">
+          <button class="wp-arrow" (click)="prevWeek.emit()">
+            <span translate="no" class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button class="wp-today" (click)="goToToday()">Hoje</button>
+          <span class="wp-label">{{ weekLabel() }}</span>
+          <button class="wp-arrow" (click)="nextWeek.emit()">
+            <span translate="no" class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      }
+    </div>
+    <div class="m-avatar">{{ initials() }}</div>
+  </div>
+</div>
+
+<div class="m-strip">
+  @for (day of days(); track day.getTime(); let di = $index) {
+    <button
+      class="m-day"
+      [class.sel]="selectedIndex() === di"
+      (click)="daySelect.emit(di)"
+    >
+      <span class="wd">{{ PT_DOW_SHORT[di][0] }}</span>
+      <span class="dn">{{ day.getDate() }}</span>
+      <span class="dot" [class.hidden]="!daysWithBlocks()[di]"></span>
+    </button>
+  }
+</div>

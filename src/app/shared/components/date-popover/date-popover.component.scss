@@ -1,0 +1,102 @@
+:host {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 300px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  filter: var(--shadow-floating);
+  padding: 16px;
+  z-index: 500;
+  animation: popIn 120ms ease both;
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cal-month-label {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: 15px;
+  color: var(--color-primary-blue);
+  text-transform: capitalize;
+}
+
+.cal-nav {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-blue);
+  transition: background var(--dur-fast) ease;
+
+  &:hover { background: var(--color-surface-tint); }
+
+  .material-symbols-outlined { font-size: 20px; }
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.cal-wd {
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 2;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: 13px;
+  color: var(--color-primary-blue);
+  cursor: pointer;
+  transition: background var(--dur-fast) ease;
+
+  &:hover:not(:disabled) { background: var(--color-surface-tint); }
+
+  &.other-month { color: var(--color-muted); opacity: 0.4; }
+
+  &.today:not(.selected) { box-shadow: inset 0 0 0 1px var(--color-primary-blue); }
+
+  &.selected { background: var(--color-primary-blue); color: var(--color-white); }
+
+  &:disabled { color: var(--color-muted); cursor: not-allowed; opacity: 0.35; }
+}
+
+// Angular scopes keyframes to the component that declares them, so the popover
+// needs its own copy rather than borrowing another page's.
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

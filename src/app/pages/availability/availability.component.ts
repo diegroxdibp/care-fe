@@ -96,6 +96,9 @@ import { SchedulingSteps } from '../../shared/enums/scheduling-steps.enum';
 import { SchedulingFormControls } from '../../shared/enums/scheduling-form-controls.enum';
 import { serviceLabel } from '../../shared/utils/catalogue.util';
 import { StyledSelectComponent, StyledSelectOption } from '../../shared/components/styled-select/styled-select.component';
+import { DatePopoverComponent } from '../../shared/components/date-popover/date-popover.component';
+import { MobileWeekHeaderComponent } from './mobile-week-header/mobile-week-header.component';
+import { MobileSheetComponent } from './mobile-sheet/mobile-sheet.component';
 import {
   PRICE_MAX,
   PRICE_MIN,
@@ -336,7 +339,7 @@ const BACKEND_DOW_MAP: Record<string, DayOfWeek> = {
 @Component({
   selector: 'app-availability',
   standalone: true,
-  imports: [CommonModule, NgTemplateOutlet, StyledSelectComponent],
+  imports: [CommonModule, NgTemplateOutlet, StyledSelectComponent, DatePopoverComponent, MobileWeekHeaderComponent, MobileSheetComponent],
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss',
   animations: [
@@ -706,41 +709,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     });
   });
 
-  // ─ Date picker calendar (editor)
-  readonly edCalWeekdays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  // ─ Date picker (editor) — the popover itself is <app-date-popover>
   edCalOpen = signal<boolean>(false);
-  edCalViewDate = signal<Date>(new Date());
-  readonly edCalMonthLabel = computed(() => {
-    const d = this.edCalViewDate();
-    return `${capitalize(PT_MONTHS[d.getMonth()])} ${d.getFullYear()}`;
-  });
-  readonly edCalDays = computed(() => {
-    const view = this.edCalViewDate();
-    const year = view.getFullYear();
-    const month = view.getMonth();
-    const offset = new Date(year, month, 1).getDay();
-    const days: Array<{ date: Date; inMonth: boolean; key: string }> = [];
-    for (let i = offset - 1; i >= 0; i--) {
-      const d = new Date(year, month, -i);
-      days.push({ date: d, inMonth: false, key: toKey(d) });
-    }
-    const total = new Date(year, month + 1, 0).getDate();
-    for (let i = 1; i <= total; i++) {
-      const d = new Date(year, month, i);
-      days.push({ date: d, inMonth: true, key: toKey(d) });
-    }
-    while (days.length < 42) {
-      const prev = days[days.length - 1].date;
-      const d = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1);
-      days.push({ date: d, inMonth: false, key: toKey(d) });
-    }
-    return days;
-  });
 
   // ─ Mobile
+  // The day strip's dots: which days of the shown week have a block.
+  readonly weekDaysWithBlocks = computed(() => this.weekDays().map((_, i) => this.hasBlocks(i)));
   selectedDayIndex = signal<number>(this._todayColumnIndex());
   sheetOpen = signal<boolean>(false);
-  mobileWeekNavOpen = signal<boolean>(false);
 
   // ─ Mobile FAB (floating "+" over the day grid)
   //
@@ -755,6 +731,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   @ViewChild('mobTl') private readonly mobTlRef?: ElementRef<HTMLElement>;
   /** Corpo do painel lateral / da folha inferior — o que tem scroll. */
   @ViewChildren('panelBody') private readonly panelBodies?: QueryList<ElementRef<HTMLElement>>;
+  @ViewChildren(MobileSheetComponent) private readonly sheets?: QueryList<MobileSheetComponent>;
   private readonly FAB_SIZE = 58;
   private readonly FAB_MARGIN = 16;
   fabTop = signal<number>(0);
@@ -1110,22 +1087,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     event.stopPropagation();
     const sel = this.selectedBlock();
     if (sel && this.hasBookings(sel)) return;
-    const wasOpen = this.edCalOpen();
-    if (!wasOpen) {
-      const selected = this.editorDate();
-      if (selected) this.edCalViewDate.set(new Date(selected + 'T00:00:00'));
-    }
-    this.edCalOpen.set(!wasOpen);
-  }
-
-  edCalPrevMonth(): void {
-    const d = this.edCalViewDate();
-    this.edCalViewDate.set(new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  }
-
-  edCalNextMonth(): void {
-    const d = this.edCalViewDate();
-    this.edCalViewDate.set(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+    this.edCalOpen.set(!this.edCalOpen());
   }
 
   edCalSelectDate(key: string): void {
@@ -1133,18 +1095,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (sel && this.hasBookings(sel)) return;
     this.edCalOpen.set(false);
     this.onEditorDateChange(key);
-  }
-
-  edCalIsPast(date: Date): boolean {
-    const t = new Date(); t.setHours(0, 0, 0, 0);
-    return date < t;
-  }
-
-  edCalIsToday(date: Date): boolean {
-    const t = new Date();
-    return date.getFullYear() === t.getFullYear() &&
-      date.getMonth() === t.getMonth() &&
-      date.getDate() === t.getDate();
   }
 
   edCalFmtDate(key: string): string {
@@ -2900,6 +2850,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   private scrollPanelToTop(): void {
     this.panelBodies?.forEach(ref => ref.nativeElement.scrollTop = 0);
+    this.sheets?.forEach(sheet => sheet.scrollToTop());
   }
 
   /**

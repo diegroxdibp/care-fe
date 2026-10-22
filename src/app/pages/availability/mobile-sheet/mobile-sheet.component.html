@@ -1,0 +1,16 @@
+<div class="m-scrim" (click)="closed.emit()"></div>
+<div class="m-sheet">
+  <div class="handle"></div>
+  <div class="sh-head">
+    <ng-content select="[sheetHead]" />
+    <button class="sh-close" aria-label="Fechar" (click)="closed.emit()">
+      <span translate="no" class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  <div class="sh-body" #body>
+    <ng-content />
+  </div>
+  <div class="sh-foot">
+    <ng-content select="[sheetFoot]" />
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="cal-header">
+  <button type="button" class="cal-nav" aria-label="Mês anterior" (click)="prevMonth()">
+    <span translate="no" class="material-symbols-outlined">chevron_left</span>
+  </button>
+  <span class="cal-month-label">{{ monthLabel() }}</span>
+  <button type="button" class="cal-nav" aria-label="Mês seguinte" (click)="nextMonth()">
+    <span translate="no" class="material-symbols-outlined">chevron_right</span>
+  </button>
+</div>
+<div class="cal-weekdays">
+  @for (wd of weekdays; track $index) {
+    <span class="cal-wd">{{ wd }}</span>
+  }
+</div>
+<div class="cal-grid">
+  @for (cell of days(); track cell.key) {
+    <button type="button"
+      class="cal-day"
+      [class.other-month]="!cell.inMonth"
+      [class.today]="isToday(cell.date)"
+      [class.selected]="selected() === cell.key"
+      [disabled]="isPast(cell.date) || !cell.inMonth"
+      (click)="dateSelect.emit(cell.key)">
+      {{ cell.date.getDate() }}
+    </button>
+  }
+</div>

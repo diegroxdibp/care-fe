@@ -1,0 +1,77 @@
+// The scrim and the sheet are positioned against the page's .mob column, as
+// they were before this was a component; the host adds no box of its own.
+:host { display: contents; }
+
+.m-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(34,50,110,0.40);
+  z-index: 10;
+}
+
+.m-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 90%;
+  background: var(--color-white);
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 34px rgba(0,0,0,0.22);
+  overflow: hidden;
+  z-index: 11;
+  animation: sheet-up 0.3s var(--ease-care);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.handle {
+  width: 42px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+
+.sh-head {
+  padding: 8px 22px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-soft);
+  flex-shrink: 0;
+}
+
+.sh-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface-tint);
+  display: grid;
+  place-items: center;
+  color: var(--color-primary-blue);
+  cursor: pointer;
+}
+
+.sh-body {
+  padding: 18px 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sh-foot {
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--color-border-soft);
+  background: var(--color-surface-tint);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

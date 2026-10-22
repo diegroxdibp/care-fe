@@ -350,54 +350,19 @@
   <!-- ─────────────────────────────────────────────────────────────────── -->
   @if (screenSize.isMobile()) {
     <div class="mob">
-      <!-- Top bar -->
-      <div class="m-top">
-        <div class="m-title">
-          {{ monthLabel() }}
-          <small>Disponibilidades · {{ weekRangeLabel() }}</small>
-        </div>
-        <div class="m-actions">
-          <div class="m-icon-wrap">
-            <button
-              class="m-icon"
-              [class.active]="mobileWeekNavOpen()"
-              [attr.aria-expanded]="mobileWeekNavOpen()"
-              aria-label="Navegação semanal"
-              (click)="mobileWeekNavOpen.set(!mobileWeekNavOpen())"
-            >
-              <span translate="no" class="material-symbols-outlined">calendar_view_week</span>
-            </button>
-            @if (mobileWeekNavOpen()) {
-              <div class="m-week-pop">
-                <button class="wp-arrow" (click)="prevWeek()">
-                  <span translate="no" class="material-symbols-outlined">chevron_left</span>
-                </button>
-                <button class="wp-today" (click)="goToToday(); mobileWeekNavOpen.set(false)">Hoje</button>
-                <span class="wp-label">{{ weekLabel() }}</span>
-                <button class="wp-arrow" (click)="nextWeek()">
-                  <span translate="no" class="material-symbols-outlined">chevron_right</span>
-                </button>
-              </div>
-            }
-          </div>
-          <div class="m-avatar">{{ userInitials() }}</div>
-        </div>
-      </div>
-
-      <!-- Week strip -->
-      <div class="m-strip">
-        @for (day of weekDays(); track day.getTime(); let di = $index) {
-          <button
-            class="m-day"
-            [class.sel]="selectedDayIndex() === di"
-            (click)="selectDay(di)"
-          >
-            <span class="wd">{{ PT_DOW_SHORT[di][0] }}</span>
-            <span class="dn">{{ day.getDate() }}</span>
-            <span class="dot" [class.hidden]="!hasBlocks(di)"></span>
-          </button>
-        }
-      </div>
+      <app-mobile-week-header
+        [monthLabel]="monthLabel()"
+        [weekRangeLabel]="weekRangeLabel()"
+        [weekLabel]="weekLabel()"
+        [initials]="userInitials()"
+        [days]="weekDays()"
+        [daysWithBlocks]="weekDaysWithBlocks()"
+        [selectedIndex]="selectedDayIndex()"
+        (prevWeek)="prevWeek()"
+        (nextWeek)="nextWeek()"
+        (today)="goToToday()"
+        (daySelect)="selectDay($event)"
+      />
 
       <!-- Day agenda -->
       <div class="m-agenda">
@@ -516,45 +481,28 @@
 
       <!-- Bottom sheet -->
       @if (sheetOpen()) {
-        <div class="m-scrim" (click)="closeSheet(); resetEditor()"></div>
         @if (selectedAppointment(); as appt) {
-          <div class="m-sheet appt-detail">
-            <div class="handle"></div>
-            <div class="sh-head">
-              <button class="be-back" (click)="clearSelectedAppointment()">
-                <span translate="no" class="material-symbols-outlined">arrow_back</span>
-                Voltar ao bloco
-              </button>
-              <button class="sh-close" (click)="closeSheet(); resetEditor()">
-                <span translate="no" class="material-symbols-outlined">close</span>
-              </button>
+          <app-mobile-sheet class="appt-detail" (closed)="closeSheet(); resetEditor()">
+            <button sheetHead class="be-back" (click)="clearSelectedAppointment()">
+              <span translate="no" class="material-symbols-outlined">arrow_back</span>
+              Voltar ao bloco
+            </button>
+            <div class="be-title" style="margin-bottom:14px">
+              {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : appt.rescheduleRequestId != null ? 'Reagendamento proposto' : 'Sessão reservada' }}
+              @if (appt.status === 'PENDING') {
+                <span class="be-pending-badge">Pendente</span>
+              }
             </div>
-            <div class="sh-body" #panelBody>
-              <div class="be-title" style="margin-bottom:14px">
-                {{ isPendingSeriesChange(appt) ? 'Alteração de série' : appt.invitationId != null ? 'Convite enviado' : appt.rescheduleRequestId != null ? 'Reagendamento proposto' : 'Sessão reservada' }}
-                @if (appt.status === 'PENDING') {
-                  <span class="be-pending-badge">Pendente</span>
-                }
-              </div>
-              <ng-container [ngTemplateOutlet]="apptDetailBody" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
-            </div>
-            <div class="sh-foot">
+            <ng-container [ngTemplateOutlet]="apptDetailBody" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
+            <ng-container ngProjectAs="[sheetFoot]">
               <ng-container [ngTemplateOutlet]="apptDetailActions" [ngTemplateOutletContext]="{ $implicit: appt }"></ng-container>
-            </div>
-          </div>
+            </ng-container>
+          </app-mobile-sheet>
         } @else {
-          <div class="m-sheet">
-            <div class="handle"></div>
-            <div class="sh-head">
-              <h3>{{ selectedBlockId() !== null ? editorTitle() : 'Nova disponibilidade' }}</h3>
-              <button class="sh-close" (click)="closeSheet(); resetEditor()">
-                <span translate="no" class="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div class="sh-body" #panelBody>
-              <ng-container [ngTemplateOutlet]="formSections"></ng-container>
-            </div>
-            <div class="sh-foot">
+          <app-mobile-sheet (closed)="closeSheet(); resetEditor()">
+            <h3 sheetHead>{{ selectedBlockId() !== null ? editorTitle() : 'Nova disponibilidade' }}</h3>
+            <ng-container [ngTemplateOutlet]="formSections"></ng-container>
+            <ng-container ngProjectAs="[sheetFoot]">
               @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
                 <div class="remove-guard" style="margin-bottom:10px">
                   <span translate="no" class="material-symbols-outlined">event_busy</span>
@@ -585,8 +533,8 @@
                   Remover bloco
                 </button>
               }
-            </div>
-          </div>
+            </ng-container>
+          </app-mobile-sheet>
         }
       }
     </div>
@@ -1060,35 +1008,7 @@
         <span translate="no" class="material-symbols-outlined field-icon">calendar_today</span>
 
         @if (edCalOpen()) {
-          <div class="ed-cal-popover" (click)="$event.stopPropagation()">
-            <div class="cal-header">
-              <button type="button" class="cal-nav" (click)="edCalPrevMonth()">
-                <span translate="no" class="material-symbols-outlined">chevron_left</span>
-              </button>
-              <span class="cal-month-label">{{ edCalMonthLabel() }}</span>
-              <button type="button" class="cal-nav" (click)="edCalNextMonth()">
-                <span translate="no" class="material-symbols-outlined">chevron_right</span>
-              </button>
-            </div>
-            <div class="cal-weekdays">
-              @for (wd of edCalWeekdays; track $index) {
-                <span class="cal-wd">{{ wd }}</span>
-              }
-            </div>
-            <div class="cal-grid">
-              @for (cell of edCalDays(); track cell.key) {
-                <button type="button"
-                  class="cal-day"
-                  [class.other-month]="!cell.inMonth"
-                  [class.today]="edCalIsToday(cell.date)"
-                  [class.selected]="editorDate() === cell.key"
-                  [disabled]="edCalIsPast(cell.date) || !cell.inMonth"
-                  (click)="edCalSelectDate(cell.key)">
-                  {{ cell.date.getDate() }}
-                </button>
-              }
-            </div>
-          </div>
+          <app-date-popover [selected]="editorDate()" (dateSelect)="edCalSelectDate($event)" />
         }
       </div>
       @if (dateErrorMessage(); as err) {
