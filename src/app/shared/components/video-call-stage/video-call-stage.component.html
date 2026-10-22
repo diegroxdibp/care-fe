@@ -118,6 +118,16 @@
         </div>
       }
 
+      @if (mediaProblem()) {
+        <div class="closing-banner error" role="alert">
+          <span translate="no" class="material-symbols-outlined">mic_off</span>
+          <span class="closing-text">{{ mediaProblem() }}</span>
+          <div class="closing-actions">
+            <button type="button" (click)="dismissMediaProblem()">Ok</button>
+          </div>
+        </div>
+      }
+
       @if (extendError()) {
         <div class="closing-banner error" role="alert">
           <span translate="no" class="material-symbols-outlined">error</span>
