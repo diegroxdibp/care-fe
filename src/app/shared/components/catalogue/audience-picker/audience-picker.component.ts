@@ -37,6 +37,13 @@ import { Audience } from '../../../models/catalogue.model';
       <button type="button" class="cat-btn-pill" [disabled]="!draft().trim()" (click)="propose()">Propor novo público</button>
     </div>
   `,
+  styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+  `],
 })
 export class AudiencePickerComponent {
   readonly options = input<Audience[]>([]);

@@ -109,19 +109,23 @@ export function missingServiceFields(c: ServiceContent): string[] {
 export const IMAGE_MAX_BYTES = 15 * 1024 * 1024;
 export const IMAGE_MAX_SIDE = 1200;
 
+/** O que impede de usar o ficheiro escolhido (a mensagem a mostrar), ou null. */
+export function imageFileError(file: Blob | null | undefined): string | null {
+  if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return 'O ficheiro escolhido não é uma imagem.';
+  if (file.size > IMAGE_MAX_BYTES) return 'A imagem tem mais de 15 MB. Escolha uma versão mais leve.';
+  return null;
+}
+
 /**
  * Reduz uma imagem no navegador (no máximo 1200 px no lado maior, JPEG
  * ~0.82) antes de enviar. O servidor volta a reduzir — isto só poupa o envio.
- * Rejeita com a mensagem a mostrar.
+ * O tamanho do ficheiro original verifica-se antes (imageFileError): o que
+ * chega aqui já pode ser o recorte. Rejeita com a mensagem a mostrar.
  */
-export function shrinkImage(file: File): Promise<Blob> {
+export function shrinkImage(file: Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
       reject('O ficheiro escolhido não é uma imagem.');
-      return;
-    }
-    if (file.size > IMAGE_MAX_BYTES) {
-      reject('A imagem tem mais de 15 MB. Escolha uma versão mais leve.');
       return;
     }
     const url = URL.createObjectURL(file);
