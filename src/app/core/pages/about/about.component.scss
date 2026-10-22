@@ -252,6 +252,14 @@
         outline-color: palette.$primaryColorPurple;
         background: #ffffff40;
       }
+
+      // The transparent outline above (for the hover fade) is more specific
+      // than the sitewide :focus-visible ring in styles.scss and hid it, so
+      // keyboard focus showed nothing. Restore the same ring here.
+      &:focus-visible {
+        outline: 3px solid var(--color-primary-purple);
+        outline-offset: 4px;
+      }
     }
 
     .publication-cover {
