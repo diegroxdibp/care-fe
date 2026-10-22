@@ -4,9 +4,9 @@
 @use "../src/assets/styles/typography.scss" as typography;
 @use 'ngx-owl-carousel-o/lib/styles/scss/owl.carousel' as owlCarousel;
 @use 'ngx-owl-carousel-o/lib/styles/scss/owl.theme.default' as owlTheme;
+@use './assets/styles/availability-people.scss';
+@use './assets/styles/catalogue-pages.scss';
 @import './assets/styles/colors_and_type.css';
-@import './assets/styles/availability-people.scss';
-@import './assets/styles/catalogue-pages.scss';
 
 * {
   box-sizing: border-box;
