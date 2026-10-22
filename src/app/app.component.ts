@@ -29,7 +29,7 @@ import { SessionService } from './shared/services/session.service';
   standalone: true,
 })
 export class AppComponent {
-  title = 'CARE - Clínica Ampliada Resignificações';
+  title = 'CARE - Clínica Ampliada Ressignificações';
   loader = inject(LoadingService);
   readonly errorService = inject(ErrorService);
   router = inject(Router);
