@@ -699,3 +699,95 @@ describe('VideoCallStageComponent — compartilhar a tela', () => {
     expect(shareButton()).toBeNull();
   });
 });
+
+/**
+ * Produção, 22/10/2026: um celular entrou na sala sem microfone e a pessoa não
+ * conseguiu ligá-lo. O botão começava "ligado" sem perguntar à Daily, e nada
+ * dizia que o navegador tinha bloqueado o microfone.
+ */
+describe('VideoCallStageComponent — microfone que não ligou ao entrar', () => {
+  let fixture: ComponentFixture<VideoCallStageComponent>;
+  let component: VideoCallStageComponent;
+
+  function me(audio: Record<string, unknown>) {
+    const p = participant('me', { local: true });
+    return { ...p, tracks: { ...p.tracks, audio: { persistentTrack: null, ...audio } } };
+  }
+
+  async function join() {
+    await TestBed.configureTestingModule({
+      imports: [VideoCallStageComponent],
+      providers: [{ provide: Router, useValue: { navigate: jest.fn() } }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(VideoCallStageComponent);
+    component = fixture.componentInstance;
+    component.fetchSession = () => of(session());
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(JOINED_AT));
+    fakeCall.handlers.clear();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('entrou com o microfone desligado: o botão mostra desligado e um toque liga', async () => {
+    fakeParticipants = { local: me({ state: 'off', off: { byUser: true } }) };
+    await join();
+
+    expect(component.micOn()).toBe(false);
+    component.toggleMic();
+    expect(fakeCall.setLocalAudio).toHaveBeenCalledWith(true);
+    expect(component.micOn()).toBe(true);
+  });
+
+  it('o botão segue a Daily quando o microfone muda por fora (silenciado por quem organiza)', async () => {
+    fakeParticipants = { local: me({ state: 'playable' }) };
+    await join();
+    expect(component.micOn()).toBe(true);
+
+    fakeParticipants = { local: me({ state: 'off', off: { byRemoteRequest: true } }) };
+    fakeCall.handlers.get('participant-updated')!({ participant: fakeParticipants['local'] });
+    expect(component.micOn()).toBe(false);
+  });
+
+  it('com o microfone bloqueado pelo navegador, explica o que fazer em vez de fingir que ligou', async () => {
+    fakeParticipants = { local: me({ state: 'blocked', blocked: { byPermissions: true } }) };
+    await join();
+    fakeCall.handlers.get('camera-error')!({
+      action: 'camera-error',
+      error: { type: 'permissions', blockedBy: 'user', blockedMedia: ['audio'], msg: '' },
+    });
+
+    expect(component.micOn()).toBe(false);
+    expect(component.mediaProblem()).toContain('bloqueou o microfone');
+
+    component.dismissMediaProblem();
+    component.toggleMic();
+    expect(fakeCall.setLocalAudio).toHaveBeenCalledWith(true);
+    expect(component.micOn()).toBe(false);
+    expect(component.mediaProblem()).toContain('microfone');
+  });
+
+  it('com o microfone ocupado por outro app, pede para fechá-lo e tentar de novo', async () => {
+    fakeParticipants = { local: me({ state: 'blocked', blocked: { byDeviceInUse: true } }) };
+    await join();
+    fakeCall.handlers.get('camera-error')!({ action: 'camera-error', error: { type: 'mic-in-use', msg: '' } });
+    expect(component.mediaProblem()).toContain('Outro aplicativo');
+
+    // O app largou o microfone: a Daily consegue e o botão acompanha.
+    component.toggleMic();
+    fakeParticipants = { local: me({ state: 'playable' }) };
+    fakeCall.handlers.get('participant-updated')!({ participant: fakeParticipants['local'] });
+    expect(component.micOn()).toBe(true);
+    expect(component.micBlocked()).toBe(false);
+  });
+});

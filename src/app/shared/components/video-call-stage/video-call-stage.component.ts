@@ -17,6 +17,7 @@ import { Observable } from 'rxjs';
 import Daily, {
   DailyCall,
   DailyEventObjectAppMessage,
+  DailyEventObjectCameraError,
   DailyEventObjectParticipant,
   DailyEventObjectParticipantLeft,
   DailyParticipant,
@@ -37,6 +38,10 @@ const ROOM_EXTENDED_KIND = 'room-extended';
 const MUTED_BY_HOST_KIND = 'muted-by-host';
 /** Quanto tempo a pré-visualização de uma mensagem nova fica à vista. */
 const CHAT_PREVIEW_MS = 5_000;
+
+/** Quando a Daily não diz o que falhou, ou o botão é tocado com o microfone bloqueado. */
+const MIC_BLOCKED_MESSAGE =
+  'O navegador não está deixando a sala usar o microfone. Libere o acesso nas configurações do navegador e entre de novo na sala.';
 
 /** Id da tile da tela compartilhada de uma pessoa - a câmara fica com o session_id. */
 function screenTileId(sessionId: string): string {
@@ -205,8 +210,17 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   readonly remoteTiles = computed(() => this.tiles().filter((t) => !t.isLocal && !t.isScreen));
 
   readonly tiles = signal<VideoTile[]>([]);
+  /**
+   * Seguem o que a Daily está mesmo a enviar (syncLocalMedia), não só o clique.
+   * Antes começavam ligados e só mudavam com o botão: num celular que entrou
+   * sem microfone, o botão dizia "ligado" e o primeiro toque só o "desligava".
+   */
   readonly micOn = signal(true);
   readonly camOn = signal(true);
+  /** O navegador ou o aparelho não deixa usar o microfone - ligar pelo botão não chega. */
+  readonly micBlocked = signal(false);
+  /** Porque o microfone ou a câmera não funcionam, para a pessoa saber o que fazer. */
+  readonly mediaProblem = signal<string | null>(null);
   /** A minha tela está a ser compartilhada - segue os eventos da Daily, não o clique. */
   readonly screenSharing = signal(false);
   /**
@@ -332,6 +346,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.errorMessage.set('A conexão com a sala falhou. Tente novamente.');
     });
     call.on('app-message', (e) => this.onAppMessage(e));
+    call.on('camera-error', (e) => this.onCameraError(e));
     // Parar pela barra do próprio navegador ("Parar de compartilhar") ou
     // fechar o seletor sem escolher também chegam aqui, não só pelo botão.
     call.on('local-screen-share-started', () => this.screenSharing.set(true));
@@ -607,6 +622,51 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     });
     list.sort((a, b) => (a.isLocal === b.isLocal ? 0 : a.isLocal ? -1 : 1));
     this.tiles.set(list);
+    const local = Object.values(participants).find((p) => p.local);
+    if (local) this.syncLocalMedia(local);
+  }
+
+  private syncLocalMedia(p: DailyParticipant): void {
+    const audio = p.tracks.audio.state;
+    const video = p.tracks.video.state;
+    this.micOn.set(audio !== 'off' && audio !== 'blocked');
+    this.camOn.set(video !== 'off' && video !== 'blocked');
+    this.micBlocked.set(audio === 'blocked');
+  }
+
+  // Sem isto a Daily entrava na chamada com o microfone bloqueado e a página
+  // não dizia nada - a pessoa ficava muda sem saber porquê.
+  private onCameraError(e: DailyEventObjectCameraError): void {
+    const error = e.error;
+    switch (error?.type) {
+      case 'permissions': {
+        const what = error.blockedMedia?.includes('audio') ? 'o microfone' : 'a câmera';
+        this.mediaProblem.set(
+          `O navegador bloqueou ${what}. Libere o acesso nas configurações do navegador (o cadeado ao lado do endereço) e entre de novo na sala.`,
+        );
+        return;
+      }
+      case 'mic-in-use':
+      case 'cam-in-use':
+      case 'cam-mic-in-use':
+        this.mediaProblem.set(
+          'Outro aplicativo está usando o microfone ou a câmera. Feche-o e toque no botão para tentar de novo.',
+        );
+        return;
+      case 'not-found':
+        this.mediaProblem.set(
+          error.missingMedia?.includes('audio')
+            ? 'Não encontramos um microfone neste aparelho.'
+            : 'Não encontramos uma câmera neste aparelho.',
+        );
+        return;
+      default:
+        this.mediaProblem.set('Não foi possível usar o microfone ou a câmera. Saia e entre de novo na sala.');
+    }
+  }
+
+  dismissMediaProblem(): void {
+    this.mediaProblem.set(null);
   }
 
   private streamFor(sessionId: string, video?: MediaStreamTrack | null, audio?: MediaStreamTrack | null): MediaStream {
@@ -624,6 +684,12 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     const next = !this.micOn();
     if (next) this.mutedByHost.set(false);
     this.call?.setLocalAudio(next);
+    // Bloqueado, a Daily tenta de novo (um app que largou o microfone resolve),
+    // mas o botão só muda quando ela disser que conseguiu.
+    if (this.micBlocked()) {
+      if (!this.mediaProblem()) this.mediaProblem.set(MIC_BLOCKED_MESSAGE);
+      return;
+    }
     this.micOn.set(next);
   }
 
