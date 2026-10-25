@@ -105,4 +105,36 @@ describe('RescheduleConfirmComponent', () => {
     expect(component.currentLabel()).toBe('Quinta, 15 de janeiro · 22:00–23:00');
     expect(component.proposedLabel()).toBe('Quinta, 22 de janeiro · 14:00–15:00');
   });
+
+  describe('o horário atual', () => {
+    const upcoming = { occurrenceDate: '2099-01-15', proposedDate: '2099-01-22' };
+
+    function note(): string {
+      return (fixture.nativeElement as HTMLElement).querySelector('.note')?.textContent ?? '';
+    }
+
+    it('liberado no pedido: avisa que recusar cancela a sessão', async () => {
+      await setup(makeRequest({ ...upcoming, releasesOriginal: true }), LISBON);
+
+      expect(note()).toContain('se recusar, a sessão é cancelada');
+    });
+
+    it('expirado depois de liberar o horário: diz que a sessão foi cancelada', async () => {
+      await setup(makeRequest({ ...upcoming, status: 'EXPIRED', releasesOriginal: true }), LISBON);
+
+      expect(component.resolvedMessage()).toContain('a sessão foi cancelada');
+    });
+
+    it('expirado com o horário reservado: diz que a sessão continuou como estava', async () => {
+      await setup(makeRequest({ ...upcoming, status: 'EXPIRED' }), LISBON);
+
+      expect(component.resolvedMessage()).toContain('a sessão continuou como estava');
+    });
+
+    it('reservado: a sessão continua onde está enquanto não houver resposta', async () => {
+      await setup(makeRequest(upcoming), LISBON);
+
+      expect(note()).toContain('a sessão continua no dia e horário em que está');
+    });
+  });
 });

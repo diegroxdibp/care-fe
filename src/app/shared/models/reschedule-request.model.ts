@@ -31,7 +31,14 @@ export interface RescheduleRequest {
   reason: string;
   requestedById: number;
   requestedByName: string;
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+  /** EXPIRED: ficou sem resposta até já não poder ser aceite. */
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED';
   createdAt: string;
   respondedAt?: string | null;
+  /**
+   * O horário atual já foi liberado no pedido, em vez de ficar reservado até
+   * haver resposta: outra pessoa pode marcá-lo, e se a mudança não acontecer
+   * (recusa ou retirada) a sessão fica cancelada.
+   */
+  releasesOriginal?: boolean;
 }

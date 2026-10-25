@@ -54,6 +54,12 @@ export interface Appointment {
    */
   replacesAppointmentId?: number | null;
   /**
+   * Numa alteração de série: o horário antigo já foi liberado a partir do
+   * startDate desta. Se a alteração não for aceite, a série antiga termina na
+   * véspera.
+   */
+  releasesOriginal?: boolean;
+  /**
    * Chamadas estendidas de dentro da videochamada, só as recentes - data da
    * ocorrência (yyyy-MM-dd, no fuso da marcação) e minutos a mais.
    */

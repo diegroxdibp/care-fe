@@ -292,3 +292,157 @@ describe('AvailabilityComponent — retirar uma alteração de série', () => {
     expect(night.originDate).toBe('2026-10-15');
   });
 });
+
+/**
+ * Antes de pedir para mudar uma sessão ou uma série, a pessoa profissional diz
+ * o que acontece ao horário atual: fica livre já, ou reservado até haver
+ * resposta. Nenhuma das duas vem escolhida.
+ */
+describe('AvailabilityComponent — o horário atual ao reagendar ou alterar a série', () => {
+  let fixture: ComponentFixture<AvailabilityComponent>;
+  let component: AvailabilityComponent;
+  let apiService: Record<string, jest.Mock>;
+  let dialogAnswers: unknown[];
+  let dialogOpen: jest.Mock;
+
+  const series = appointment({ id: 74 });
+  const moveTo = {
+    availabilityId: 478,
+    date: '2026-10-29',
+    startTime: '17:00',
+    endTime: '18:00',
+    modality: Modality.REMOTE,
+    reason: 'Congresso.',
+  };
+  const request: RescheduleRequest = {
+    id: 9,
+    appointmentId: 74,
+    professionalId: ME,
+    professionalName: 'Dr. Teste',
+    clientId: 20,
+    clientName: 'Ash Barros',
+    professionalServiceId: 1,
+    occurrenceDate: '2026-10-22',
+    currentStartTime: '17:00:00',
+    currentEndTime: '18:00:00',
+    appointmentIsRecurring: true,
+    proposedAvailabilityId: 478,
+    proposedDate: '2026-10-29',
+    proposedStartTime: '17:00:00',
+    proposedEndTime: '18:00:00',
+    proposedModality: 'REMOTE',
+    reason: 'Congresso.',
+    requestedById: ME,
+    requestedByName: 'Dr. Teste',
+    status: 'PENDING',
+    createdAt: '2026-10-16T12:00:00Z',
+  };
+
+  beforeEach(async () => {
+    jest.useFakeTimers({
+      now: new Date('2026-10-16T12:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate', 'setTimeout', 'setInterval', 'queueMicrotask',
+        'requestAnimationFrame', 'cancelAnimationFrame', 'clearTimeout', 'clearInterval'],
+    });
+
+    apiService = {
+      getServices: jest.fn().mockReturnValue(of([])),
+      getMyServices: jest.fn().mockReturnValue(of([])),
+      getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of([thursdaySlot])),
+      getProfessionalAppointments: jest.fn().mockReturnValue(of([series])),
+      getSentInvitations: jest.fn().mockReturnValue(of([])),
+      getCommitments: jest.fn().mockReturnValue(of([])),
+      getSentRescheduleRequests: jest.fn().mockReturnValue(of([])),
+      requestReschedule: jest.fn().mockReturnValue(of(request)),
+      proposeSeriesChange: jest.fn(),
+    };
+    // Cada diálogo aberto responde, por ordem, com a próxima resposta.
+    dialogAnswers = [];
+    dialogOpen = jest.fn().mockImplementation(() => {
+      const answer = dialogAnswers.shift();
+      return { afterClosed: () => of(answer) };
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityComponent, NoopAnimationsModule],
+      providers: [
+        { provide: ApiService, useValue: apiService },
+        { provide: SessionService, useValue: { user: signal({ id: ME, timeZone: LISBON }) } },
+        { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
+        { provide: SchedulingService, useValue: {} },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+        {
+          provide: ScreenSizeService,
+          useValue: { isMobile: signal(false), isTablet: signal(false), isDesktop: signal(true) },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AvailabilityComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  /** Os dados do diálogo da escolha (o segundo a abrir). */
+  function choiceDialogData(): { choices: { value: string }[] } {
+    return dialogOpen.mock.calls[1][1].data;
+  }
+
+  it('pergunta, sem nada escolhido, e envia "liberar já" quando é essa a escolha', () => {
+    dialogAnswers = [moveTo, 'release'];
+
+    component.openRescheduleDialog(new Event('click'), series);
+
+    expect(choiceDialogData().choices.map(c => c.value)).toEqual(['release', 'keep']);
+    expect(apiService['requestReschedule']).toHaveBeenCalledWith(74, expect.objectContaining({ releaseOriginal: true }));
+  });
+
+  it('liberado já, a ocorrência atual sai da agenda', () => {
+    dialogAnswers = [moveTo, 'release'];
+
+    component.openRescheduleDialog(new Event('click'), series);
+
+    // A data movida é a da semana em vista, não a âncora da série.
+    const moved = apiService['requestReschedule'].mock.calls[0][1].occurrenceDate;
+    expect(moved).toBe('2026-10-15');
+    expect(component.appointments().find(a => a.id === 74)!.excludedDates).toEqual([moved]);
+  });
+
+  it('envia "manter reservado" sem tocar na sessão atual', () => {
+    dialogAnswers = [moveTo, 'keep'];
+
+    component.openRescheduleDialog(new Event('click'), series);
+
+    expect(apiService['requestReschedule']).toHaveBeenCalledWith(74, expect.objectContaining({ releaseOriginal: false }));
+    expect(component.appointments().find(a => a.id === 74)!.excludedDates ?? []).toEqual([]);
+  });
+
+  it('voltar atrás na escolha não envia nada', () => {
+    dialogAnswers = [moveTo, false];
+
+    component.openRescheduleDialog(new Event('click'), series);
+
+    expect(apiService['requestReschedule']).not.toHaveBeenCalled();
+  });
+
+  it('numa alteração de série liberada, a série atual termina na véspera', () => {
+    const payload = {
+      availabilityId: 478,
+      professionalServiceId: 1,
+      modality: 'REMOTE',
+      recurrenceFrequency: 'BIWEEKLY' as const,
+      effectiveFrom: '2026-10-29',
+    };
+    apiService['proposeSeriesChange'].mockReturnValue(of(appointment({
+      id: 90, startDate: '2026-10-29', status: 'PENDING', replacesAppointmentId: 74, releasesOriginal: true,
+    } as Partial<Appointment>)));
+    dialogAnswers = [payload, 'release'];
+
+    component.openEditSeriesDialog(new Event('click'), series);
+
+    expect(apiService['proposeSeriesChange']).toHaveBeenCalledWith(74, { ...payload, releaseOriginal: true });
+    expect(component.appointments().find(a => a.id === 74)!.endDate).toBe('2026-10-28');
+  });
+});

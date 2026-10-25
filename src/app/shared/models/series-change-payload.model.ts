@@ -13,4 +13,10 @@ export interface SeriesChangePayload {
   priceBRL?: number;
   /** yyyy-MM-dd, no fuso da vaga — a primeira sessão do novo horário. */
   effectiveFrom: string;
+  /**
+   * Liberar já o horário antigo a partir de `effectiveFrom`, em vez de o
+   * manter reservado até haver resposta. Liberado, se a alteração não for
+   * aceite a série antiga termina na véspera.
+   */
+  releaseOriginal?: boolean;
 }

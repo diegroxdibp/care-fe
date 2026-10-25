@@ -2995,13 +2995,18 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   private withdrawRescheduleRequest(requestId: number): void {
+    const request = this.rescheduleRequests().find(r => r.id === requestId);
+    const released = !!request?.releasesOriginal;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '440px',
       panelClass: 'care-dialog',
       data: {
         title: 'Retirar pedido de reagendamento',
-        message: 'A sessão continua no horário original, o novo horário volta a ficar livre, '
-          + 'e a pessoa cliente é avisada de que o pedido foi retirado.',
+        message: released
+          ? 'O horário original já foi liberado, por isso a sessão será cancelada. O novo horário volta a ficar '
+            + 'livre, e a pessoa cliente é avisada.'
+          : 'A sessão continua no horário original, o novo horário volta a ficar livre, '
+            + 'e a pessoa cliente é avisada de que o pedido foi retirado.',
         confirmLabel: 'Retirar',
       } satisfies ConfirmDialogData,
     });
@@ -3009,14 +3014,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       if (!confirmed) return;
       this.apiService.withdrawRescheduleRequest(requestId).subscribe({
         next: () => {
-          this.appointments.update(list => list.filter(a => a.rescheduleRequestId !== requestId));
+          this.appointments.update(list => list.filter(a => a.rescheduleRequestId !== requestId
+            // Liberada e sem mudança, uma sessão de data única foi cancelada: sai.
+            && !(released && !request?.appointmentIsRecurring && a.id === request?.appointmentId)));
           this.rescheduleRequests.update(list => list.filter(r => r.id !== requestId));
           // Retirado a partir da sessão original, o painel continua nela; a partir
           // da reserva, a reserva deixou de existir.
           if (this.selectedAppointment()?.rescheduleRequestId === requestId) {
             this.selectedAppointment.set(null);
           }
-          this.snackbarService.openSnackBar({ message: 'Pedido de reagendamento retirado.' });
+          this.snackbarService.openSnackBar({
+            message: released
+              ? 'Pedido de reagendamento retirado. A sessão foi cancelada.'
+              : 'Pedido de reagendamento retirado.',
+          });
         },
         error: () => {},
       });
@@ -3105,13 +3116,27 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           } satisfies EditSeriesDialogData,
         });
 
-        ref.afterClosed().subscribe((result: EditSeriesDialogResult | null) => {
-          if (!result) return;
-          this.apiService.proposeSeriesChange(appt.id, result).subscribe({
+        ref.afterClosed().pipe(
+          switchMap((result: EditSeriesDialogResult | null) => result
+            ? this.askAboutCurrentTime('series', this.slotPatientName(appt), result.effectiveFrom)
+              .pipe(map(releaseOriginal => (releaseOriginal === null ? null : { ...result, releaseOriginal })))
+            : of(null)),
+        ).subscribe((payload: EditSeriesDialogResult | null) => {
+          if (!payload) return;
+          this.apiService.proposeSeriesChange(appt.id, payload).subscribe({
             next: (change) => {
-              this.appointments.update(list => [...list, change]);
+              const lastOldDay = addDaysKey(payload.effectiveFrom, -1);
+              this.appointments.update(list => [
+                // Liberado já: a série antiga termina na véspera, como no backend.
+                ...list.map(a => (payload.releaseOriginal && a.id === appt.id && (!a.endDate || lastOldDay < a.endDate)
+                  ? { ...a, endDate: lastOldDay }
+                  : a)),
+                change,
+              ]);
               this.snackbarService.openSnackBar({
-                message: 'Alteração enviada. A série só muda depois que a pessoa cliente aceitar.',
+                message: payload.releaseOriginal
+                  ? 'Alteração enviada. O horário atual já está livre a partir dessa data.'
+                  : 'Alteração enviada. A série só muda depois que a pessoa cliente aceitar.',
               });
             },
             // O interceptor já mostra a recusa concreta do backend (vaga ocupada
@@ -3124,13 +3149,62 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /**
+   * Antes de enviar um pedido de reagendamento ou uma alteração de série: o
+   * horário atual fica livre já, ou reservado até a pessoa cliente responder?
+   * Sem opção escolhida à partida. Emite true (liberar), false (manter) ou null
+   * (desistiu de enviar).
+   */
+  private askAboutCurrentTime(
+    kind: 'session' | 'series',
+    counterpartName: string,
+    effectiveFrom?: string,
+  ): Observable<boolean | null> {
+    const from = effectiveFrom ? this.fmtDateKey(effectiveFrom) : '';
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '480px',
+      panelClass: 'care-dialog',
+      data: {
+        title: 'E o horário atual?',
+        message: kind === 'session'
+          ? `Enquanto ${counterpartName} não responde, o horário atual desta sessão pode ficar livre para outras `
+            + 'marcações ou continuar reservado.'
+          : `Enquanto ${counterpartName} não responde, o horário atual da série a partir de ${from} pode ficar `
+            + 'livre para outras marcações ou continuar reservado.',
+        cancelLabel: 'Voltar',
+        choices: [
+          {
+            value: 'release',
+            icon: 'event_busy',
+            label: 'Liberar já o horário atual',
+            hint: kind === 'session'
+              ? `Outra pessoa pode marcá-lo. Se ${counterpartName} recusar, a sessão é cancelada.`
+              : `A série atual termina antes de ${from}. Se ${counterpartName} recusar, ela não volta.`,
+          },
+          {
+            value: 'keep',
+            icon: 'lock_clock',
+            label: 'Manter reservado até haver resposta',
+            hint: `Os dois horários ficam ocupados até ${counterpartName} responder. Se recusar, nada muda.`,
+          },
+        ],
+      } satisfies ConfirmDialogData,
+    });
+    return ref.afterClosed().pipe(
+      map(choice => (choice === 'release' ? true : choice === 'keep' ? false : null)),
+    );
+  }
+
   private withdrawSeriesChange(change: Appointment): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '440px',
       panelClass: 'care-dialog',
       data: {
         title: 'Retirar alteração',
-        message: 'A série continua como estava, e a pessoa cliente é avisada de que a alteração foi retirada.',
+        message: change.releasesOriginal
+          ? `O horário atual já foi liberado, por isso a série termina antes de ${this.fmtDateKey(change.startDate)}. `
+            + 'A pessoa cliente é avisada de que a alteração foi retirada.'
+          : 'A série continua como estava, e a pessoa cliente é avisada de que a alteração foi retirada.',
         confirmLabel: 'Retirar',
       } satisfies ConfirmDialogData,
     });
@@ -3138,7 +3212,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       if (!confirmed) return;
       this.apiService.deleteAppointment(change.id).subscribe({
         next: () => {
-          this.appointments.update(list => list.filter(a => a.id !== change.id));
+          // Liberada e sem mudança, a série antiga termina na véspera; se assim
+          // ficar sem sessões, o backend apagou-a.
+          this.appointments.update(list => list.filter(a => a.id !== change.id
+            && !(change.releasesOriginal && a.id === change.replacesAppointmentId
+              && !!a.endDate && !!a.startDate && a.endDate < a.startDate)));
           // Retirada a partir da série, o painel fica nela: "Alterar série"
           // volta a aparecer logo ali.
           this.selectedAppointment.update(cur => (cur?.id === change.id ? null : cur));
@@ -3513,9 +3591,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           } as RescheduleDialogData,
         });
 
-        ref.afterClosed().subscribe((result: RescheduleDialogResult | null) => {
-          if (!result) return;
-          this._sendRescheduleRequest(appt, occurrenceDate, result);
+        ref.afterClosed().pipe(
+          switchMap((result: RescheduleDialogResult | null) => result
+            ? this.askAboutCurrentTime('session', this.slotPatientName(appt))
+              .pipe(map(releaseOriginal => (releaseOriginal === null ? null : { result, releaseOriginal })))
+            : of(null)),
+        ).subscribe(choice => {
+          if (!choice) return;
+          this._sendRescheduleRequest(appt, occurrenceDate, choice.result, choice.releaseOriginal);
         });
       },
       error: () => {},
@@ -3530,6 +3613,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     appt: Appointment,
     occurrenceDate: string,
     result: RescheduleDialogResult,
+    releaseOriginal: boolean,
   ): void {
     this.apiService.requestReschedule(appt.id, {
       availabilityId: result.availabilityId,
@@ -3540,13 +3624,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       modality: toBackendModality(result.modality),
       occurrenceDate,
       reason: result.reason,
+      releaseOriginal,
     }).subscribe({
       next: (request) => {
         // O destino fica reservado até haver resposta — na agenda, como pendente.
-        this.appointments.update(list => [...list, rescheduleRequestAsAppointment(request)]);
+        // Liberado já, a ocorrência atual sai da agenda, como um cancelamento.
+        this.appointments.update(list => [
+          ...(releaseOriginal ? applyCancellation(list, appt.id, occurrenceDate, 'SINGLE') : list),
+          rescheduleRequestAsAppointment(request),
+        ]);
         this.rescheduleRequests.update(list => [...list, request]);
         this.snackbarService.openSnackBar({
-          message: 'Pedido enviado. O novo horário fica reservado, e a sessão só muda depois que a pessoa cliente aceitar.',
+          message: releaseOriginal
+            ? 'Pedido enviado. O horário atual já está livre, e o novo fica reservado até a pessoa cliente responder.'
+            : 'Pedido enviado. O novo horário fica reservado, e a sessão só muda depois que a pessoa cliente aceitar.',
         });
         this.clearSelectedAppointment();
       },

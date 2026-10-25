@@ -224,7 +224,9 @@ export class ProposalConfirmComponent implements OnInit {
       data: this.isSeriesChange()
         ? {
           title: 'Recusar alteração',
-          message: 'Sua série continua exatamente como está. Deseja recusar esta alteração?',
+          message: this.appt()?.releasesOriginal
+            ? `O horário atual já foi liberado, por isso a série termina antes de ${this.effectiveFromLabel()}. Deseja recusar esta alteração?`
+            : 'Sua série continua exatamente como está. Deseja recusar esta alteração?',
           confirmLabel: 'Recusar',
         }
         : {
@@ -247,7 +249,11 @@ export class ProposalConfirmComponent implements OnInit {
     this.apiService.respondToProposal(a.id, accept).subscribe({
       next: () => {
         const message = this.isSeriesChange()
-          ? (accept ? 'Alteração aceita. Enviamos a confirmação para seu email.' : 'Alteração recusada. A série continua como estava.')
+          ? (accept
+            ? 'Alteração aceita. Enviamos a confirmação para seu email.'
+            : a.releasesOriginal
+              ? 'Alteração recusada. A série termina antes da data da alteração.'
+              : 'Alteração recusada. A série continua como estava.')
           : (accept ? 'Proposta aceita com sucesso.' : 'Proposta recusada.');
         this.snackbarService.openSnackBar({ message });
         this.router.navigateByUrl('/dashboard');
