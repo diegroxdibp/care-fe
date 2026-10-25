@@ -21,4 +21,9 @@ export interface ReschedulePayload {
    * ignora-o.
    */
   reason?: string;
+  /**
+   * Só no pedido: liberar já o horário atual em vez de o manter reservado até
+   * haver resposta. Liberado, se a mudança não acontecer a sessão é cancelada.
+   */
+  releaseOriginal?: boolean;
 }

@@ -85,6 +85,12 @@ export class RescheduleConfirmComponent implements OnInit {
     const r = this.request();
     if (r?.status === 'ACCEPTED') return 'Você já aceitou este pedido — a sessão mudou de dia.';
     if (r?.status === 'DECLINED') return 'Você já recusou este pedido — a sessão continuou como estava.';
+    if (r?.status === 'EXPIRED') {
+      return r.releasesOriginal
+        ? 'Este pedido expirou sem resposta. Como o horário atual já tinha sido liberado, a sessão foi cancelada.'
+        : 'Este pedido expirou sem resposta e já não vale — a sessão continuou como estava.';
+    }
+    if (r?.status === 'CANCELLED') return 'Este pedido foi retirado e já não precisa de resposta.';
     return 'Este pedido já foi respondido.';
   });
 
@@ -184,7 +190,9 @@ export class RescheduleConfirmComponent implements OnInit {
       panelClass: 'care-dialog',
       data: {
         title: 'Recusar pedido',
-        message: 'Deseja recusar este pedido? A sessão continua no dia e horário em que está.',
+        message: this.request()?.releasesOriginal
+          ? 'Deseja recusar este pedido? O horário atual já foi liberado, por isso a sessão será cancelada.'
+          : 'Deseja recusar este pedido? A sessão continua no dia e horário em que está.',
         confirmLabel: 'Recusar',
       },
     });
@@ -204,7 +212,9 @@ export class RescheduleConfirmComponent implements OnInit {
         this.snackbarService.openSnackBar({
           message: accept
             ? 'Sessão reagendada com sucesso.'
-            : 'Pedido recusado. A sessão continua como estava.',
+            : r.releasesOriginal
+              ? 'Pedido recusado. A sessão foi cancelada.'
+              : 'Pedido recusado. A sessão continua como estava.',
         });
         this.router.navigateByUrl('/dashboard');
       },

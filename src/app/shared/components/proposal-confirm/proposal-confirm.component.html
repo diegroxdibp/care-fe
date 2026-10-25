@@ -18,7 +18,13 @@
         @if (isSeriesChange()) {
           <p class="lead">
             <strong>{{ a.professionalName }}</strong> propôs alterar sua sessão recorrente a partir de
-            <strong>{{ effectiveFromLabel() }}</strong>. As sessões antes dessa data continuam como estão, e nada muda até você aceitar.
+            <strong>{{ effectiveFromLabel() }}</strong>. As sessões antes dessa data continuam como estão.
+            @if (a.releasesOriginal) {
+              O horário atual já foi liberado a partir dessa data: se você aceitar, a série passa para o novo
+              horário; se recusar, a série termina antes dessa data.
+            } @else {
+              Nada muda até você aceitar.
+            }
           </p>
 
           <div class="compare">

@@ -29,7 +29,10 @@
           </div>
           <div class="row">
             <span translate="no" class="material-symbols-outlined">event_busy</span>
-            <div><div class="k">Está agendada para</div><div class="v">{{ currentLabel() }}</div></div>
+            <div>
+              <div class="k">{{ r.releasesOriginal ? 'Estava agendada para' : 'Está agendada para' }}</div>
+              <div class="v">{{ currentLabel() }}</div>
+            </div>
           </div>
           <div class="row highlight">
             <span translate="no" class="material-symbols-outlined">event_available</span>
@@ -52,7 +55,12 @@
             <p class="already">{{ respondError() }}</p>
           }
           <p class="note">
-            Enquanto você não responder, a sessão continua no dia e horário em que está.
+            @if (r.releasesOriginal) {
+              {{ r.professionalName }} já liberou o horário atual. Se você aceitar, a sessão passa para o
+              novo horário; se recusar, a sessão é cancelada.
+            } @else {
+              Enquanto você não responder, a sessão continua no dia e horário em que está.
+            }
           </p>
           <div class="actions">
             <button class="btn-decline" [disabled]="responding()" (click)="decline()">Recusar</button>
