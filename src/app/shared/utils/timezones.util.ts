@@ -100,9 +100,17 @@ function zoneOffsetMs(timeZone: string, at: Date): number {
  * Converte uma hora de parede num fuso ('2026-08-03' + '14:00' em
  * 'Europe/Lisbon') no instante correspondente.
  *
- * O JS não sabe fazer isto de forma direta, daí as duas passagens: a primeira
- * estima o offset, a segunda corrige-o para o instante já ajustado — necessário
- * junto às mudanças de horário de verão, onde o offset muda a meio do cálculo.
+ * O JS não sabe fazer isto de forma direta: tenta-se a hora com o offset de
+ * antes e com o de depois de uma possível mudança de horário (um dia para cada
+ * lado). Fora dessas noites os dois são iguais e não há mais nada a decidir.
+ *
+ * Nas duas horas difíceis decide como o backend (java.time,
+ * SessionInstants.resolve), senão a mesma sessão mostrava-se uma hora ao lado
+ * dos emails e da janela da chamada:
+ * - a hora que se repete quando o relógio atrasa (01:00-01:59 em Lisboa no
+ *   último domingo de outubro) fica na primeira, ainda no horário de verão;
+ * - a hora que não existe quando o relógio adianta passa para a seguinte
+ *   (01:30 vira 02:30 em Lisboa no último domingo de março).
  */
 export function zonedWallTimeToInstant(
   dateKey: string,
@@ -113,10 +121,22 @@ export function zonedWallTimeToInstant(
   const [hh, mm] = time.split(':').map(Number);
   if ([y, m, d, hh, mm].some((n) => Number.isNaN(n))) return null;
 
-  const guess = Date.UTC(y, m - 1, d, hh, mm);
-  const firstPass = guess - zoneOffsetMs(timeZone, new Date(guess));
-  return new Date(guess - zoneOffsetMs(timeZone, new Date(firstPass)));
+  const wall = Date.UTC(y, m - 1, d, hh, mm);
+  const before = wall - zoneOffsetMs(timeZone, new Date(wall - DAY_MS));
+  const after = wall - zoneOffsetMs(timeZone, new Date(wall + DAY_MS));
+  if (before === after) return new Date(before);
+
+  const isThisWallTime = (instant: number) => {
+    const p = wallTimeInZone(new Date(instant), timeZone);
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) === wall;
+  };
+  const valid = [before, after].filter(isThisWallTime);
+  // Hora repetida: as duas servem, fica a primeira. Hora que não existe: nenhuma
+  // serve, e o offset de antes é o que a empurra para a hora seguinte.
+  return new Date(valid.length ? Math.min(...valid) : before);
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Decompõe um instante nas partes de hora de parede num fuso — o inverso de
