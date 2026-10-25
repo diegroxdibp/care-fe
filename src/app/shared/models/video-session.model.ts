@@ -18,4 +18,9 @@ export interface VideoSession {
   canExtend: boolean;
   /** Silenciar e remover pessoas — mesma regra de `canExtend`. Ausente num backend antigo. */
   canModerate?: boolean;
+  /**
+   * A chamada de uma vaga de grupo: com muita gente na sala, as miniaturas
+   * chegam numa qualidade mais baixa. Ausente num backend antigo.
+   */
+  group?: boolean;
 }

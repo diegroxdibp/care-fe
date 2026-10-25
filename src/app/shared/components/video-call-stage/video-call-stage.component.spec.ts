@@ -47,6 +47,7 @@ const fakeCall = {
   updateParticipant: jest.fn(),
   sendAppMessage: jest.fn(),
   setLocalAudio: jest.fn(),
+  updateReceiveSettings: jest.fn(() => Promise.resolve({})),
   setLocalVideo: jest.fn(),
   startScreenShare: jest.fn(),
   stopScreenShare: jest.fn(),
@@ -789,5 +790,85 @@ describe('VideoCallStageComponent — microfone que não ligou ao entrar', () =>
     fakeCall.handlers.get('participant-updated')!({ participant: fakeParticipants['local'] });
     expect(component.micOn()).toBe(true);
     expect(component.micBlocked()).toBe(false);
+  });
+});
+
+/**
+ * Numa chamada de grupo (até 20 pessoas), cada aparelho descodificava todos os
+ * vídeos em alta. As miniaturas passam a chegar na camada mais leve e só quem
+ * está em destaque chega nítido. Numa sessão individual nada muda.
+ */
+describe('VideoCallStageComponent — qualidade das miniaturas', () => {
+  let fixture: ComponentFixture<VideoCallStageComponent>;
+  let component: VideoCallStageComponent;
+
+  async function join(group: boolean) {
+    await TestBed.configureTestingModule({
+      imports: [VideoCallStageComponent],
+      providers: [{ provide: Router, useValue: { navigate: jest.fn() } }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(VideoCallStageComponent);
+    component = fixture.componentInstance;
+    component.fetchSession = () => of(session({ group }));
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+  }
+
+  function settings(): unknown[] {
+    return fakeCall.updateReceiveSettings.mock.calls.map((c: unknown[]) => c[0]);
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(JOINED_AT));
+    fakeCall.handlers.clear();
+    fakeParticipants = {
+      me: participant('me', { local: true }),
+      ana: participant('ana'),
+      bia: participant('bia'),
+    };
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  it('num grupo, as miniaturas chegam na camada leve e quem está em destaque na nítida', async () => {
+    await join(true);
+
+    expect(settings()).toContainEqual({ base: { video: { layer: 0 } } });
+    expect(settings()).toContainEqual({ ana: { video: { layer: 2 } } });
+  });
+
+  it('ao mudar o destaque, a anterior volta a miniatura e a nova fica nítida', async () => {
+    await join(true);
+    fakeCall.updateReceiveSettings.mockClear();
+
+    component.focusTile('bia');
+    fixture.detectChanges();
+
+    expect(settings()).toEqual([{ ana: 'inherit', bia: { video: { layer: 2 } } }]);
+  });
+
+  it('a minha própria câmara em destaque não pede nada', async () => {
+    await join(true);
+    fakeCall.updateReceiveSettings.mockClear();
+
+    component.focusTile('me');
+    fixture.detectChanges();
+
+    expect(settings()).toEqual([{ ana: 'inherit' }]);
+  });
+
+  it('numa sessão individual a qualidade não é tocada', async () => {
+    await join(false);
+    component.focusTile('bia');
+    fixture.detectChanges();
+
+    expect(fakeCall.updateReceiveSettings).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   Directive,
+  effect,
   ElementRef,
   HostListener,
   inject,
@@ -21,6 +22,7 @@ import Daily, {
   DailyEventObjectParticipant,
   DailyEventObjectParticipantLeft,
   DailyParticipant,
+  DailyReceiveSettingsUpdates,
 } from '@daily-co/daily-js';
 import { SessionService } from '../../services/session.service';
 import { VideoSession } from '../../models/video-session.model';
@@ -42,6 +44,14 @@ const CHAT_PREVIEW_MS = 5_000;
 /** Quando a Daily não diz o que falhou, ou o botão é tocado com o microfone bloqueado. */
 const MIC_BLOCKED_MESSAGE =
   'O navegador não está deixando a sala usar o microfone. Libere o acesso nas configurações do navegador e entre de novo na sala.';
+
+/**
+ * Camadas do vídeo que a Daily envia (simulcast): 0 é a mais leve, 2 a mais
+ * nítida. Num grupo as miniaturas recebem a 0 e só quem está em destaque a 2 -
+ * com até 20 pessoas, cada aparelho descodificava 19 vídeos em alta.
+ */
+const THUMBNAIL_LAYER = 0;
+const MAIN_LAYER = 2;
 
 /** Id da tile da tela compartilhada de uma pessoa - a câmara fica com o session_id. */
 function screenTileId(sessionId: string): string {
@@ -268,7 +278,19 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
   });
 
   private call: DailyCall | null = null;
+  /** Numa chamada de grupo, as miniaturas chegam na camada mais leve (ver THUMBNAIL_LAYER). */
+  private lightThumbnails = false;
+  /** A pessoa cuja câmara chega agora em alta, por estar em destaque. */
+  private promotedSessionId: string | null = null;
   private readonly streamsBySessionId = new Map<string, MediaStream>();
+
+  constructor() {
+    // Quem passa ao destaque passa a chegar nítido; quem sai volta a miniatura.
+    effect(() => {
+      const main = this.mainTile();
+      if (this.state() === 'in-call') this.promoteToMain(main);
+    });
+  }
   private autoLeaveTimer: ReturnType<typeof setTimeout> | null = null;
   private warningRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private clockTimer: ReturnType<typeof setInterval> | null = null;
@@ -359,6 +381,11 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
         token: session.token,
         userName: this.sessionService.user()?.name ?? 'Participante',
       });
+      this.lightThumbnails = !!session.group;
+      if (this.lightThumbnails) {
+        // Só a câmara: uma tela compartilhada chega sempre na qualidade dela.
+        call.updateReceiveSettings({ base: { video: { layer: THUMBNAIL_LAYER } } }).catch(() => {});
+      }
       this.state.set('in-call');
       this.refreshTiles();
       this.opensAt.set(new Date(session.opensAt).getTime());
@@ -726,6 +753,22 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
     input.value = '';
   }
 
+  /**
+   * Num grupo, pede a câmara de quem está em destaque na camada mais nítida e
+   * devolve a anterior à das miniaturas. A minha câmara não se recebe; uma
+   * tela compartilhada não é afetada pela camada das câmaras.
+   */
+  private promoteToMain(main: VideoTile | null): void {
+    if (!this.call || !this.lightThumbnails) return;
+    const next = main && !main.isLocal && !main.isScreen ? main.sessionId : null;
+    if (next === this.promotedSessionId) return;
+    const updates: DailyReceiveSettingsUpdates = {};
+    if (this.promotedSessionId) updates[this.promotedSessionId] = 'inherit';
+    if (next) updates[next] = { video: { layer: MAIN_LAYER } };
+    this.promotedSessionId = next;
+    this.call.updateReceiveSettings(updates).catch(() => {});
+  }
+
   private teardown(): void {
     if (document.fullscreenElement === this.hostEl.nativeElement) {
       document.exitFullscreen?.().catch(() => {});
@@ -742,5 +785,7 @@ export class VideoCallStageComponent implements OnInit, OnDestroy {
       this.call.destroy().catch(() => {});
       this.call = null;
     }
+    this.lightThumbnails = false;
+    this.promotedSessionId = null;
   }
 }
