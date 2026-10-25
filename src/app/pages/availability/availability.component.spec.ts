@@ -446,3 +446,120 @@ describe('AvailabilityComponent — o horário atual ao reagendar ou alterar a s
     expect(component.appointments().find(a => a.id === 74)!.endDate).toBe('2026-10-28');
   });
 });
+
+/**
+ * A agenda mostra-se no fuso do perfil, mesmo para vagas escritas noutro fuso
+ * (a pessoa mudou de fuso depois de as criar). Até aqui mostrava a hora da
+ * própria vaga: uma vaga das 17:00 de Lisboa aparecia às 17:00 a quem tem o
+ * perfil em São Paulo, onde é 13:00 ou 14:00 conforme a época.
+ */
+describe('AvailabilityComponent — a agenda no fuso do perfil (Brasil ⇄ Portugal)', () => {
+  const SAO_PAULO = 'America/Sao_Paulo';
+  let fixture: ComponentFixture<AvailabilityComponent>;
+  let component: AvailabilityComponent;
+  let apiService: Record<string, jest.Mock>;
+  let dialogAnswers: unknown[];
+
+  /** Terça às 22:00 em São Paulo, semanal. */
+  const saoPauloTuesday: AvailabilityModel = {
+    ...thursdaySlot,
+    id: 479,
+    startTime: '22:00:00',
+    endTime: '23:00:00',
+    dayOfWeek: 'TUESDAY' as unknown as DayOfWeek,
+    startDate: '2026-09-01',
+    timeZone: SAO_PAULO,
+  } as AvailabilityModel;
+
+  async function setup(profileZone: string, slots: AvailabilityModel[], now: string, appts: Appointment[] = []) {
+    jest.useFakeTimers({
+      now: new Date(now),
+      doNotFake: ['nextTick', 'setImmediate', 'setTimeout', 'setInterval', 'queueMicrotask',
+        'requestAnimationFrame', 'cancelAnimationFrame', 'clearTimeout', 'clearInterval'],
+    });
+    dialogAnswers = [];
+    apiService = {
+      getServices: jest.fn().mockReturnValue(of([])),
+      getMyServices: jest.fn().mockReturnValue(of([])),
+      getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of(slots)),
+      getProfessionalAppointments: jest.fn().mockReturnValue(of(appts)),
+      getSentInvitations: jest.fn().mockReturnValue(of([])),
+      getCommitments: jest.fn().mockReturnValue(of([])),
+      getSentRescheduleRequests: jest.fn().mockReturnValue(of([])),
+      closeAvailabilityDate: jest.fn().mockReturnValue(of(null)),
+    };
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityComponent, NoopAnimationsModule],
+      providers: [
+        { provide: ApiService, useValue: apiService },
+        { provide: SessionService, useValue: { user: signal({ id: ME, timeZone: profileZone }) } },
+        { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
+        { provide: SchedulingService, useValue: {} },
+        {
+          provide: MatDialog,
+          useValue: { open: jest.fn().mockImplementation(() => ({ afterClosed: () => of(dialogAnswers.shift()) })) },
+        },
+        {
+          provide: ScreenSizeService,
+          useValue: { isMobile: signal(false), isTablet: signal(false), isDesktop: signal(true) },
+        },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AvailabilityComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  /** Os blocos de uma coluna (0 = segunda) como "início–fim". */
+  function column(col: number): string[] {
+    return component.blocksForColumn(col).map(b => `${b.startTime}–${b.endTime}`);
+  }
+
+  async function nextWeek() {
+    component.nextWeek();
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  it('uma vaga de Lisboa às 17:00 aparece às 13:00 a um perfil de São Paulo antes da mudança de hora…', async () => {
+    await setup(SAO_PAULO, [thursdaySlot], '2026-10-21T12:00:00Z');
+    expect(column(3)).toEqual(['13:00–14:00']);
+  });
+
+  it('…e às 14:00 depois dela (25/10), relida do servidor ao mudar de semana', async () => {
+    await setup(SAO_PAULO, [thursdaySlot], '2026-10-21T12:00:00Z');
+    await nextWeek();
+    expect(apiService['getAvailabilitiesByProfessionalId']).toHaveBeenCalledTimes(2);
+    expect(column(3)).toEqual(['14:00–15:00']);
+  });
+
+  it('a hora da sessão marcada também aparece no fuso do perfil', async () => {
+    const series = appointment({ id: 74, timeZone: LISBON, startTime: '17:00', endTime: '18:00' } as Partial<Appointment>);
+    await setup(SAO_PAULO, [thursdaySlot], '2026-10-21T12:00:00Z', [series]);
+    expect(component.apptTimeRange(series)).toBe('13:00–14:00');
+  });
+
+  it('no mesmo fuso nada muda, e mudar de semana não relê nada', async () => {
+    await setup(LISBON, [thursdaySlot], '2026-10-21T12:00:00Z');
+    expect(column(3)).toEqual(['17:00–18:00']);
+    await nextWeek();
+    expect(apiService['getAvailabilitiesByProfessionalId']).toHaveBeenCalledTimes(1);
+    expect(column(3)).toEqual(['17:00–18:00']);
+  });
+
+  it('terça 22:00 em São Paulo é quarta 01:00 em Lisboa, e fechar esse dia fecha a terça da vaga', async () => {
+    await setup(LISBON, [saoPauloTuesday], '2026-10-28T12:00:00Z');
+    expect(column(1)).toEqual([]);
+    expect(column(2)).toEqual(['01:00–02:00']);
+
+    dialogAnswers = ['day'];
+    const block = component.blocksForColumn(2)[0];
+    component.removeSlot(new Event('click'), block, 0);
+
+    expect(apiService['closeAvailabilityDate']).toHaveBeenCalledWith(479, '2026-10-27');
+  });
+});
