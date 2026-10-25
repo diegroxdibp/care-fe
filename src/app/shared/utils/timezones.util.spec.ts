@@ -91,6 +91,25 @@ describe('zonedWallTimeToInstant + wallTimeInZone — Brasil ⇄ Portugal', () =
     expect(roundTrip).toEqual({ year: 2026, month: 3, day: 29, hour: 10, minute: 0 });
   });
 
+  // Os mesmos instantes que o backend dá (SessionInstants.resolve, java.time):
+  // sem isto uma sessão nestas horas aparecia uma hora ao lado dos emails.
+  it('a hora repetida quando o relógio atrasa (25 out 2026, Lisboa) fica na primeira, como no backend', () => {
+    expect(zonedWallTimeToInstant('2026-10-25', '01:30', LISBON)?.toISOString()).toBe('2026-10-25T00:30:00.000Z');
+    expect(zonedWallTimeToInstant('2026-10-25', '01:00', LISBON)?.toISOString()).toBe('2026-10-25T00:00:00.000Z');
+    // Fora da hora repetida, nada muda.
+    expect(zonedWallTimeToInstant('2026-10-25', '00:30', LISBON)?.toISOString()).toBe('2026-10-24T23:30:00.000Z');
+    expect(zonedWallTimeToInstant('2026-10-25', '02:00', LISBON)?.toISOString()).toBe('2026-10-25T02:00:00.000Z');
+  });
+
+  it('a hora que não existe quando o relógio adianta (28 mar 2027, Lisboa) passa para a seguinte, como no backend', () => {
+    expect(zonedWallTimeToInstant('2027-03-28', '01:30', LISBON)?.toISOString()).toBe('2027-03-28T01:30:00.000Z');
+    expect(wallTimeInZone(zonedWallTimeToInstant('2027-03-28', '01:30', LISBON)!, LISBON).hour).toBe(2);
+  });
+
+  it('São Paulo, sem horário de verão, não tem horas repetidas nem em falta', () => {
+    expect(zonedWallTimeToInstant('2026-10-25', '01:30', SAO_PAULO)?.toISOString()).toBe('2026-10-25T04:30:00.000Z');
+  });
+
   it('devolve null para uma hora de parede malformada', () => {
     expect(zonedWallTimeToInstant('2026-01-15', 'not-a-time', SAO_PAULO)).toBeNull();
     expect(zonedWallTimeToInstant('not-a-date', '22:00', SAO_PAULO)).toBeNull();
