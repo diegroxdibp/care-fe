@@ -44,7 +44,7 @@ import {
 import { applyCancellation, CancellationScope } from '../../shared/utils/cancellation.util';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
 import { isPendingSeriesChange, nextSeriesOccurrence, pendingSeriesChangeFor } from '../../shared/utils/series-change.util';
-import { detectBrowserTimezone, isWallTimePast } from '../../shared/utils/timezones.util';
+import { isWallTimePast, wallTimeInZone, zonedWallTimeToInstant } from '../../shared/utils/timezones.util';
 import {
   fromApiEndTime,
   minToTime,
@@ -257,6 +257,12 @@ interface TherapistBlock {
   local?: string;
   price?: number;
   priceBRL?: number;
+  /**
+   * Dias que a data aqui está à frente da data da própria vaga - só numa vaga
+   * escrita noutro fuso (ver inCalendarZone). O backend fala sempre na data
+   * da vaga (fechar um dia, reagendar, as sessões dessa data).
+   */
+  dayShift?: number;
 }
 
 // ─── Backend → frontend enum maps ─────────────────────────────────────────────
@@ -270,6 +276,94 @@ const BACKEND_DOW_MAP: Record<string, DayOfWeek> = {
   SATURDAY: DayOfWeek.SATURDAY,
   SUNDAY: DayOfWeek.SUNDAY,
 };
+
+// ─── Fuso da agenda ───────────────────────────────────────────────────────────
+
+/** O nome do enum do backend para cada Date.getDay(). */
+const JS_DAY_TO_BACKEND = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
+/** O fuso que o backend usa para uma vaga ou um perfil sem fuso (SessionInstants.DEFAULT_ZONE_ID). */
+const DEFAULT_ZONE = 'Europe/Lisbon';
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function wallKey(w: { year: number; month: number; day: number }): string {
+  return `${w.year}-${pad2(w.month)}-${pad2(w.day)}`;
+}
+
+function wallHm(w: { hour: number; minute: number }): string {
+  return `${pad2(w.hour)}:${pad2(w.minute)}`;
+}
+
+/** Dias de calendário de `fromKey` a `toKey` (sem horas pelo meio, logo sem horário de verão). */
+function daysBetween(fromKey: string, toKey: string): number {
+  const [fy, fm, fd] = fromKey.split('-').map(Number);
+  const [ty, tm, td] = toKey.split('-').map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
+/** Uma vaga já no fuso da agenda, e quantos dias a data aqui está à frente da data da própria vaga. */
+type CalendarAvailability = AvailabilityModel & { dayShift?: number };
+
+/**
+ * Uma vaga escrita noutro fuso passa ao fuso da agenda - acontece quando a
+ * pessoa profissional mudou o fuso do perfil depois de a criar. Sem isto a
+ * agenda mostrava as horas da vaga como se fossem do perfil: uma vaga das
+ * 15:00 de Lisboa aparecia às 15:00 a quem está em São Paulo, onde é 11:00
+ * ou 12:00, conforme a época.
+ *
+ * Converte-se a ocorrência que cai na semana em vista, porque com fusos de
+ * horários de verão diferentes a hora aqui muda a meio do ano; e a data pode
+ * mudar perto da meia-noite, o que fica em `dayShift`. Uma vaga que aqui
+ * acabaria no dia seguinte fica até às 24:00: a grelha não atravessa a
+ * meia-noite.
+ */
+function inCalendarZone(av: AvailabilityModel, weekKeys: string[], zone: string): CalendarAvailability {
+  const from = av.timeZone || DEFAULT_ZONE;
+  if (from === zone || weekKeys.length === 0) return av;
+
+  const startHm = stripSec(av.startTime);
+  const endHm = fromApiEndTime(av.endTime);
+  const candidates: string[] = [];
+  if (av.isRecurring) {
+    const day = JS_DAY_TO_BACKEND.indexOf(String(av.dayOfWeek));
+    // Um dia de folga de cada lado: a data na vaga pode cair noutro dia aqui.
+    for (let k = addDaysKey(weekKeys[0], -1); k <= addDaysKey(weekKeys[6], 1); k = addDaysKey(k, 1)) {
+      if (new Date(k + 'T00:00:00').getDay() === day) candidates.push(k);
+    }
+  } else {
+    candidates.push(av.startDate);
+  }
+
+  let picked: { key: string; start: ReturnType<typeof wallTimeInZone>; end: ReturnType<typeof wallTimeInZone> } | null = null;
+  for (const key of candidates) {
+    const endKey = timeToMin(endHm) <= timeToMin(startHm) ? addDaysKey(key, 1) : key;
+    const start = zonedWallTimeToInstant(key, startHm, from);
+    const end = zonedWallTimeToInstant(endKey, endHm, from);
+    if (!start || !end) continue;
+    const candidate = { key, start: wallTimeInZone(start, zone), end: wallTimeInZone(end, zone) };
+    if (!picked) picked = candidate;
+    if (weekKeys.includes(wallKey(candidate.start))) {
+      picked = candidate;
+      break;
+    }
+  }
+  if (!picked) return av;
+
+  const viewKey = wallKey(picked.start);
+  const dayShift = daysBetween(picked.key, viewKey);
+  return {
+    ...av,
+    startTime: wallHm(picked.start),
+    endTime: wallKey(picked.end) === viewKey ? wallHm(picked.end) : '00:00',
+    dayOfWeek: JS_DAY_TO_BACKEND[new Date(viewKey + 'T00:00:00').getDay()] as unknown as DayOfWeek,
+    startDate: av.isRecurring ? addDaysKey(av.startDate, dayShift) : viewKey,
+    endDate: av.endDate ? addDaysKey(av.endDate, dayShift) : av.endDate,
+    dayShift,
+  };
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -373,6 +467,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   private _nextId = 0;
 
   blocks = signal<TherapistBlock[]>([]);
+
+  /**
+   * Há vagas escritas noutro fuso: estão convertidas para a semana em vista, e
+   * a semana seguinte pode precisar de outra conversão (horário de verão).
+   */
+  private hasForeignZoneSlots = false;
+
+  /**
+   * O fuso em que a agenda se mostra e se edita: o do perfil, o mesmo com que o
+   * backend grava as vagas (AvailabilityService.zoneOf), com o mesmo recurso.
+   */
+  private calendarZone(): string {
+    return this.sessionService.user()?.timeZone || DEFAULT_ZONE;
+  }
 
   selectedBlockId = signal<number | null>(null);
   selectedAppointment = signal<Appointment | null>(null);
@@ -867,6 +975,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.calSlideClass.set(exitCls);
     setTimeout(() => {
       this.weekStart.set(newStart);
+      // As vagas de outro fuso estão convertidas para a semana que se deixou.
+      if (this.hasForeignZoneSlots) this._reconvertForWeek();
       this.calSlideClass.set(enterCls);
       setTimeout(() => this.calSlideClass.set(''), 280);
     }, 220);
@@ -1966,7 +2076,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return toKey(d);
   }
 
-  private groupAvailabilitiesIntoBlocks(avails: AvailabilityModel[]): TherapistBlock[] {
+  private groupAvailabilitiesIntoBlocks(saved: AvailabilityModel[]): TherapistBlock[] {
+    const zone = this.calendarZone();
+    const weekKeys = this.weekDays().map(d => toKey(d));
+    this.hasForeignZoneSlots = saved.some(a => (a.timeZone || DEFAULT_ZONE) !== zone);
+    const avails: CalendarAvailability[] = saved.map(a => inCalendarZone(a, weekKeys, zone));
     if (avails.length === 0) return [];
 
     const sorted = [...avails].sort((a, b) => {
@@ -1977,7 +2091,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     });
 
     const blocks: TherapistBlock[] = [];
-    let group: AvailabilityModel[] = [];
+    let group: CalendarAvailability[] = [];
     const todayKey = toKey(new Date());
 
     const flush = () => {
@@ -2007,7 +2121,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
               && (avFreq === RecurrenceFrequency.WEEKLY ? sameWeeklyStart : av.startDate === last.startDate)
             : av.startDate === last.startDate);
         const sameModality = normalizeModality(av.modality) === normalizeModality(last.modality);
-        if (sameDay && sameModality && av.startTime === last.endTime && this._sameServiceSet(av.services, last.services)) {
+        // Duas vagas convertidas de dias diferentes da origem nunca são o mesmo bloco.
+        const sameShift = (av.dayShift ?? 0) === (last.dayShift ?? 0);
+        if (sameDay && sameShift && sameModality && av.startTime === last.endTime
+          && this._sameServiceSet(av.services, last.services)) {
           group.push(av);
         } else {
           flush();
@@ -2019,7 +2136,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return blocks;
   }
 
-  private _avGroupToBlock(avails: AvailabilityModel[]): TherapistBlock {
+  private _avGroupToBlock(avails: CalendarAvailability[]): TherapistBlock {
     const first = avails[0];
     const last = avails[avails.length - 1];
     const firstStart = stripSec(first.startTime);
@@ -2046,6 +2163,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       local: first.address,
       price: first.price,
       priceBRL: first.priceBRL,
+      dayShift: first.dayShift ?? 0,
     };
   }
 
@@ -2069,6 +2187,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * com backendIds que já não apontavam a nada; a edição seguinte partia
    * desse retrato falso. Depois de um erro, a única fonte fiável é o backend.
    */
+  /**
+   * As vagas de outro fuso convertidas de novo, para a semana agora em vista.
+   * Lidas do servidor e não do que está em memória, que pode já ter edições
+   * locais por cima dos dados convertidos para a semana anterior.
+   */
+  private _reconvertForWeek(): void {
+    const userId = this.sessionService.user()?.id;
+    if (!userId) return;
+    this.apiService.getAvailabilitiesByProfessionalId(userId).subscribe({
+      next: (avails) => this.blocks.set(this.groupAvailabilitiesIntoBlocks(avails)),
+      error: () => {},
+    });
+  }
+
   private _resyncBlocksFromServer(message?: string): void {
     if (message) this.snackbarService.openSnackBar({ message });
 
@@ -2230,15 +2362,24 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // ─ Appointment / slot helpers ────────────────────────────────────────────────
 
-  /** A data concreta que este bloco representa na semana em vista. */
+  /**
+   * A data concreta que este bloco representa na semana em vista - na própria
+   * vaga, que é a que o backend e as sessões usam.
+   */
   private blockDateInView(block: TherapistBlock): string | null {
-    if (!block.isRecurring) {
-      return block.startDate ?? null;
-    }
-    if (!block.weekdays[0]) {
-      return null;
-    }
-    return toKey(this.weekDays()[COL_TO_DOW.indexOf(block.weekdays[0])]);
+    const key = this.viewDateKey(block);
+    return key ? this.toSlotDate(block, key) : null;
+  }
+
+  /** O dia do bloco na agenda (no fuso dela), para mostrar. */
+  private viewDateKey(block: TherapistBlock): string | undefined {
+    if (!block.isRecurring) return block.startDate;
+    return block.weekdays.length > 0 ? this.dateForWeekday(block.weekdays[0]) : undefined;
+  }
+
+  /** A data na própria vaga para um dia da agenda - diferem numa vaga de outro fuso, perto da meia-noite. */
+  private toSlotDate(block: TherapistBlock, viewKey: string): string {
+    return block.dayShift ? addDaysKey(viewKey, -block.dayShift) : viewKey;
   }
 
   appointmentsForBlock(block: TherapistBlock): Appointment[] {
@@ -2321,8 +2462,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * numa vaga recorrente, e é nele que se vê se uma vaga está fechada.
    */
   private blockDateKey(block: TherapistBlock): string | undefined {
-    if (!block.isRecurring) return block.startDate;
-    return block.weekdays.length > 0 ? this.dateForWeekday(block.weekdays[0]) : undefined;
+    const key = this.viewDateKey(block);
+    return key ? this.toSlotDate(block, key) : undefined;
   }
 
   hasBookings(block: TherapistBlock): boolean {
@@ -2433,19 +2574,45 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return new Intl.NumberFormat(this.locale, { style: 'currency', currency: this.CURRENCY_BRL }).format(appt.priceBRL);
   }
 
+  /** O dia da sessão em vista no fuso da agenda: só o dia da semana numa série. */
   apptDateLabel(appt: Appointment): string {
-    if (appt.isRecurring) {
-      const dow = BACKEND_DOW_MAP[appt.dayOfWeek as unknown as string];
-      const idx = COL_TO_DOW.indexOf(dow);
-      const day = idx >= 0 ? PT_DOW_LONG[idx] : '';
-      return day.charAt(0).toUpperCase() + day.slice(1);
-    }
-    if (appt.startDate) {
-      const d = new Date(appt.startDate + 'T00:00:00');
-      const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
-      return `${dow.charAt(0).toUpperCase() + dow.slice(1)}, ${d.getDate()} ${PT_MONTHS[d.getMonth()]}`;
-    }
-    return '';
+    const { dateKey } = this.apptInCalendar(appt, this.occurrenceInView(appt));
+    if (!dateKey) return '';
+    const d = new Date(dateKey + 'T00:00:00');
+    const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
+    const day = dow.charAt(0).toUpperCase() + dow.slice(1);
+    return appt.isRecurring ? day : `${day}, ${d.getDate()} ${PT_MONTHS[d.getMonth()]}`;
+  }
+
+  /** "12:00–13:00": a sessão em vista no fuso da agenda. */
+  apptTimeRange(appt: Appointment): string {
+    const { start, end } = this.apptInCalendar(appt, this.occurrenceInView(appt));
+    return `${start}–${end}`;
+  }
+
+  /** A ocorrência em vista de uma sessão (data na marcação): a do bloco nesta semana, ou a dela. */
+  private occurrenceInView(appt: Appointment): string {
+    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
+    return (block && this.blockDateInView(block)) || appt.startDate;
+  }
+
+  /**
+   * Uma ocorrência de uma sessão no fuso da agenda. A marcação guarda a hora no
+   * fuso em que foi combinada, que pode não ser o do perfil de agora.
+   */
+  private apptInCalendar(appt: Appointment, occurrenceDate?: string | null): { dateKey: string; start: string; end: string } {
+    const date = occurrenceDate || appt.startDate;
+    const startHm = stripSec(appt.startTime);
+    const endHm = fromApiEndTime(appt.endTime);
+    const from = appt.timeZone || DEFAULT_ZONE;
+    const zone = this.calendarZone();
+    if (!date || from === zone) return { dateKey: date, start: startHm, end: endHm };
+    const endKey = timeToMin(endHm) <= timeToMin(startHm) ? addDaysKey(date, 1) : date;
+    const start = zonedWallTimeToInstant(date, startHm, from);
+    const end = zonedWallTimeToInstant(endKey, endHm, from);
+    if (!start || !end) return { dateKey: date, start: startHm, end: endHm };
+    const s = wallTimeInZone(start, zone);
+    return { dateKey: wallKey(s), start: wallHm(s), end: wallHm(wallTimeInZone(end, zone)) };
   }
 
   selectSlot(event: Event, appt: Appointment): void {
@@ -2677,11 +2844,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           data: {
             series: appt,
             counterpartName: this.slotPatientName(appt),
-            currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime.slice(0, 5)}–${appt.endTime.slice(0, 5)} · `
+            currentLabel: `${this.apptDateLabel(appt)} · ${this.apptTimeRange(appt)} · `
               + this.recurrenceLabel(appt.isRecurring, appt.recurrenceFrequency),
             slots: avails.filter(a => a.isRecurring),
             serviceName: (key: string) => this.serviceDisplayName(key),
-            viewerTimeZone: this.sessionService.user()?.timeZone || detectBrowserTimezone(),
+            viewerTimeZone: this.calendarZone(),
           } satisfies EditSeriesDialogData,
         });
 
@@ -2839,7 +3006,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           {
             value: 'day',
             icon: 'event_busy',
-            label: `Só em ${this.fmtDayMonth(dateKey)}`,
+            label: `Só em ${this.fmtDayMonth(this.viewDateKey(block) ?? dateKey)}`,
             hint: 'O resto da série continua aberto.',
           },
           {
@@ -2882,7 +3049,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         this._invalidateSchedulingCache();
         this._setSlotClosedDates(block.id, slot.backendId,
           dates => dates.includes(dateKey) ? dates : [...dates, dateKey]);
-        this.snackbarService.openSnackBar({ message: `Horário fechado em ${this.fmtDateKey(dateKey)}.` });
+        this.snackbarService.openSnackBar({ message: `Horário fechado em ${this.fmtDateKey(this.viewDateKey(block) ?? dateKey)}.` });
       },
       // A recusa (ex.: já há sessão marcada nesse dia) chega pelo errorInterceptor.
       error: () => {},
@@ -3092,7 +3259,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
             slotModality: block.modality,
             dayLabel,
-            timeLabel: `${appt.startTime}–${appt.endTime}`,
+            timeLabel: this.apptTimeRange(appt),
             slotRecurrenceFrequency: normalizeRecurrenceFrequency(block.recurrenceFrequency),
             slotAddress: appt.address ?? block.local,
             slotPrice: appt.price ?? block.price,
@@ -3135,7 +3302,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           data: {
             counterpartName: this.slotPatientName(appt),
             serviceName: this.slotServiceName(appt),
-            currentLabel: `${this.apptDateLabel(appt)} · ${appt.startTime}–${appt.endTime}`,
+            currentLabel: `${this.apptDateLabel(appt)} · ${this.apptTimeRange(appt)}`,
             isRecurring: !!appt.isRecurring,
             slotsFor: (dateKey: string) => freeSlotsOn(
               avails,
@@ -3144,6 +3311,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
               {
                 moving: { availabilityId: appt.availabilityId, date: occurrenceDate },
                 preferredModality: normalizeModality(String(appt.modality)),
+                viewerTimeZone: this.calendarZone(),
               },
             ),
             // Do lado de quem atende, mudar o dia de uma sessão combinada não é
@@ -3212,8 +3380,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (appts.length === 0) return true;
     const slots = new Set(generateSlots(updated.startTime, updated.endTime, updated.sessionDuration));
     const svcIds = new Set(updated.services.map(s => s.id));
+    const date = this.blockDateInView(updated);
     return appts.every(a =>
-      slots.has(a.startTime) &&
+      slots.has(this.apptInCalendar(a, date).start) &&
       (a.professionalServiceId == null || svcIds.has(a.professionalServiceId)),
     );
   }
