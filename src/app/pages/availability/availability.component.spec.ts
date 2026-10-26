@@ -12,6 +12,7 @@ import { ScreenSizeService } from '../../shared/services/screen-size.service';
 import { SessionService } from '../../shared/services/session.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { SchedulingService } from '../../shared/services/scheduling.service';
+import { SchedulingFormControls } from '../../shared/enums/scheduling-form-controls.enum';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { Modality } from '../../shared/enums/modality.enum';
 import { invitationAsAppointment } from '../../shared/utils/invitation.util';
@@ -494,7 +495,15 @@ describe('AvailabilityComponent — a agenda no fuso do perfil (Brasil ⇄ Portu
         { provide: ApiService, useValue: apiService },
         { provide: SessionService, useValue: { user: signal({ id: ME, timeZone: profileZone }) } },
         { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
-        { provide: SchedulingService, useValue: {} },
+        {
+          // Fechar um dia limpa o formulário do Agendar; com {} o erro rebentava
+          // de forma assíncrona e caía no teste seguinte.
+          provide: SchedulingService,
+          useValue: {
+            schedulingForm: { controls: { [SchedulingFormControls.SELECTED_SERVICE]: { setValue: jest.fn() } } },
+            clearChainedRelatedFields: jest.fn(),
+          },
+        },
         {
           provide: MatDialog,
           useValue: { open: jest.fn().mockImplementation(() => ({ afterClosed: () => of(dialogAnswers.shift()) })) },
@@ -561,5 +570,139 @@ describe('AvailabilityComponent — a agenda no fuso do perfil (Brasil ⇄ Portu
     component.removeSlot(new Event('click'), block, 0);
 
     expect(apiService['closeAvailabilityDate']).toHaveBeenCalledWith(479, '2026-10-27');
+  });
+});
+
+/**
+ * Duas séries quinzenais intercaladas na mesma vaga (caso de out. 2026). O
+ * painel da sessão fica aberto ao mudar de semana, e cancelar relia a data da
+ * semana em vista: ia a marcação de uma série com a data da outra, e o backend
+ * recusava ("A data 29/10/2026 não é uma sessão desta série").
+ */
+describe('AvailabilityComponent — a sessão aberta mantém a sua data ao mudar de semana', () => {
+  const SAO_PAULO = 'America/Sao_Paulo';
+  let fixture: ComponentFixture<AvailabilityComponent>;
+  let component: AvailabilityComponent;
+  let apiService: Record<string, jest.Mock>;
+  let dialogAnswers: unknown[];
+
+  // Quintas 22/10, 05/11… e 29/10, 12/11… às 17h em Lisboa.
+  const seriesA = appointment({ id: 74, startDate: '2026-10-22', recurrenceFrequency: 'BIWEEKLY', timeZone: LISBON } as Partial<Appointment>);
+  const seriesB = appointment({ id: 75, startDate: '2026-10-29', recurrenceFrequency: 'BIWEEKLY', timeZone: LISBON } as Partial<Appointment>);
+
+  /** Terça às 22:00 em São Paulo — quarta 01:00 em Lisboa. */
+  const saoPauloTuesday: AvailabilityModel = {
+    ...thursdaySlot,
+    id: 479,
+    startTime: '22:00:00',
+    endTime: '23:00:00',
+    dayOfWeek: 'TUESDAY' as unknown as DayOfWeek,
+    startDate: '2026-09-01',
+    timeZone: SAO_PAULO,
+  } as AvailabilityModel;
+  const saoPauloSeries = appointment({
+    id: 76,
+    availabilityId: 479,
+    startDate: '2026-10-27',
+    startTime: '22:00:00',
+    endTime: '23:00:00',
+    dayOfWeek: 'TUESDAY' as unknown as DayOfWeek,
+    recurrenceFrequency: 'BIWEEKLY',
+    timeZone: SAO_PAULO,
+  } as Partial<Appointment>);
+
+  async function setup(profileZone: string, slots: AvailabilityModel[], now: string, appts: Appointment[]) {
+    jest.useFakeTimers({
+      now: new Date(now),
+      doNotFake: ['nextTick', 'setImmediate', 'setTimeout', 'setInterval', 'queueMicrotask',
+        'requestAnimationFrame', 'cancelAnimationFrame', 'clearTimeout', 'clearInterval'],
+    });
+    dialogAnswers = [];
+    apiService = {
+      getServices: jest.fn().mockReturnValue(of([])),
+      getMyServices: jest.fn().mockReturnValue(of([])),
+      getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of(slots)),
+      getProfessionalAppointments: jest.fn().mockReturnValue(of(appts)),
+      getSentInvitations: jest.fn().mockReturnValue(of([])),
+      getCommitments: jest.fn().mockReturnValue(of([])),
+      getSentRescheduleRequests: jest.fn().mockReturnValue(of([])),
+      deleteAppointment: jest.fn().mockReturnValue(of(null)),
+    };
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityComponent, NoopAnimationsModule],
+      providers: [
+        { provide: ApiService, useValue: apiService },
+        { provide: SessionService, useValue: { user: signal({ id: ME, timeZone: profileZone }) } },
+        { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
+        { provide: SchedulingService, useValue: {} },
+        {
+          provide: MatDialog,
+          useValue: { open: jest.fn().mockImplementation(() => ({ afterClosed: () => of(dialogAnswers.shift()) })) },
+        },
+        {
+          provide: ScreenSizeService,
+          useValue: { isMobile: signal(false), isTablet: signal(false), isDesktop: signal(true) },
+        },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AvailabilityComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  afterEach(() => {
+    fixture?.destroy();
+    jest.useRealTimers();
+  });
+
+  async function nextWeek() {
+    component.nextWeek();
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  function cancelOnly(appt: Appointment) {
+    dialogAnswers = [{ scope: 'SINGLE' }];
+    component.cancelAppointment(appt);
+  }
+
+  it('cancelar depois de mudar de semana cancela a sessão que foi aberta', async () => {
+    await setup(LISBON, [thursdaySlot], '2026-10-21T12:00:00Z', [seriesA, seriesB]);
+    component.selectSlot(new Event('click'), seriesA);
+    await nextWeek();
+
+    cancelOnly(seriesA);
+
+    expect(apiService['deleteAppointment']).toHaveBeenCalledWith(74, '', '2026-10-22', 'SINGLE');
+  });
+
+  it('o painel mostra a data da sessão aberta, não a da semana em vista', async () => {
+    await setup(LISBON, [thursdaySlot], '2026-10-21T12:00:00Z', [seriesA, seriesB]);
+    component.selectSlot(new Event('click'), seriesA);
+    await nextWeek();
+
+    expect(component.apptDateLabel(seriesA)).toMatch(/^Quinta-feira, 22 /);
+  });
+
+  it('a outra série, aberta na sua semana, cancela a sua própria data', async () => {
+    await setup(LISBON, [thursdaySlot], '2026-10-21T12:00:00Z', [seriesA, seriesB]);
+    component.selectSlot(new Event('click'), seriesA);
+    await nextWeek();
+    component.selectSlot(new Event('click'), seriesB);
+
+    cancelOnly(seriesB);
+
+    expect(apiService['deleteAppointment']).toHaveBeenCalledWith(75, '', '2026-10-29', 'SINGLE');
+  });
+
+  it('uma série de São Paulo vista de Lisboa cancela a terça da vaga, mesmo noutra semana', async () => {
+    // Terça 27/10 22:00 em São Paulo aparece na quarta 28/10 01:00 em Lisboa.
+    await setup(LISBON, [saoPauloTuesday], '2026-10-26T12:00:00Z', [saoPauloSeries]);
+    component.selectSlot(new Event('click'), saoPauloSeries);
+    await nextWeek();
+    expect(component.apptDateLabel(saoPauloSeries)).toMatch(/^Quarta-feira, 28 /);
+
+    cancelOnly(saoPauloSeries);
+
+    expect(apiService['deleteAppointment']).toHaveBeenCalledWith(76, '', '2026-10-27', 'SINGLE');
   });
 });
