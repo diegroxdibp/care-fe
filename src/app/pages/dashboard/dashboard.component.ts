@@ -1,4 +1,5 @@
-import { Component, computed, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationEnd,
   Router,
@@ -108,6 +109,7 @@ export class DashboardPageComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly snackbarService = inject(SnackbarService);
   private readonly featureFlagService = inject(FeatureFlagService);
@@ -264,15 +266,41 @@ export class DashboardPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((e: NavigationEnd) => {
         this.currentUrl.set(e.urlAfterRedirects);
         // Também cobre navegações que não vêm da folha (ex.: sino do cabeçalho).
         this.isMoreSheetOpen.set(false);
+        // As outras páginas do painel (proposta, pedido de reagendamento, minhas
+        // sessões…) abrem dentro deste componente, que por isso não é recriado ao
+        // voltar: o que elas mudaram só aparece se a agenda for lida de novo.
+        if (!this.showSchedule()) {
+          this.scheduleStale = true;
+        } else if (this.scheduleStale) {
+          this.scheduleStale = false;
+          this.loadSchedule();
+        }
       });
 
+    // O primeiro NavigationEnd chega antes do ngOnInit: quem entra direto numa
+    // página do painel (ex.: link da proposta no email) também tem de reler ao voltar.
+    this.currentUrl.set(this.router.url);
+    this.scheduleStale = !this.showSchedule();
+
+    this.loadSchedule();
+    this.apiService.getServices().subscribe((svcs) => this.services.set(svcs));
+  }
+
+  /** True depois de sair da agenda para outra página do painel. */
+  private scheduleStale = false;
+
+  private loadSchedule(): void {
     // "Ver sessão" nas Mensagens volta para cá pedindo para abrir uma linha específica.
-    const openAppointmentId = (history.state as { openAppointmentId?: number } | null)?.openAppointmentId;
+    const openAppointmentId = (this.router.lastSuccessfulNavigation?.extras.state as { openAppointmentId?: number } | undefined)
+      ?.openAppointmentId;
     if (openAppointmentId) {
       this.openSessionId.set(openAppointmentId);
     }
@@ -286,8 +314,6 @@ export class DashboardPageComponent implements OnInit {
         this.weekStart.set(this.startOfWeek(this.nextSession()?.date ?? new Date()));
       });
     }
-
-    this.apiService.getServices().subscribe((svcs) => this.services.set(svcs));
   }
 
   setView(v: 'list' | 'calendar'): void {
