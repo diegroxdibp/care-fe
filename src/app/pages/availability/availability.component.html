@@ -712,6 +712,9 @@
           >
             <span translate="no" class="material-symbols-outlined">check</span>
             {{ serviceDisplayName(svc.name) }}
+            @if (isPrivateOnly(svc)) {
+              <span translate="no" class="material-symbols-outlined chip-lock" title="Só em vagas privadas">lock</span>
+            }
           </button>
         }
       }
@@ -900,7 +903,7 @@
       @if (capacityErrorMessage(); as err) {
         <span class="field-error">{{ err }}</span>
       }
-      <p class="hint">Pessoas clientes por data, até 20. Pode subir sempre; baixar só se nenhuma data por vir ficar acima.</p>
+      <p class="hint">Pessoas clientes por data, até 20. Você pode aumentar a qualquer momento; diminuir só se nenhuma data futura ficar acima.</p>
       @if (editorServices().length === 0) {
         <p class="hint">Ainda não oferece nenhum serviço em grupo. Ligue a versão em grupo no seu perfil, em Serviços.</p>
       }
@@ -911,10 +914,10 @@
   <div class="be-section">
     <label class="control-label">Quem pode marcar</label>
     <div class="seg">
-      <button [class.on]="editorVisibility() === 'PUBLIC'" (click)="editorVisibility.set('PUBLIC')">
+      <button [class.on]="editorVisibility() === 'PUBLIC'" (click)="setEditorVisibility('PUBLIC')">
         Pública
       </button>
-      <button [class.on]="editorVisibility() === 'PRIVATE'" (click)="editorVisibility.set('PRIVATE')">
+      <button [class.on]="editorVisibility() === 'PRIVATE'" (click)="setEditorVisibility('PRIVATE')">
         <span translate="no" class="material-symbols-outlined seg-icon">lock</span>
         Privada
       </button>

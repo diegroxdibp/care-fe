@@ -160,6 +160,8 @@
   --color-pending-soft: #fff3e0;     /* pending badge / row wash */
   --color-error-soft: #fbefee;       /* "campos em falta" box behind --color-error */
   --color-hint: #6f7789;             /* form hints and secondary notes (service/profile forms) */
+  --color-success-soft: #f3faf7;     /* a booked time slot / an interview that happened, behind --color-secondary-green */
+  --color-segment-selected: #e6e3f0; /* selected option of a segmented control (Remoto | Presencial) */
 
   /* ---- Semantic foreground ---- */
   --fg-1: var(--color-primary-blue);     /* primary text */

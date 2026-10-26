@@ -157,12 +157,12 @@ export class OfferingsEditorComponent implements OnInit {
         this.offerings.update(list => [...list.filter(x => x.service.id !== s.id), o]);
         this.drafts.update(d => ({ ...d, [s.id]: this.requestFor(s, o) }));
         this.busy.set(null);
-        this.snackbar.openSnackBar({ message: `${s.name}: gravado.`, action: true });
+        this.snackbar.openSnackBar({ message: `${s.name}: salvo.`, action: true });
       },
       error: (err: HttpErrorResponse) => {
         const current = this.byService().get(s.id);
         this.drafts.update(d => ({ ...d, [s.id]: this.requestFor(s, current) }));
-        this.errors.update(e => ({ ...e, [s.id]: err?.error?.error ?? 'Não foi possível gravar.' }));
+        this.errors.update(e => ({ ...e, [s.id]: err?.error?.error ?? 'Não foi possível salvar.' }));
         this.busy.set(null);
       },
     });

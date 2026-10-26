@@ -27,6 +27,9 @@ const SELF_HANDLED_ENDPOINTS = [
   '/api/offerings/',
   '/api/professional-profile/',
   '/api/admin/',
+  // A análise dos pedidos e "Os meus pedidos" mostram a recusa onde se agiu
+  // (docs/plans/application-review.md).
+  '/api/reviews/',
 ];
 
 // The one-shot GET each SSE service fires when (re)connecting — retried

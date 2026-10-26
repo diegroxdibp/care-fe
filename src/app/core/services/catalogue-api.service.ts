@@ -112,6 +112,11 @@ export class CatalogueApiService {
     return this.http.post<CareService>(`${this.base}/api/catalogue/proposals`, body, this.opts);
   }
 
+  /** Rever uma proposta que a equipa devolveu para alterações. */
+  reviseProposal(id: number, body: ServiceContent): Observable<CareService> {
+    return this.http.put<CareService>(`${this.base}/api/catalogue/proposals/${id}`, body, this.opts);
+  }
+
   myProposals(): Observable<CareService[]> {
     return this.http.get<CareService[]>(`${this.base}/api/catalogue/proposals/mine`, this.opts);
   }
@@ -130,18 +135,6 @@ export class CatalogueApiService {
 
   adminRequests(): Observable<AdminRequests> {
     return this.http.get<AdminRequests>(`${this.base}/api/admin/requests`, this.opts);
-  }
-
-  decideApplication(id: number, approve: boolean, body: ReviewDecision): Observable<Application> {
-    return this.http.post<Application>(
-      `${this.base}/api/admin/applications/${id}/${approve ? 'approve' : 'reject'}`, body, this.opts,
-    );
-  }
-
-  decideService(id: number, approve: boolean, body: ReviewDecision): Observable<CareService> {
-    return this.http.post<CareService>(
-      `${this.base}/api/admin/services/${id}/${approve ? 'approve' : 'reject'}`, body, this.opts,
-    );
   }
 
   decideChange(id: number, approve: boolean, body: ReviewDecision): Observable<ChangeProposal> {

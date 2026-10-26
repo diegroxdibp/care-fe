@@ -6,6 +6,7 @@
 @use 'ngx-owl-carousel-o/lib/styles/scss/owl.theme.default' as owlTheme;
 @use './assets/styles/availability-people.scss';
 @use './assets/styles/catalogue-pages.scss';
+@use './assets/styles/review-pages.scss';
 @import './assets/styles/colors_and_type.css';
 
 * {
@@ -58,6 +59,10 @@ main {
   overflow-x: hidden;
 }
 
+// clip, não hidden: hidden faz do elemento um contentor de scroll, e
+// position: sticky deixa de colar a qualquer coisa lá dentro (a barra da
+// análise de um pedido, a pré-visualização dos formulários).
+body,
 main {
   overflow-x: clip;
 }

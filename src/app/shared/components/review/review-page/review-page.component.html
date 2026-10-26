@@ -1,0 +1,298 @@
+@if (review(); as r) {
+  <div class="rv-bar">
+    <div class="rv-bar-inner">
+      <div class="rv-bar-title">
+        @if (team()) {
+          <a class="rv-back" routerLink="/admin/pedidos">← Fila de aprovação</a>
+        } @else {
+          <a class="rv-back" [routerLink]="['/meus-pedidos', kindPath(r.kind), r.id]">← Acompanhamento do pedido</a>
+        }
+        <span class="rv-bar-name">
+          {{ title() }}
+          <span class="rv-badge" [class]="'rv-tone-' + stage().tone"><span class="rv-dot"></span>{{ stage().label }}</span>
+        </span>
+        <span class="rv-bar-sub">{{ subtitle() }}</span>
+      </div>
+      <div class="rv-counts">
+        @for (c of counts(); track c.text) {
+          <span class="rv-count" [class]="'rv-tone-' + c.tone"><span class="rv-dot"></span>{{ c.text }}</span>
+        }
+      </div>
+      <button type="button" class="rv-btn-outline rv-btn--small" (click)="goFinal()">
+        {{ showInterview() ? 'Ir para a entrevista' : 'Ir para o parecer final' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="cat-page">
+    <div class="rv-col rv-col--note">
+      <p class="rv-note">{{ roleNote() }}</p>
+    </div>
+  </div>
+
+  @if (profileView(); as pv) {
+    <div class="rv-band">
+      <div class="rv-band-inner">
+        <span class="cat-overline">Perfil profissional</span>
+        <span class="rv-band-name">{{ pv.displayName }}</span>
+      </div>
+    </div>
+    <div class="cat-page">
+      <app-professional-view [professional]="pv" [preview]="true" [sectionFooter]="proThread" />
+    </div>
+    <ng-template #proThread let-section>
+      @if (point('pro:' + section); as p) {
+        <app-review-thread
+          [point]="p"
+          [team]="team()"
+          [tucked]="section === 'quem-sou'"
+          [busy]="busy()"
+          [locked]="closed()"
+          (statusChange)="setStatus(p, $event)"
+          (comment)="comment(p, $event)"
+        />
+      }
+    </ng-template>
+  }
+
+  @for (s of r.proposals; track s.id; let i = $index) {
+    <div class="rv-band">
+      <div class="rv-band-inner">
+        <span class="cat-overline">{{ proposalBand(i) }}</span>
+        <span class="rv-band-name">{{ s.name }}</span>
+      </div>
+    </div>
+    <div class="cat-page">
+      <app-service-view [service]="proposalView(s)" [preview]="true" [sectionFooter]="svcThread" />
+    </div>
+    <ng-template #svcThread let-section>
+      @if (point('svc:' + s.id + ':' + section); as p) {
+        <app-review-thread
+          [point]="p"
+          [team]="team()"
+          [busy]="busy()"
+          [locked]="closed()"
+          (statusChange)="setStatus(p, $event)"
+          (comment)="comment(p, $event)"
+        />
+      }
+    </ng-template>
+  }
+
+  <div class="rv-foot">
+    <div class="rv-col">
+      @if (team()) {
+        <div class="rv-section">
+          <div class="rv-section-head">
+            <h2>Configuração da publicação</h2>
+            <p class="rv-intro">
+              Visível apenas para a equipe da CARE. Estas definições são aplicadas aos itens aprovados, quando forem
+              publicados.
+            </p>
+          </div>
+          <div class="rv-rows">
+            @for (it of r.items; track it.key) {
+              <div class="rv-row">
+                <div class="rv-row-text">
+                  <span class="cat-overline">{{ it.key === 'pro' ? 'Perfil profissional' : 'Serviço' }}</span>
+                  <span class="rv-row-name">{{ it.name }}</span>
+                </div>
+                <div class="rv-fields">
+                  <div class="cat-field">
+                    <label [for]="'slug-' + it.key">Endereço da página</label>
+                    <div class="rv-prefixed">
+                      <span>{{ it.key === 'pro' ? '/profissionais/' : '/servicos/' }}</span>
+                      <input
+                        type="text"
+                        [id]="'slug-' + it.key"
+                        [value]="slugOf(it)"
+                        [disabled]="closed() || busy()"
+                        (input)="typeSlug(it, $event)"
+                        (change)="saveSlug(it)"
+                      />
+                    </div>
+                  </div>
+                  @if (it.key !== 'pro') {
+                    <div class="cat-field">
+                      <span class="cat-label">No agendamento</span>
+                      <span class="rv-schedule-note">Criado automaticamente com o nome “{{ it.name }}” ao publicar.</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (r.audiences.length) {
+            <div class="rv-section rv-audiences">
+              <div class="rv-section-head">
+                <h3>Públicos propostos</h3>
+                <p class="rv-intro">
+                  Um público aprovado passa a ser uma opção disponível em todos os serviços. Você pode ajustar o nome antes
+                  de aprovar.
+                </p>
+              </div>
+              <div class="rv-rows">
+                @for (a of r.audiences; track a.id) {
+                  <div class="rv-row">
+                    <span class="rv-row-where">Proposto em: {{ a.where.join(', ') }}</span>
+                    <div class="rv-fields">
+                      <div class="cat-field rv-audience-name">
+                        <label [for]="'aud-' + a.id">Nome do público</label>
+                        <input
+                          class="cat-input"
+                          type="text"
+                          [id]="'aud-' + a.id"
+                          [value]="audienceName(a)"
+                          [disabled]="!editable() || busy()"
+                          (input)="typeAudienceName(a, $event)"
+                          (change)="saveAudienceName(a)"
+                        />
+                      </div>
+                      <div class="cat-field">
+                        <span class="cat-overline">Como vai aparecer</span>
+                        <div class="rv-tag-preview" [class.rv-tag-preview--refused]="a.decision === 'REJECTED'">
+                          <span class="cat-chip" aria-hidden="true">{{ audienceName(a) }}</span>
+                          <span class="cat-chip" aria-hidden="true" aria-pressed="true">{{ audienceName(a) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="rv-choices">
+                      <button
+                        type="button"
+                        class="rv-choice rv-tone-green"
+                        [attr.aria-pressed]="a.decision === 'APPROVED'"
+                        [disabled]="!editable() || busy()"
+                        (click)="decideAudience(a, 'APPROVED')"
+                      >
+                        <span class="rv-dot"></span>Aprovar como novo público
+                      </button>
+                      <button
+                        type="button"
+                        class="rv-choice rv-tone-red"
+                        [attr.aria-pressed]="a.decision === 'REJECTED'"
+                        [disabled]="!editable() || busy()"
+                        (click)="decideAudience(a, 'REJECTED')"
+                      >
+                        <span class="rv-dot"></span>Recusar
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="rv-section" #final>
+        <div class="rv-section-head">
+          <h2>Parecer final</h2>
+          <p class="rv-lead">{{ summaryText() }}</p>
+        </div>
+        @if (general(); as g) {
+          <app-review-thread
+            [point]="g"
+            [team]="team()"
+            [defaultOpen]="true"
+            [busy]="busy()"
+            (comment)="comment(g, $event)"
+          />
+        }
+
+        <div class="rv-section">
+          <h3>Decisão por item</h3>
+          <div class="rv-rows">
+            @for (row of items(); track row.item.key) {
+              <div class="rv-row rv-row--inline">
+                <div class="rv-row-text">
+                  <span class="cat-overline">{{ row.kind }}</span>
+                  <span class="rv-row-name">{{ row.item.name }}</span>
+                  <span class="rv-row-detail">{{ row.progress }}</span>
+                  @if (row.hint) {
+                    <span class="rv-hint">{{ row.hint }}</span>
+                  }
+                </div>
+                @if (editable()) {
+                  <div class="rv-choices">
+                    <button
+                      type="button"
+                      class="rv-choice rv-tone-green"
+                      [attr.aria-pressed]="row.item.decision === 'APPROVED'"
+                      [disabled]="!row.canApprove || busy()"
+                      (click)="decideItem(row.item, 'APPROVED')"
+                    >
+                      <span class="rv-dot"></span>Aprovar
+                    </button>
+                    <button
+                      type="button"
+                      class="rv-choice rv-tone-red"
+                      [attr.aria-pressed]="row.item.decision === 'REJECTED'"
+                      [disabled]="!row.canReject || busy()"
+                      (click)="decideItem(row.item, 'REJECTED')"
+                    >
+                      <span class="rv-dot"></span>Recusar
+                    </button>
+                  </div>
+                } @else {
+                  @let st = itemStatus(row.item);
+                  <span class="rv-badge" [class]="'rv-tone-' + st.tone"><span class="rv-dot"></span>{{ st.label }}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (hasDecision()) {
+          <div class="rv-box" [class]="'rv-tone-' + stage().tone">
+            <span class="rv-status-line"><span class="rv-dot"></span>{{ stage().label }}</span>
+            <span class="rv-box-text">{{ decisionText() }}</span>
+            @if (canReopen()) {
+              <button type="button" class="rv-text-btn" [disabled]="busy()" (click)="reopen()">Reabrir análise</button>
+            }
+          </div>
+        }
+
+        @if (editable()) {
+          <div class="rv-section">
+            <div class="rv-actions">
+              <button
+                type="button"
+                class="rv-btn"
+                [class.rv-btn--danger]="concludeDanger()"
+                [disabled]="!canConclude() || busy()"
+                (click)="conclude()"
+              >
+                {{ concludeLabel() }}
+              </button>
+              <button type="button" class="rv-btn-outline" [disabled]="busy()" (click)="requestChanges()">
+                Devolver para alterações
+              </button>
+            </div>
+            @if (concludeHint()) {
+              <span class="rv-hint">{{ concludeHint() }}</span>
+            }
+          </div>
+        }
+      </div>
+
+      @if (showInterview()) {
+        <div #interview>
+          <app-interview-section [review]="r" [team]="team()" (changed)="review.set($event)" />
+        </div>
+      }
+    </div>
+  </div>
+} @else if (notFound()) {
+  <div class="cat-page">
+    <div class="rv-col">
+      <p class="rv-empty">Pedido não encontrado.</p>
+    </div>
+  </div>
+} @else {
+  <div class="cat-page">
+    <div class="rv-col">
+      <p class="rv-empty">Carregando…</p>
+    </div>
+  </div>
+}

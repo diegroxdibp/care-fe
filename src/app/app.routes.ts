@@ -310,6 +310,35 @@ export const routes: Routes = [
           ),
       },
 
+      // A análise de um pedido ocupa a página toda (barra fixa, faixas de
+      // ponta a ponta), por isso fica fora do cartão da área da equipa.
+      // Antes da rota /admin: o router tenta as rotas por ordem.
+      {
+        path: `${Pages.ADMIN_PEDIDOS}/:kind/:id`,
+        canMatch: [AdminGuard],
+        data: { team: true },
+        loadComponent: () =>
+          import('./shared/components/review/review-page/review-page.component').then((m) => m.ReviewPageComponent),
+      },
+
+      // Os pedidos de quem pediu para fazer parte da Care ou propôs um
+      // serviço: a lista, o acompanhamento e o pedido completo com a conversa.
+      {
+        path: Pages.MEUS_PEDIDOS,
+        loadComponent: () =>
+          import('./core/pages/requests/my-requests.component').then((m) => m.MyRequestsComponent),
+      },
+      {
+        path: `${Pages.MEUS_PEDIDOS}/:kind/:id`,
+        loadComponent: () =>
+          import('./core/pages/requests/request-tracking.component').then((m) => m.RequestTrackingComponent),
+      },
+      {
+        path: `${Pages.MEUS_PEDIDOS}/:kind/:id/pedido`,
+        loadComponent: () =>
+          import('./shared/components/review/review-page/review-page.component').then((m) => m.ReviewPageComponent),
+      },
+
       {
         path: Pages.ADMIN,
         canMatch: [AdminGuard],

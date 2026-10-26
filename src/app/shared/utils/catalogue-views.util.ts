@@ -65,7 +65,15 @@ export interface ProfessionalView {
   services: ServiceSummaryView[];
 }
 
-export function serviceViewFrom(s: CareService): ServiceView {
+/**
+ * withPending: numa proposta em análise, os públicos ainda por aprovar
+ * aparecem também, marcados "(em aprovação)". Nas páginas publicadas nunca.
+ */
+export function serviceViewFrom(s: CareService, withPending = false): ServiceView {
+  const names = (list: Audience[]) =>
+    list
+      .filter(a => withPending || !a.pending)
+      .map(a => (a.pending ? `${a.name} (em aprovação)` : a.name));
   return {
     slug: s.slug,
     name: s.name,
@@ -75,12 +83,12 @@ export function serviceViewFrom(s: CareService): ServiceView {
     imageAlt: s.imageAlt,
     modalities: modalitiesOf(s),
     formats: formatsOf(s),
-    audiences: s.audiences.filter(a => !a.pending).map(a => a.name),
+    audiences: names(s.audiences),
     forWhom: s.forWhom,
     specialties: s.specialties.map(sp => ({
       name: sp.name,
       description: sp.description,
-      audiences: sp.audiences.filter(a => !a.pending).map(a => a.name),
+      audiences: names(sp.audiences),
     })),
     privateOnly: !s.allowsPublic,
   };

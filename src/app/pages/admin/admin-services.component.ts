@@ -29,7 +29,7 @@ const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Na list
       <div class="cat-field">
         <label for="adm-slug">Endereço da página</label>
         <input class="cat-input" id="adm-slug" [value]="slug()" (input)="slug.set($any($event.target).value)" />
-        <p class="cat-hint">/servicos/{{ slug() }} — mudar o endereço mantém o antigo a levar à página.</p>
+        <p class="cat-hint">/servicos/{{ slug() }} — ao mudar o endereço, o antigo continua levando à página.</p>
       </div>
       <app-service-fields
         [value]="content()!"
@@ -39,14 +39,14 @@ const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Na list
         idPrefix="adm"
       />
       @if (attempted() && missing().length) {
-        <p class="cat-error-box" role="alert">Campos obrigatórios em falta: {{ missing().join(', ') }}.</p>
+        <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
       }
       @if (error()) {
         <p class="cat-error-box" role="alert">{{ error() }}</p>
       }
       <div class="cat-actions">
         <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="saving()" (click)="save(s)">
-          {{ saving() ? 'A gravar…' : 'Gravar' }}
+          {{ saving() ? 'Salvando…' : 'Salvar' }}
         </button>
         <a class="cat-btn-text" [routerLink]="['/', Pages.SERVICOS, s.slug]">Ver página publicada</a>
       </div>
@@ -118,14 +118,14 @@ export class AdminServicesComponent implements OnInit {
     this.api.adminUpdateService(s.id, { content: this.content(), slug: this.slug().trim() || null }).subscribe({
       next: updated => {
         this.saving.set(false);
-        this.snackbar.openSnackBar({ message: 'Serviço gravado.', action: true });
+        this.snackbar.openSnackBar({ message: 'Serviço salvo.', action: true });
         this.editing.set(updated);
         this.content.set(contentOf(updated));
         this.slug.set(updated.slug);
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.error.set(err?.error?.error ?? 'Não foi possível gravar.');
+        this.error.set(err?.error?.error ?? 'Não foi possível salvar.');
       },
     });
   }

@@ -1,10 +1,10 @@
 <div class="cat-form-page">
   <div class="cat-form-layout">
     <div class="cat-card">
-      <h1>Os meus serviços</h1>
+      <h1>Meus serviços</h1>
       <p class="cat-hint">
-        Escolha os serviços da lista da CARE que oferece, e como os oferece. Desligar um serviço tira-o das vagas novas e
-        do Agendar; as vagas que já o oferecem continuam com ele. Voltar a ligar reativa o mesmo serviço.
+        Escolha os serviços da lista da CARE que você oferece e como os oferece. Desativar um serviço o remove das vagas novas e
+        do Agendar; as vagas que já o oferecem continuam com ele. Ativar de novo traz de volta o mesmo serviço.
       </p>
       <div class="cat-actions">
         <a class="cat-btn-pill cat-btn-primary" [routerLink]="['/', 'dashboard', 'servicos', 'propor']">Propor um serviço</a>
@@ -12,7 +12,7 @@
       </div>
 
       @if (!loaded()) {
-        <p class="cat-empty">A carregar…</p>
+        <p class="cat-empty">Carregando…</p>
       }
 
       @for (s of sorted(); track s.id) {
@@ -33,9 +33,9 @@
                 [checked]="isOn(s)"
                 [disabled]="busy() === s.id"
                 (change)="setActive(s, $any($event.target).checked)"
-                [attr.aria-label]="(isOn(s) ? 'Desligar ' : 'Ligar ') + s.name"
+                [attr.aria-label]="(isOn(s) ? 'Desativar ' : 'Ativar ') + s.name"
               />
-              {{ isOn(s) ? 'Ligado' : 'Desligado' }}
+              {{ isOn(s) ? 'Ativo' : 'Inativo' }}
             </label>
           </div>
           @if (open() === s.id && draft(s); as d) {
@@ -71,7 +71,7 @@
               }
               @if (s.specialties.length) {
                 <div class="cat-field">
-                  <span class="cat-label">Especialidades que oferece</span>
+                  <span class="cat-label">Especialidades que você oferece</span>
                   @for (sp of s.specialties; track sp.id) {
                     <label class="cat-check">
                       <input type="checkbox" [checked]="d.specialtyIds.includes(sp.id)" (change)="toggleSpecialty(s, sp.id)" />
@@ -85,7 +85,7 @@
               }
               <div class="cat-actions">
                 <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === s.id" (click)="save(s)">
-                  {{ busy() === s.id ? 'A gravar…' : 'Gravar' }}
+                  {{ busy() === s.id ? 'Salvando…' : 'Salvar' }}
                 </button>
                 <a class="cat-btn-text" [routerLink]="['/', Pages.SERVICOS, s.slug]">Ver página</a>
                 @if (isOn(s)) {
@@ -98,7 +98,7 @@
       }
 
       @if (proposals().length || changes().length) {
-        <h2>As minhas propostas</h2>
+        <h2>Minhas propostas</h2>
         @for (p of proposals(); track p.id) {
           <div class="cat-admin-item">
             <span class="cat-pill-status"
@@ -106,7 +106,7 @@
               [class.cat-pill-rejected]="p.status === 'REJECTED'">{{ statusLabel(p.status) }}</span>
             <strong>Serviço novo: {{ p.name }}</strong>
             @if (p.reviewNote) {
-              <p class="cat-hint">Nota da equipa: {{ p.reviewNote }}</p>
+              <p class="cat-hint">Nota da equipe: {{ p.reviewNote }}</p>
             }
           </div>
         }
@@ -115,9 +115,9 @@
             <span class="cat-pill-status"
               [class.cat-pill-pending]="c.status === 'PENDING'"
               [class.cat-pill-rejected]="c.status === 'REJECTED'">{{ statusLabel(c.status) }}</span>
-            <strong>Alterações a {{ c.current.name }}</strong>
+            <strong>Alterações em {{ c.current.name }}</strong>
             @if (c.reviewNote) {
-              <p class="cat-hint">Nota da equipa: {{ c.reviewNote }}</p>
+              <p class="cat-hint">Nota da equipe: {{ c.reviewNote }}</p>
             }
           </div>
         }

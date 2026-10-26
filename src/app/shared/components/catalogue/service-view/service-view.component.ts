@@ -1,4 +1,5 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, effect, input, output, signal, TemplateRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { expandCollapse } from '../../../animations/expand-collapse';
@@ -9,12 +10,12 @@ import { ProfessionalCardView, ServiceView } from '../../../utils/catalogue-view
 /**
  * A página de um serviço (handoff: "Pagina de Servico"). Serve a página
  * publicada e as pré-visualizações dos formulários — com preview, nenhum link
- * sai da página.
+ * sai da página e não há Agendar.
  */
 @Component({
   selector: 'app-service-view',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   templateUrl: './service-view.component.html',
   animations: [expandCollapse],
 })
@@ -24,6 +25,12 @@ export class ServiceViewComponent {
   /** proposal = pré-visualização de uma proposta ainda não publicada. */
   readonly notice = input<'proposal' | null>(null);
   readonly preview = input(false);
+  /**
+   * Posto por baixo de cada secção, com o nome dela ('apresentacao',
+   * 'caracteristicas', 'para-quem', 'especialidades') — a análise de um
+   * pedido põe aqui a conversa sobre essa parte.
+   */
+  readonly sectionFooter = input<TemplateRef<{ $implicit: string }> | null>(null);
   readonly schedule = output<void>();
 
   readonly Pages = Pages;

@@ -340,6 +340,12 @@ input[type="number"].field-value {
     transition: opacity 0.15s, width 0.15s;
   }
 
+  // O cadeado de um serviço só privado vê-se sempre, não só quando está escolhido.
+  .material-symbols-outlined.chip-lock {
+    opacity: 1;
+    width: 16px;
+  }
+
   &:hover {
     border-color: var(--color-primary-purple);
     background: rgba(142,127,174,0.07);

@@ -47,4 +47,7 @@ export enum Pages {
   DASHBOARD_PROFESSIONAL_PROFILE = `${Pages.DASHBOARD}/perfil-profissional`,
   DASHBOARD_SERVICES = `${Pages.DASHBOARD}/servicos`,
   ADMIN = 'admin',
+  ADMIN_PEDIDOS = `${Pages.ADMIN}/pedidos`,
+  // A análise dos pedidos, do lado de quem os fez (docs/plans/application-review.md)
+  MEUS_PEDIDOS = 'meus-pedidos',
 }

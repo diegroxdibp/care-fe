@@ -32,15 +32,15 @@ import { ProfileFieldsComponent } from '../profile-fields/profile-fields.compone
         <div class="cat-card">
           <h1>Perfil profissional</h1>
           <p class="cat-hint">
-            É a sua página pública@if (profile().slug) {
+            Esta é sua página pública@if (profile().slug) {
               (<a class="cat-link" [routerLink]="['/', Pages.PROFISSIONAIS, profile().slug]">ver página</a>)
-            }. O seu perfil pessoal (nome da conta, foto, contactos) continua em Perfil. Cada alteração é comunicada à
-            equipa da CARE.
+            }. Seu perfil pessoal (nome da conta, foto, contatos) continua em Perfil. Cada alteração é comunicada à
+            equipe da CARE.
           </p>
           @if (profile().status === 'DRAFT') {
-            <p class="cat-notice">Ainda não publicado: fica visível assim que gravar com nome e apresentação.</p>
+            <p class="cat-notice">Ainda não publicado: fica visível assim que você salvar com nome e apresentação.</p>
           } @else if (profile().status === 'HIDDEN') {
-            <p class="cat-notice">A equipa da CARE ocultou este perfil. Fale com a equipa para o voltar a mostrar.</p>
+            <p class="cat-notice">A equipe da CARE ocultou este perfil. Fale com a equipe para voltar a mostrá-lo.</p>
           }
           @if (loaded()) {
             <app-profile-fields
@@ -50,16 +50,16 @@ import { ProfileFieldsComponent } from '../profile-fields/profile-fields.compone
               [languages]="options()?.languages ?? []"
             />
             @if (attempted() && missing().length) {
-              <p class="cat-error-box" role="alert">Campos obrigatórios em falta: {{ missing().join(', ') }}.</p>
+              <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
             }
             @if (serverError()) {
               <p class="cat-error-box" role="alert">{{ serverError() }}</p>
             }
             <div class="cat-actions">
               <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="saving()" (click)="save()">
-                {{ saving() ? 'A gravar…' : 'Gravar' }}
+                {{ saving() ? 'Salvando…' : 'Salvar' }}
               </button>
-              <a class="cat-btn-text" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Os meus serviços</a>
+              <a class="cat-btn-text" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Meus serviços</a>
             </div>
           }
         </div>
@@ -117,11 +117,11 @@ export class ProfessionalProfileEditorComponent implements OnInit {
       next: p => {
         this.profile.set(profileForForm(p));
         this.saving.set(false);
-        this.snackbar.openSnackBar({ message: 'Perfil profissional gravado.', action: true });
+        this.snackbar.openSnackBar({ message: 'Perfil profissional salvo.', action: true });
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.serverError.set(err?.error?.error ?? 'Não foi possível gravar. Tente novamente.');
+        this.serverError.set(err?.error?.error ?? 'Não foi possível salvar. Tente novamente.');
       },
     });
   }

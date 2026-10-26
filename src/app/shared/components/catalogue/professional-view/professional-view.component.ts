@@ -1,4 +1,5 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, effect, input, output, signal, TemplateRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { expandCollapse } from '../../../animations/expand-collapse';
@@ -14,13 +15,19 @@ import { ProfessionalView } from '../../../utils/catalogue-views.util';
 @Component({
   selector: 'app-professional-view',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   templateUrl: './professional-view.component.html',
   animations: [expandCollapse],
 })
 export class ProfessionalViewComponent {
   readonly professional = input.required<ProfessionalView>();
   readonly preview = input(false);
+  /**
+   * Posto por baixo de cada secção, com o nome dela ('quem-sou',
+   * 'como-trabalho', 'formacao', 'outras-info') — a análise de um pedido põe
+   * aqui a conversa sobre essa parte.
+   */
+  readonly sectionFooter = input<TemplateRef<{ $implicit: string }> | null>(null);
   readonly schedule = output<void>();
 
   readonly Pages = Pages;

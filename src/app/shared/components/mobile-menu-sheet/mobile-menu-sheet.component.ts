@@ -7,6 +7,7 @@ import { ScreenSizeService } from '../../services/screen-size.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessageService } from '../../../core/services/message.service';
 import { Pages } from '../../enums/pages.enum';
+import { Roles } from '../../enums/roles.enum';
 
 interface NavRow {
   label: string;
@@ -58,7 +59,7 @@ export class MobileMenuSheetComponent {
   readonly userEmail = computed(() => this.user()?.email ?? '');
 
 
-  readonly userRows: NavRow[] = [
+  private readonly baseRows: NavRow[] = [
     {
       label: 'Mensagens',
       icon: 'forum',
@@ -77,6 +78,13 @@ export class MobileMenuSheetComponent {
     },
     { label: 'Conta', icon: 'person', page: Pages.DASHBOARD_PROFILE },
   ];
+
+  /** As linhas da conta, mais a área da equipa (/admin) para quem é ADMIN. */
+  readonly userRows = computed<NavRow[]>(() =>
+    this.user()?.roles?.includes(Roles.ADMIN)
+      ? [...this.baseRows, { label: 'Área da equipe', icon: 'admin_panel_settings', page: Pages.ADMIN }]
+      : this.baseRows,
+  );
 
   go(page: Pages): void {
     this.navigationService.navigateTo(page);

@@ -3,7 +3,7 @@
     <p class="cat-notice">Pré-visualização de uma proposta de serviço. Esta página ainda não está publicada.</p>
   } @else if (service().privateOnly) {
     <p class="cat-notice">
-      Serviço privado: não aparece na lista de serviços nem nos perfis. Só se participa por convite da pessoa
+      Serviço privado: não aparece na lista de serviços nem nos perfis. Só é possível participar por convite da pessoa
       profissional.
     </p>
   }
@@ -21,6 +21,7 @@
         <img [src]="service().imageUrl" [alt]="service().imageAlt || ''" />
       </picture>
     }
+    <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'apresentacao' }" />
     <dl class="cat-rows">
       @if (modalities()) {
         <div class="cat-row"><dt>Modalidade</dt><dd>{{ modalities() }}</dd></div>
@@ -32,6 +33,7 @@
         <div class="cat-row"><dt>Público</dt><dd>{{ audiences() }}</dd></div>
       }
     </dl>
+    <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'caracteristicas' }" />
   </div>
 
   @if (service().forWhom.length) {
@@ -42,6 +44,7 @@
           <li>{{ item }}</li>
         }
       </ul>
+      <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'para-quem' }" />
     </div>
   }
 
@@ -61,6 +64,7 @@
           </li>
         }
       </ul>
+      <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'especialidades' }" />
     </div>
   }
 
@@ -123,7 +127,7 @@
     </div>
   }
 
-  @if (!service().privateOnly) {
-    <button class="cat-cta" type="button" [disabled]="preview()" (click)="schedule.emit()">Agendar</button>
+  @if (!service().privateOnly && !preview()) {
+    <button class="cat-cta" type="button" (click)="schedule.emit()">Agendar</button>
   }
 </div>

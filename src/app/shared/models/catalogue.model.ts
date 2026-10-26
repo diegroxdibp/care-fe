@@ -178,12 +178,16 @@ export interface Application {
   profile: ProfessionalProfile | null;
   services: CareService[];
   proposals: CareService[];
+  /** CHANGES = a equipa devolveu o pedido para alterações (status continua PENDING). */
+  decision: 'CONCLUDED' | 'CHANGES' | null;
 }
 
 export interface ApplicationRequest {
   profile: ProfessionalProfile;
   serviceIds: number[];
   proposals: ServiceContent[];
+  /** Posição a posição com proposals: o id da proposta que se revê, ou null para uma nova. */
+  proposalIds: (number | null)[];
 }
 
 export interface ChangeProposal {
@@ -277,6 +281,25 @@ export function profileForForm(p: ProfessionalProfile): ProfessionalProfile {
     education: p.education ?? [],
     experience: p.experience ?? [],
     languages: p.languages ?? [],
+  };
+}
+
+/**
+ * O conteúdo de uma proposta ainda por aprovar, para a rever: os públicos em
+ * aprovação voltam a ser texto (o formulário só conhece os aprovados), e o
+ * backend reencontra-os pelo nome.
+ */
+export function proposalContentOf(s: CareService): ServiceContent {
+  const c = contentOf(s);
+  return {
+    ...c,
+    audienceIds: s.audiences.filter(a => !a.pending).map(a => a.id),
+    proposedAudiences: s.audiences.filter(a => a.pending).map(a => a.name),
+    specialties: s.specialties.map((sp, i) => ({
+      ...c.specialties[i],
+      audienceIds: sp.audiences.filter(a => !a.pending).map(a => a.id),
+      proposedAudiences: sp.audiences.filter(a => a.pending).map(a => a.name),
+    })),
   };
 }
 

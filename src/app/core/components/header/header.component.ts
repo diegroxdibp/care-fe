@@ -14,6 +14,7 @@ import { ScreenSizeService } from '../../../shared/services/screen-size.service'
 import { FullscreenMenuComponent } from '../../../shared/components/fullscreen-menu/fullscreen-menu.component';
 import { NavigationService } from '../../../shared/services/navigation.service';
 import { Pages } from '../../../shared/enums/pages.enum';
+import { Roles } from '../../../shared/enums/roles.enum';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../auth/auth.service';
 import { LogoHorizontalComponent } from "../../../shared/components/logo-horizontal/logo-horizontal.component";
@@ -54,6 +55,8 @@ export class HeaderComponent {
 
   readonly firstName = computed(() => this.user()?.name?.split(' ')[0] ?? '');
   readonly userEmail = computed(() => this.user()?.email ?? '');
+  /** A área da equipa (/admin) só aparece no menu a quem é ADMIN. */
+  readonly isAdmin = computed(() => !!this.user()?.roles?.includes(Roles.ADMIN));
 
   readonly currentUrl = toSignal(this.navigationService.currentUrl, { initialValue: '/' });
 

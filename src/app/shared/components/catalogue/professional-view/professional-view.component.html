@@ -16,6 +16,7 @@
       </picture>
     }
   </div>
+  <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'quem-sou' }" />
 
   @if (professional().quote) {
     <p class="quotation quotation-margins">{{ professional().quote }}</p>
@@ -27,12 +28,13 @@
       @for (p of professional().howIWork; track $index) {
         <p>{{ p }}</p>
       }
+      <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'como-trabalho' }" />
     </div>
   }
 
   @if (professional().education.length || professional().experience.length) {
     <div class="cat-block">
-      <h2>Formação e percurso profissional</h2>
+      <h2>Formação e trajetória profissional</h2>
       @if (professional().education.length) {
         <h3>Formação acadêmica e especializações</h3>
         <ul class="cat-list">
@@ -49,6 +51,7 @@
           }
         </ul>
       }
+      <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'formacao' }" />
     </div>
   }
 
@@ -72,6 +75,7 @@
       @if (professional().otherInfo) {
         <p class="cat-other-info"><em>{{ professional().otherInfo }}</em></p>
       }
+      <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'outras-info' }" />
     </div>
   }
 
@@ -117,5 +121,7 @@
     </div>
   }
 
-  <button class="cat-cta" type="button" [disabled]="preview()" (click)="schedule.emit()">Agendar</button>
+  @if (!preview()) {
+    <button class="cat-cta" type="button" (click)="schedule.emit()">Agendar</button>
+  }
 </div>

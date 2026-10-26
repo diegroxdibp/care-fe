@@ -125,6 +125,12 @@
                 <span translate="no" class="material-symbols-outlined">person</span>
                 <span>Conta</span>
               </button>
+              @if (isAdmin()) {
+                <button class="dropdown-item" (click)="closeMenus(); navigateTo(navigationService.Pages.ADMIN)">
+                  <span translate="no" class="material-symbols-outlined">admin_panel_settings</span>
+                  <span>Área da equipe</span>
+                </button>
+              }
               <button class="dropdown-item dropdown-item--danger" (click)="logOut()">
                 <span translate="no" class="material-symbols-outlined">logout</span>
                 <span>Sair</span>

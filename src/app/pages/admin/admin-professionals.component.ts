@@ -8,7 +8,7 @@ import { Pages } from '../../shared/enums/pages.enum';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { ProfileFieldsComponent } from '../../shared/components/catalogue/profile-fields/profile-fields.component';
 
-const STATUS: Record<string, string> = { DRAFT: 'Por publicar', PUBLISHED: 'Publicado', HIDDEN: 'Oculto' };
+const STATUS: Record<string, string> = { DRAFT: 'Não publicado', PUBLISHED: 'Publicado', HIDDEN: 'Oculto' };
 
 /**
  * /admin/profissionais e /admin/profissionais/:id — os perfis profissionais:
@@ -28,17 +28,17 @@ const STATUS: Record<string, string> = { DRAFT: 'Por publicar', PUBLISHED: 'Publ
       </span>
       @if (!e.account) {
         <div class="cat-field">
-          <label for="adm-attach">Ligar a uma conta profissional (email da conta)</label>
+          <label for="adm-attach">Vincular a uma conta profissional (email da conta)</label>
           <div class="cat-inline">
             <input class="cat-input" id="adm-attach" type="email" [value]="attachEmail()" (input)="attachEmail.set($any($event.target).value)" />
-            <button type="button" class="cat-btn-pill" (click)="attach(e)">Ligar</button>
+            <button type="button" class="cat-btn-pill" (click)="attach(e)">Vincular</button>
           </div>
         </div>
       }
       <div class="cat-field">
         <label for="adm-pslug">Endereço da página</label>
         <input class="cat-input" id="adm-pslug" [value]="form()!.slug ?? ''" (input)="setSlug($any($event.target).value)" />
-        <p class="cat-hint">/profissionais/{{ form()!.slug }} — mudar o endereço mantém o antigo a levar à página.</p>
+        <p class="cat-hint">/profissionais/{{ form()!.slug }} — ao mudar o endereço, o antigo continua levando à página.</p>
       </div>
       <app-profile-fields
         [value]="form()!"
@@ -50,7 +50,7 @@ const STATUS: Record<string, string> = { DRAFT: 'Por publicar', PUBLISHED: 'Publ
         <p class="cat-error-box" role="alert">{{ error() }}</p>
       }
       <div class="cat-actions">
-        <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="saving()" (click)="save(e)">Gravar</button>
+        <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="saving()" (click)="save(e)">Salvar</button>
         @if (e.profile.status === 'HIDDEN' || e.profile.status === 'DRAFT') {
           <button type="button" class="cat-btn-pill" (click)="setVisible(e, true)">Publicar</button>
         } @else {
@@ -67,7 +67,7 @@ const STATUS: Record<string, string> = { DRAFT: 'Por publicar', PUBLISHED: 'Publ
           <span class="cat-pill-status" [class.cat-pill-muted]="p.profile.status !== 'PUBLISHED'"
             [class.cat-pill-rejected]="p.profile.status === 'HIDDEN'">{{ statusLabel(p.profile.status) }}</span>
           <strong>{{ p.profile.displayName || p.account?.name || 'Sem nome' }}</strong>
-          <span class="cat-hint">{{ p.account?.email ?? 'sem conta ligada' }}@if (p.profile.slug) { · /profissionais/{{ p.profile.slug }} }</span>
+          <span class="cat-hint">{{ p.account?.email ?? 'sem conta vinculada' }}@if (p.profile.slug) { · /profissionais/{{ p.profile.slug }} }</span>
           <a class="cat-btn-text" [routerLink]="['/admin/profissionais', p.profile.id]">Editar</a>
         </div>
       }
@@ -133,7 +133,7 @@ export class AdminProfessionalsComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.error.set(err?.error?.error ?? 'Não foi possível gravar.');
+        this.error.set(err?.error?.error ?? 'Não foi possível salvar.');
       },
     });
   }
@@ -141,7 +141,7 @@ export class AdminProfessionalsComponent implements OnInit {
   save(e: AdminProfile): void {
     this.attempted.set(true);
     if (this.missing()) return;
-    this.run(this.api.adminUpdateProfile(e.profile.id!, this.form()!), 'Perfil gravado.');
+    this.run(this.api.adminUpdateProfile(e.profile.id!, this.form()!), 'Perfil salvo.');
   }
 
   setVisible(e: AdminProfile, visible: boolean): void {
@@ -151,6 +151,6 @@ export class AdminProfessionalsComponent implements OnInit {
   attach(e: AdminProfile): void {
     const email = this.attachEmail().trim();
     if (!email) return;
-    this.run(this.api.adminAttachProfile(e.profile.id!, email), 'Perfil ligado à conta.');
+    this.run(this.api.adminAttachProfile(e.profile.id!, email), 'Perfil vinculado à conta.');
   }
 }

@@ -1,0 +1,1037 @@
+// A análise dos pedidos (fila e pedido da equipa), "Os meus pedidos", o
+// acompanhamento e o seletor de horários das entrevistas — handoff
+// "design_handoff_fluxo_care", plano em docs/plans/application-review.md.
+// Global e com prefixo rv-, como catalogue-pages.scss (que estes ecrãs também usam).
+@use './breakpoints.scss' as breakpoint;
+
+// ─ Tons ────────────────────────────────────────────────────────────────────
+// Cada estado tem uma cor (--rv-c) e uma borda (--rv-bd): só "Pendente" tem a
+// borda mais clara que a cor.
+
+.rv-tone-blue {
+  --rv-c: var(--color-primary-blue);
+  --rv-bd: var(--color-primary-blue);
+}
+
+.rv-tone-lilac {
+  --rv-c: var(--color-primary-purple);
+  --rv-bd: var(--color-primary-purple);
+}
+
+.rv-tone-indigo {
+  --rv-c: var(--color-secondary-indigo);
+  --rv-bd: var(--color-secondary-indigo);
+}
+
+.rv-tone-green {
+  --rv-c: var(--color-secondary-green);
+  --rv-bd: var(--color-secondary-green);
+}
+
+.rv-tone-red {
+  --rv-c: var(--color-error);
+  --rv-bd: var(--color-error);
+}
+
+.rv-tone-muted {
+  --rv-c: var(--color-hint);
+  --rv-bd: var(--color-border);
+}
+
+.rv-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rv-c, var(--color-primary-blue));
+  flex: none;
+}
+
+// Etiqueta de estado (etapa, ponto, item).
+.rv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--rv-bd, var(--color-primary-blue));
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rv-c, var(--color-primary-blue));
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+}
+
+// Rótulo de estado sem caixa, por cima de um texto (caixa de decisão, entrevista).
+.rv-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--rv-c, var(--color-primary-blue));
+}
+
+// ─ Página ──────────────────────────────────────────────────────────────────
+
+.rv-col {
+  display: flex;
+  flex-direction: column;
+  // styles.scss centra os filhos de <section>; aqui tudo ocupa a coluna.
+  align-items: stretch;
+  gap: 2em;
+  width: 100%;
+  max-width: var(--col-md);
+  padding: 1.5em var(--gutter-mobile) 4em;
+  box-sizing: border-box;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: var(--col-lg);
+  }
+
+  h1 {
+    font-size: var(--fs-h1);
+    letter-spacing: var(--ls-h1);
+    line-height: var(--lh-tight);
+    margin: 0;
+
+    @media (min-width: breakpoint.$breakpoint-md) {
+      font-size: var(--fs-display-2);
+    }
+
+    @media (min-width: breakpoint.$breakpoint-lg) {
+      font-size: var(--fs-display-1);
+    }
+  }
+
+  h2 {
+    font-size: var(--fs-h2);
+    line-height: var(--lh-tight);
+    margin: 0;
+
+    @media (min-width: breakpoint.$breakpoint-md) {
+      font-size: var(--fs-h2-md);
+    }
+  }
+
+  h3 {
+    font-size: var(--fs-h3);
+    line-height: var(--lh-tight);
+    margin: 0;
+  }
+}
+
+// A nota no topo do pedido, colada à página proposta que vem a seguir.
+.rv-col.rv-col--note {
+  padding-bottom: 0;
+}
+
+.rv-audiences {
+  margin-top: 1em;
+}
+
+.rv-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+
+.rv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+  width: 100%;
+}
+
+.rv-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+
+  p {
+    margin: 0;
+    text-align: left;
+  }
+}
+
+.rv-lead {
+  font-size: var(--fs-body);
+  line-height: 28px;
+  color: var(--fg-1);
+  margin: 0;
+  text-align: left;
+}
+
+.rv-intro {
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--fg-1);
+  margin: 0;
+  text-align: left;
+}
+
+.rv-subtitle {
+  font-size: 18px;
+  font-weight: var(--fw-medium);
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--fg-1);
+}
+
+.rv-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--fw-bold);
+  font-style: italic;
+  color: var(--fg-link);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--dur-fast) ease;
+
+  &:hover {
+    color: var(--color-primary-purple);
+  }
+}
+
+.rv-note {
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--fg-1);
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--color-surface-tint);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+// Lista de pedidos (fila da equipa, os meus pedidos)
+.rv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+
+  > li {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+.rv-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  width: calc(100% + 28px);
+  margin: 6px -14px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  outline: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  // As linhas são links: sem isto herdavam o itálico dos links da página.
+  font-style: normal;
+  transition: outline-color var(--dur-fast) ease;
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-purple);
+    color: var(--fg-1);
+  }
+
+  .rv-list-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+
+  .rv-list-title {
+    font-size: 24px;
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-tight);
+  }
+
+  .rv-list-sub {
+    font-size: 16px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+    line-height: var(--lh-snug);
+  }
+
+  .rv-list-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    font-size: 15px;
+  }
+}
+
+// Barra fixa no topo do pedido em análise
+.rv-bar {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rv-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  width: 100%;
+  max-width: var(--col-md);
+  padding: 12px var(--gutter-mobile);
+  box-sizing: border-box;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    max-width: var(--col-lg);
+  }
+
+  .rv-back {
+    font-size: 14px;
+  }
+}
+
+.rv-bar-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 240px;
+  min-width: 0;
+
+  .rv-bar-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font-size: 20px;
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-tight);
+  }
+
+  .rv-bar-sub {
+    font-size: 14px;
+    font-style: italic;
+    line-height: var(--lh-snug);
+  }
+}
+
+.rv-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rv-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--rv-bd);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--fg-1);
+  line-height: var(--lh-tight);
+}
+
+// Botões
+.rv-btn {
+  border: 1px solid var(--color-primary-blue);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-blue);
+  color: var(--fg-on-dark);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: var(--fw-semibold);
+  padding: 14px 30px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--dur-fast) ease, background var(--dur-fast) ease, color var(--dur-fast) ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &.rv-btn--danger {
+    border-color: var(--color-error);
+    background: var(--color-error);
+  }
+
+  &.rv-btn--small {
+    font-size: 16px;
+    padding: 12px 24px;
+  }
+}
+
+.rv-btn-outline {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--color-primary-blue);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: var(--color-primary-blue);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  padding: 14px 26px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-blue);
+    color: var(--fg-on-dark);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &.rv-btn--small {
+    align-self: auto;
+    flex: none;
+    font-size: 15px;
+    padding: 10px 18px;
+  }
+}
+
+.rv-text-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 2px 1px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: var(--fw-bold);
+  font-style: italic;
+  color: var(--fg-link);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--dur-fast) ease;
+
+  &:hover {
+    color: var(--color-primary-purple);
+  }
+}
+
+// Escolha com bolinha (estado de um ponto, decisão por item, público)
+.rv-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary-purple);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--rv-c);
+    border-color: var(--rv-c);
+    color: var(--fg-on-dark);
+
+    .rv-dot {
+      background: var(--color-white);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.rv-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// ─ Ponto de revisão (ReviewThread) ─────────────────────────────────────────
+
+.rv-thread {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--rv-bd, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  overflow: hidden;
+
+  // Logo a seguir a uma secção da página: sobe para junto dela.
+  &.rv-thread--tucked {
+    margin-top: -2.25em;
+  }
+}
+
+.rv-thread-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: var(--color-surface-tint);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+
+  .rv-thread-label {
+    flex: 1 1 160px;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: var(--fw-semibold);
+    line-height: var(--lh-snug);
+  }
+
+  .rv-thread-count {
+    font-size: 14px;
+    font-style: italic;
+    line-height: var(--lh-snug);
+  }
+
+  .material-symbols-outlined {
+    font-size: 20px;
+    transition: transform var(--dur-base) ease;
+
+    &.invert {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.rv-thread-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  border-top: 1px solid var(--color-border);
+
+  .rv-thread-status {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .rv-field-label {
+    font-size: 15px;
+    font-weight: var(--fw-semibold);
+    color: var(--fg-1);
+    line-height: var(--lh-tight);
+  }
+}
+
+.rv-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rv-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+
+  &.rv-comment--team {
+    border-color: var(--color-surface-tint);
+    background: var(--color-surface-tint);
+  }
+
+  .rv-comment-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+  }
+
+  .rv-comment-author {
+    font-size: 15px;
+    font-weight: var(--fw-bold);
+    color: var(--fg-1);
+    line-height: var(--lh-snug);
+  }
+
+  .rv-comment-when {
+    font-size: 13.5px;
+    color: var(--color-hint);
+    line-height: var(--lh-snug);
+  }
+
+  .rv-comment-text {
+    font-size: 16px;
+    color: var(--fg-1);
+    line-height: 1.5;
+    margin: 0;
+    text-align: left;
+    white-space: pre-wrap;
+  }
+}
+
+.rv-empty {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--color-hint);
+  line-height: 1.45;
+  margin: 0;
+  text-align: left;
+}
+
+.rv-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  textarea.cat-input {
+    min-height: 80px;
+  }
+
+  .rv-compose-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .rv-btn {
+    font-size: 15px;
+    padding: 11px 22px;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// ─ Pedido em análise ───────────────────────────────────────────────────────
+
+// Faixa entre o perfil e cada proposta.
+.rv-band {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  background: var(--color-surface-tint);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-top: 1.5em;
+
+  .rv-band-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    width: 100%;
+    max-width: var(--col-md);
+    padding: 18px var(--gutter-mobile);
+    box-sizing: border-box;
+
+    @media (min-width: breakpoint.$breakpoint-lg) {
+      max-width: var(--col-lg);
+    }
+  }
+
+  .rv-band-name {
+    font-size: 16px;
+    font-style: italic;
+    color: var(--fg-1);
+  }
+}
+
+// A parte de baixo (configuração, parecer, entrevista), em fundo lavado.
+.rv-foot {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  background: var(--color-surface-tint);
+  border-top: 1px solid var(--color-border);
+  margin-top: 1.5em;
+
+  > .rv-col {
+    gap: 3.5em;
+    padding-top: 2.5em;
+  }
+}
+
+// Linhas da configuração, públicos e decisão por item
+.rv-rows {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-top: 1px solid var(--color-border);
+}
+
+.rv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-border);
+
+  &.rv-row--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 16px 0;
+
+    // Só em linha: numa coluna, a base de 260px virava altura.
+    .rv-row-text {
+      flex: 1 1 260px;
+    }
+  }
+
+  .rv-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .rv-row-name {
+    font-size: 20px;
+    font-weight: var(--fw-bold);
+    color: var(--fg-1);
+    line-height: var(--lh-tight);
+  }
+
+  .rv-row-detail {
+    font-size: 15px;
+    color: var(--fg-1);
+    line-height: 1.35;
+  }
+
+  .rv-row-where {
+    font-size: 15px;
+    font-style: italic;
+    color: var(--fg-1);
+    line-height: var(--lh-snug);
+  }
+}
+
+.rv-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-end;
+
+  > .cat-field {
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+
+  .rv-schedule-note {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--fg-1);
+    line-height: 1.4;
+  }
+}
+
+// Campo com prefixo fixo (/profissionais/, /servicos/)
+.rv-prefixed {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  overflow: hidden;
+  transition: border-color var(--dur-fast) ease;
+
+  &:focus-within {
+    border-color: var(--color-primary-blue);
+  }
+
+  span {
+    flex: none;
+    padding: 13px 0 13px 16px;
+    font-size: 16px;
+    color: var(--color-hint);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--fg-1);
+    padding: 13px 16px 13px 1px;
+    outline: none;
+  }
+}
+
+// "Como vai aparecer": a etiqueta desmarcada e marcada
+.rv-tag-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  &.rv-tag-preview--refused {
+    opacity: 0.4;
+
+    .cat-chip {
+      text-decoration: line-through;
+    }
+  }
+
+  .cat-chip {
+    cursor: default;
+
+    &:hover {
+      border-color: var(--color-border);
+    }
+
+    &[aria-pressed='true']:hover {
+      border-color: var(--color-primary-blue);
+    }
+  }
+}
+
+.rv-audience-name {
+  max-width: 380px;
+}
+
+// Caixa de estado / decisão / entrevista
+.rv-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid var(--rv-bd, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+
+  &.rv-box--done {
+    background: var(--color-success-soft);
+  }
+
+  .rv-box-text {
+    font-size: 17px;
+    color: var(--fg-1);
+    line-height: 1.45;
+  }
+
+  .rv-box-when {
+    font-size: 22px;
+    font-weight: var(--fw-bold);
+    color: var(--fg-1);
+    line-height: 1.25;
+  }
+
+  .rv-box-who {
+    font-size: 17px;
+    font-weight: var(--fw-medium);
+    font-style: italic;
+    color: var(--fg-1);
+    line-height: 1.35;
+  }
+}
+
+.rv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rv-hint {
+  font-size: 13.5px;
+  color: var(--color-hint);
+  line-height: 1.4;
+}
+
+// ─ Acompanhamento ──────────────────────────────────────────────────────────
+
+// Etapas, como o scheduling-stepper
+.rv-steps {
+  display: grid;
+  grid-template-columns: repeat(var(--rv-steps, 4), minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+
+  > li {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .rv-step-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rv-step-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: var(--radius-pill);
+    border: 2px solid var(--color-border-strong);
+    background: var(--color-white);
+    color: var(--color-secondary-indigo);
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    box-sizing: border-box;
+
+    .material-symbols-outlined {
+      font-size: 18px;
+    }
+  }
+
+  .rv-step-connector {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+    margin-right: 10px;
+  }
+
+  .rv-step-label {
+    font-size: 14px;
+    font-weight: var(--fw-medium);
+    color: var(--color-secondary-indigo);
+    line-height: 1.25;
+    padding-right: 8px;
+  }
+
+  .rv-step--done {
+    .rv-step-circle {
+      border-color: var(--color-primary-blue);
+      color: var(--color-primary-blue);
+    }
+
+    .rv-step-connector {
+      background: var(--color-primary-blue);
+    }
+
+    .rv-step-label {
+      color: var(--color-primary-blue);
+    }
+  }
+
+  .rv-step--current {
+    .rv-step-circle {
+      border-color: var(--rv-c);
+      background: var(--rv-c);
+      color: var(--fg-on-dark);
+    }
+
+    .rv-step-label {
+      font-weight: var(--fw-bold);
+      color: var(--rv-c);
+    }
+  }
+}
+
+.rv-col.rv-col--tracking {
+  gap: 3em;
+}
+
+.rv-box .rv-box-text.rv-box-text--lg {
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.rv-row.rv-row--tight {
+  gap: 10px;
+  padding: 16px 0;
+
+  .rv-choices {
+    align-items: center;
+    gap: 8px 12px;
+  }
+}
+
+.rv-row .rv-row-name.rv-row-name--sm {
+  font-size: 18px;
+  line-height: var(--lh-snug);
+}
+
+.rv-attention-last {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-tint);
+
+  .rv-attention-who {
+    font-size: 14px;
+    font-weight: var(--fw-bold);
+    color: var(--fg-1);
+    line-height: var(--lh-snug);
+  }
+
+  .rv-attention-text {
+    font-size: 16px;
+    color: var(--fg-1);
+    line-height: 1.5;
+  }
+}
+
+.rv-picker-wrap {
+  width: 100%;
+  max-width: 760px;
+}

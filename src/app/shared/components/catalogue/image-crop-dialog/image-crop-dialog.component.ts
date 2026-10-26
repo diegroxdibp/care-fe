@@ -38,7 +38,7 @@ const RATIOS: { label: string; value: number | null }[] = [
   template: `
     <div class="dialog">
       <h3>Ajustar imagem</h3>
-      <p class="body">Arraste a moldura para escolher a parte que aparece. Use o zoom para aproximar e arraste a imagem para a enquadrar.</p>
+      <p class="body">Arraste a moldura para escolher a parte que aparece. Use o zoom para aproximar e arraste a imagem para enquadrá-la.</p>
 
       <div class="stage">
         <image-cropper
@@ -56,7 +56,7 @@ const RATIOS: { label: string; value: number | null }[] = [
           [imageQuality]="90"
           backgroundColor="#ffffff"
           [onlyScaleDown]="true"
-          cropperFrameAriaLabel="Área a recortar"
+          cropperFrameAriaLabel="Área de recorte"
           (cropperReady)="ready()"
           (loadImageFailed)="failed.set(true)"
           (transformChange)="transform.set($event)"
@@ -82,12 +82,12 @@ const RATIOS: { label: string; value: number | null }[] = [
         </label>
         <div class="cat-actions">
           <button type="button" class="cat-btn-text" (click)="rotate(-1)">
-            <span class="material-symbols-outlined" translate="no" aria-hidden="true">rotate_left</span> Rodar
+            <span class="material-symbols-outlined" translate="no" aria-hidden="true">rotate_left</span> Girar
           </button>
           <button type="button" class="cat-btn-text" (click)="rotate(1)">
-            <span class="material-symbols-outlined" translate="no" aria-hidden="true">rotate_right</span> Rodar
+            <span class="material-symbols-outlined" translate="no" aria-hidden="true">rotate_right</span> Girar
           </button>
-          <button type="button" class="cat-btn-text" (click)="reset()">Repor</button>
+          <button type="button" class="cat-btn-text" (click)="reset()">Redefinir</button>
         </div>
         @if (!data.aspectRatio) {
           <div class="cat-chips" role="group" aria-label="Proporção">
@@ -103,7 +103,7 @@ const RATIOS: { label: string; value: number | null }[] = [
       <div class="btns">
         <button type="button" class="cat-btn-text" (click)="ref.close()">Cancelar</button>
         <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="!isReady() || busy()" (click)="apply()">
-          {{ busy() ? 'A recortar…' : 'Aplicar' }}
+          {{ busy() ? 'Recortando…' : 'Aplicar' }}
         </button>
       </div>
     </div>

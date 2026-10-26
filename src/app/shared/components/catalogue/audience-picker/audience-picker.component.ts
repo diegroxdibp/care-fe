@@ -31,7 +31,7 @@ import { Audience } from '../../../models/catalogue.model';
         [value]="draft()"
         (input)="draft.set($any($event.target).value)"
         (keydown.enter)="$event.preventDefault(); propose()"
-        placeholder="Não encontra o público? Escreva aqui."
+        placeholder="Não encontrou o público? Escreva aqui."
         [attr.aria-label]="'Propor novo público para ' + label()"
       />
       <button type="button" class="cat-btn-pill" [disabled]="!draft().trim()" (click)="propose()">Propor novo público</button>

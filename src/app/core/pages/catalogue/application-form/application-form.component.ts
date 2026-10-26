@@ -11,6 +11,7 @@ import {
   emptyServiceContent,
   ProfessionalProfile,
   profileForForm,
+  proposalContentOf,
   ServiceContent,
 } from '../../../../shared/models/catalogue.model';
 import { Pages } from '../../../../shared/enums/pages.enum';
@@ -25,6 +26,8 @@ import { professionalViewFromForm, serviceViewFromContent } from '../../../../sh
 interface ProposalDraft {
   key: string;
   open: boolean;
+  /** A proposta já enviada que se revê (pedido devolvido para alterações); null numa nova. */
+  id: number | null;
   content: ServiceContent;
 }
 
@@ -32,6 +35,9 @@ interface Draft {
   profile: ProfessionalProfile;
   serviceIds: number[];
   proposals: ServiceContent[];
+  proposalIds?: (number | null)[];
+  /** O pedido devolvido que este rascunho revê; sem ele, o rascunho é de um pedido novo. */
+  revising?: number | null;
 }
 
 const DRAFT_KEY = 'care-application-draft-v1';
@@ -42,6 +48,8 @@ type State = 'loading' | 'form' | 'pending' | 'approved' | 'professional' | 'sen
  * /junte-se/pedido — o pedido para fazer parte da Care (handoff: formulário
  * de profissional em modo candidatura). Pede sessão (onboarding já recolheu
  * fuso horário, moeda e idioma). O rascunho fica no navegador até ser enviado.
+ * Devolvido para alterações, o pedido reabre aqui com o que foi enviado e
+ * volta a ser enviado por cima (as propostas pelo id) — a análise continua.
  */
 @Component({
   selector: 'app-application-form',
@@ -65,6 +73,13 @@ export class ApplicationFormComponent implements OnInit {
   readonly attempted = signal(false);
   readonly sending = signal(false);
   readonly serverError = signal<string | null>(null);
+  /** O pedido foi devolvido para alterações e está a ser revisto. */
+  readonly revising = signal(false);
+
+  readonly trackLink = computed(() => {
+    const app = this.application();
+    return app ? ['/', Pages.MEUS_PEDIDOS, 'candidatura', app.id] : ['/', Pages.MEUS_PEDIDOS];
+  });
 
   readonly accountEmail = computed(() => this.session.user()?.email ?? null);
   readonly chosenServices = computed(() => this.services().filter(s => this.serviceIds().includes(s.id)));
@@ -97,6 +112,8 @@ export class ApplicationFormComponent implements OnInit {
         profile: this.profile(),
         serviceIds: this.serviceIds(),
         proposals: this.proposals().map(p => p.content),
+        proposalIds: this.proposals().map(p => p.id),
+        revising: this.revising() ? this.application()?.id ?? null : null,
       };
       if (this.state() !== 'form') return;
       if (this.saveTimer) clearTimeout(this.saveTimer);
@@ -122,7 +139,10 @@ export class ApplicationFormComponent implements OnInit {
     this.api.myApplication().subscribe({
       next: app => {
         this.application.set(app);
-        if (app.status === 'PENDING') this.state.set('pending');
+        if (app.status === 'PENDING' && app.decision === 'CHANGES') {
+          this.revising.set(true);
+          this.startForm(app);
+        } else if (app.status === 'PENDING') this.state.set('pending');
         else if (app.status === 'APPROVED') this.state.set('approved');
         else this.startForm(app);
       },
@@ -133,16 +153,25 @@ export class ApplicationFormComponent implements OnInit {
     });
   }
 
-  /** Começa do rascunho guardado; senão do pedido recusado; senão em branco com o nome da conta. */
-  private startForm(rejected: Application | null): void {
+  /**
+   * Começa do rascunho guardado (o do mesmo pedido, se é uma revisão); senão
+   * do pedido enviado (devolvido ou recusado); senão em branco com o nome da conta.
+   */
+  private startForm(previous: Application | null): void {
     const draft = this.readDraft();
-    if (draft) {
+    const revisingId = this.revising() ? previous?.id ?? null : null;
+    if (draft && (draft.revising ?? null) === revisingId) {
       this.profile.set(profileForForm(draft.profile));
       this.serviceIds.set(draft.serviceIds ?? []);
-      this.proposals.set((draft.proposals ?? []).map(c => this.wrap(c, false)));
-    } else if (rejected?.profile) {
-      this.profile.set(profileForForm(rejected.profile));
-      this.serviceIds.set(rejected.services.map(s => s.id));
+      this.proposals.set(
+        (draft.proposals ?? []).map((c, i) => this.wrap(c, false, revisingId ? draft.proposalIds?.[i] ?? null : null)),
+      );
+    } else if (previous?.profile) {
+      this.profile.set(profileForForm(previous.profile));
+      this.serviceIds.set(previous.services.map(s => s.id));
+      if (revisingId) {
+        this.proposals.set(previous.proposals.map(s => this.wrap(proposalContentOf(s), false, s.id)));
+      }
     } else {
       this.profile.set(emptyProfile(this.session.user()?.name ?? ''));
     }
@@ -158,8 +187,8 @@ export class ApplicationFormComponent implements OnInit {
     }
   }
 
-  private wrap(content: ServiceContent, open: boolean): ProposalDraft {
-    return { key: `p${++this.seq}`, open, content };
+  private wrap(content: ServiceContent, open: boolean, id: number | null = null): ProposalDraft {
+    return { key: `p${++this.seq}`, open, id, content };
   }
 
   toggleService(id: number): void {
@@ -192,6 +221,7 @@ export class ApplicationFormComponent implements OnInit {
         profile: this.profile(),
         serviceIds: this.serviceIds(),
         proposals: this.proposals().map(p => p.content),
+        proposalIds: this.proposals().map(p => p.id),
       })
       .subscribe({
         next: app => {

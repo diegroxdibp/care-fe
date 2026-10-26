@@ -5,22 +5,22 @@
 
       @switch (state()) {
         @case ('loading') {
-          <p class="cat-empty">A carregar…</p>
+          <p class="cat-empty">Carregando…</p>
         }
         @case ('professional') {
           <h1>Você já faz parte da CARE</h1>
-          <p>O seu perfil profissional e os seus serviços editam-se no painel.</p>
+          <p>Seu perfil profissional e seus serviços são editados no painel.</p>
           <div class="cat-actions">
             <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_PROFESSIONAL_PROFILE">Perfil profissional</a>
-            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Os meus serviços</a>
+            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Meus serviços</a>
           </div>
         }
         @case ('pending') {
           <span class="cat-pill-status cat-pill-pending">Pedido em análise</span>
-          <h1>O seu pedido está com a equipa da CARE</h1>
+          <h1>Seu pedido está com a equipe da CARE</h1>
           <p>
-            Enviado em {{ application()?.submittedAt?.slice(0, 10) }}. A equipa lê cada pedido com atenção e entra em
-            contacto pelo email da sua conta. Entretanto, continua a usar a Care como sempre.
+            Enviado em {{ application()?.submittedAt?.slice(0, 10) }}. A equipe lê cada pedido com atenção e entra em
+            contato pelo email da sua conta. Enquanto isso, continue usando a Care como sempre.
           </p>
           @if (application()?.proposals?.length) {
             <p>Propostas de serviço enviadas:</p>
@@ -30,13 +30,14 @@
               }
             </ul>
           }
+          <a class="cat-link" [routerLink]="trackLink()">Acompanhar o pedido →</a>
         }
         @case ('approved') {
           <span class="cat-pill-status">Pedido aprovado</span>
           <h1>Boas-vindas à CARE</h1>
-          <p>O seu perfil profissional está publicado. Ajuste os seus serviços e abra disponibilidade no painel.</p>
+          <p>Seu perfil profissional está publicado. Ajuste seus serviços e abra disponibilidade no painel.</p>
           <div class="cat-actions">
-            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Os meus serviços</a>
+            <a class="cat-btn-pill" [routerLink]="'/' + Pages.DASHBOARD_SERVICES">Meus serviços</a>
             <a class="cat-btn-pill" [routerLink]="['/', Pages.AVAILABILITY]">Disponibilidade</a>
           </div>
         }
@@ -44,22 +45,30 @@
           <span class="cat-pill-status">Pedido enviado</span>
           <h1>Obrigado!</h1>
           <p>
-            O seu pedido chegou à equipa da CARE
+            Seu pedido chegou à equipe da CARE
             @if (application()?.proposals?.length) {
               , com {{ application()!.proposals.length === 1 ? 'uma proposta de serviço' : application()!.proposals.length + ' propostas de serviço' }}
             }
-            . Vai receber a resposta por email e numa notificação aqui na Care.
+            . A equipe analisa cada parte do pedido e pode deixar comentários; você vai receber as novidades por email e
+            numa notificação aqui na Care.
           </p>
+          <a class="cat-link" [routerLink]="trackLink()">Acompanhar o pedido →</a>
         }
         @case ('form') {
           <h1>Pedido para fazer parte da CARE</h1>
-          @if (application()?.status === 'REJECTED') {
+          @if (revising()) {
+            <div class="cat-notice">
+              <strong>A equipe da CARE pediu alterações.</strong>
+              Veja os comentários em <a class="cat-link" [routerLink]="trackLink()">Acompanhar o pedido</a>, revise os
+              pontos negados e envie de novo — a análise continua a partir daí.
+            </div>
+          } @else if (application()?.status === 'REJECTED') {
             <div class="cat-notice">
               <strong>O pedido anterior não foi aprovado.</strong>
               @if (application()?.reviewNote) {
-                Nota da equipa: {{ application()!.reviewNote }}
+                Nota da equipe: {{ application()!.reviewNote }}
               }
-              Pode rever e enviar de novo.
+              Você pode revisar e enviar de novo.
             </div>
           }
 
@@ -74,8 +83,8 @@
           <fieldset class="cat-fieldset">
             <legend>Serviços realizados na CARE</legend>
             <p class="cat-hint">
-              Marque os serviços da lista que realiza. Depois da aprovação ajusta formatos, modalidade e especialidades
-              em Os meus serviços.
+              Marque os serviços da lista que você realiza. Depois da aprovação, você ajusta formatos, modalidade e especialidades
+              em Meus serviços.
             </p>
             @for (s of services(); track s.id) {
               <label class="cat-check">
@@ -113,14 +122,14 @@
           </fieldset>
 
           @if (attempted() && missing().length) {
-            <p class="cat-error-box" role="alert">Campos obrigatórios em falta: {{ missing().join(', ') }}.</p>
+            <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
           }
           @if (serverError()) {
             <p class="cat-error-box" role="alert">{{ serverError() }}</p>
           }
           <div class="cat-actions">
             <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="sending()" (click)="submit()">
-              {{ sending() ? 'A enviar…' : 'Enviar pedido' }}
+              {{ sending() ? 'Enviando…' : revising() ? 'Enviar o pedido revisado' : 'Enviar pedido' }}
             </button>
           </div>
         }

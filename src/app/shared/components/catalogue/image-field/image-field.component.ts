@@ -23,15 +23,15 @@ import {
     @if (tile()) {
       <button type="button" class="cat-photo-tile" (click)="file.click()" [disabled]="busy()">
         @if (url()) {
-          <img [src]="url()" alt="Fotografia escolhida" />
+          <img [src]="url()" alt="Foto escolhida" />
         } @else {
-          {{ busy() ? 'A enviar…' : 'Escolher fotografia' }}
+          {{ busy() ? 'Enviando…' : 'Escolher foto' }}
         }
       </button>
       @if (url()) {
         <div class="cat-actions">
-          <button type="button" class="cat-btn-text" (click)="adjust()" [disabled]="busy()">Ajustar fotografia</button>
-          <button type="button" class="cat-btn-text" (click)="remove()">Remover fotografia</button>
+          <button type="button" class="cat-btn-text" (click)="adjust()" [disabled]="busy()">Ajustar foto</button>
+          <button type="button" class="cat-btn-text" (click)="remove()">Remover foto</button>
         </div>
       }
     } @else {
@@ -40,7 +40,7 @@ import {
       }
       <div class="cat-actions">
         <button type="button" class="cat-btn-pill" (click)="file.click()" [disabled]="busy()">
-          {{ busy() ? 'A enviar…' : url() ? 'Trocar imagem' : 'Escolher imagem' }}
+          {{ busy() ? 'Enviando…' : url() ? 'Trocar imagem' : 'Escolher imagem' }}
         </button>
         @if (url()) {
           <button type="button" class="cat-btn-text" (click)="adjust()" [disabled]="busy()">Ajustar imagem</button>

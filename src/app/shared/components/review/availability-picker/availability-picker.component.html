@@ -1,0 +1,117 @@
+<div class="ap">
+  @if (slots().length) {
+    <div class="ap-date">
+      <button type="button" class="ap-field" [class.ap-field--open]="calOpen()" [attr.aria-expanded]="calOpen()"
+        (click)="toggleCal()">
+        <span class="ap-field-text">
+          <span class="ap-field-label">{{ fieldLabel() }}</span>
+          <span class="ap-field-value" [class.ap-field-value--empty]="!dateValue()">{{ dateValue() ?? 'dd/mm/aaaa' }}</span>
+        </span>
+        <span translate="no" aria-hidden="true" class="material-symbols-outlined">calendar_today</span>
+      </button>
+      @if (calOpen()) {
+        <div class="ap-cal">
+          <div class="ap-cal-head">
+            <button type="button" class="ap-cal-nav" aria-label="Mês anterior" (click)="shiftMonth(-1)">
+              <span translate="no" aria-hidden="true" class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <span class="ap-cal-month">{{ monthLabel() }}</span>
+            <button type="button" class="ap-cal-nav" aria-label="Mês seguinte" (click)="shiftMonth(1)">
+              <span translate="no" aria-hidden="true" class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+          <div class="ap-cal-grid ap-cal-weekdays">
+            @for (wd of weekdays; track wd) {
+              <span>{{ wd }}</span>
+            }
+          </div>
+          <div class="ap-cal-grid">
+            @for (c of cells(); track c.key) {
+              <button
+                type="button"
+                class="ap-cal-day"
+                [class.ap-cal-day--out]="!c.inMonth"
+                [class.ap-cal-day--has]="c.has && !c.disabled"
+                [class.ap-cal-day--today]="c.today"
+                [class.ap-cal-day--selected]="c.key === selectedDay()"
+                [disabled]="c.disabled"
+                (click)="pickDay(c.key)"
+              >
+                {{ c.n }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (selectedDay()) {
+      <div class="ap-slots">
+        @for (s of daySlots(); track s.id) {
+          <div class="ap-slot" [class.ap-slot--confirmed]="isConfirmed(s)">
+            <button type="button" class="ap-slot-head" [attr.aria-expanded]="isOpen(s)" (click)="toggle(s)">
+              <span class="ap-slot-time">{{ time(s) }}</span>
+              <span class="ap-slot-affords">
+                @for (m of s.modalities; track m; let i = $index) {
+                  <span class="ap-afford">
+                    @if (i > 0) {
+                      <span aria-hidden="true" class="ap-sep">·</span>
+                    }
+                    <span translate="no" aria-hidden="true" class="material-symbols-outlined">{{ MOD[m].icon }}</span>
+                    <span>{{ s.modalities.length === 1 ? MOD[m].only : MOD[m].word }}</span>
+                  </span>
+                }
+              </span>
+              <span class="ap-slot-host">Com {{ s.host }}</span>
+              <span translate="no" aria-hidden="true" class="material-symbols-outlined ap-chevron"
+                [class.invert]="isOpen(s)">expand_more</span>
+            </button>
+            <div class="ap-slot-body" [class.ap-slot-body--open]="isOpen(s)">
+              <div class="ap-slot-inner">
+                @if (s.modalities.length > 1) {
+                  <div class="ap-mod">
+                    <span class="ap-mod-label">{{ modalityLabel() }}</span>
+                    <div class="ap-segment">
+                      @for (m of s.modalities; track m) {
+                        <button type="button" [attr.aria-pressed]="chosen(s) === m" [disabled]="isConfirmed(s)"
+                          (click)="setMod(s, m)">
+                          @if (chosen(s) === m) {
+                            <span translate="no" aria-hidden="true" class="material-symbols-outlined">check</span>
+                          }
+                          <span>{{ MOD[m].label }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+                <div class="ap-detail">
+                  <span translate="no" aria-hidden="true" class="material-symbols-outlined">{{ MOD[chosen(s)].icon }}</span>
+                  <div class="ap-detail-text">
+                    @if (chosen(s) === 'REMOTE') {
+                      <span class="ap-detail-label">Plataforma</span>
+                      <span class="ap-detail-body">{{ remoteInfo }}</span>
+                    } @else {
+                      <span class="ap-detail-label">Endereço</span>
+                      <span class="ap-detail-body" [class.ap-detail-body--soft]="!s.address">{{ s.address || 'a combinar' }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="ap-slot-foot">
+                  <span class="ap-foot-label">{{ footerLabel() }} · <strong>{{ duration(s) }}</strong></span>
+                  <button type="button" class="ap-confirm" [class.ap-confirm--done]="isConfirmed(s)"
+                    [disabled]="isConfirmed(s) || busy()" (click)="confirm(s)">
+                    {{ isConfirmed(s) ? confirmedLabel() : confirmLabel() }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <p class="ap-empty">Sem horários disponíveis para esta data.</p>
+        }
+      </div>
+    }
+  } @else {
+    <p class="ap-empty">{{ emptyText() }}</p>
+  }
+</div>

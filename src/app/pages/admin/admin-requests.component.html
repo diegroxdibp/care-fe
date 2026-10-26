@@ -1,119 +1,72 @@
-@if (!requests()) {
-  <p class="cat-empty">A carregar…</p>
-} @else {
-  @let r = requests()!;
-  @if (!r.applications.length && !r.serviceProposals.length && !r.changeProposals.length) {
-    <p class="cat-empty">Nada à espera da equipa.</p>
+<div class="rv-section">
+  <div class="rv-section-head">
+    <h2>Fila de aprovação</h2>
+    <p class="rv-lead">
+      Candidaturas e propostas de serviço aguardando análise. Cada parte da página é discutida e aprovada em separado.
+      No fim, o perfil e cada proposta recebem sua própria decisão, e as candidaturas aprovadas seguem para entrevista.
+    </p>
+  </div>
+  @if (queue(); as q) {
+    @if (q.length) {
+      <ul class="rv-list">
+        @for (row of rows(); track row.key) {
+          <li>
+            <a class="rv-list-row" [routerLink]="row.link">
+              <span class="rv-list-text">
+                <span class="cat-overline">{{ row.kindLine }}</span>
+                <span class="rv-list-title">{{ row.title }}</span>
+                @if (row.sub) {
+                  <span class="rv-list-sub">{{ row.sub }}</span>
+                }
+              </span>
+              <span class="rv-list-side">
+                <span class="rv-badge" [class]="'rv-tone-' + row.tone"><span class="rv-dot"></span>{{ row.label }}</span>
+                <span>{{ row.progress }}</span>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="rv-intro">Não há pedidos aguardando análise.</p>
+    }
+  } @else {
+    <p class="cat-empty">Carregando…</p>
   }
+</div>
 
-  @if (r.applications.length) {
-    <h2>Pedidos para fazer parte da CARE</h2>
-    @for (a of r.applications; track a.id) {
-      @let key = 'app' + a.id;
-      <div class="cat-admin-item">
-        <strong>{{ a.profile?.displayName || a.applicant.name }}</strong>
-        <span class="cat-hint">{{ a.applicant.email }} · enviado em {{ a.submittedAt?.slice(0, 10) }}</span>
-        @if (a.services.length) {
-          <span>Serviços que realiza: {{ names(a.services) }}</span>
-        }
-        @if (a.proposals.length) {
-          <span>Propõe: {{ names(a.proposals) }} (decidem-se abaixo, depois de aprovar o pedido)</span>
-        }
-        <button type="button" class="cat-btn-text" (click)="toggle(key)">
-          {{ expanded() === key ? 'Esconder perfil' : 'Ver perfil' }}
+@if (changes().length) {
+  <h2>Propostas de alteração</h2>
+  @for (c of changes(); track c.id) {
+    @let key = 'chg' + c.id;
+    <div class="cat-admin-item">
+      <strong>{{ c.current.name }}</strong>
+      <span class="cat-hint">Proposta de {{ c.proposedBy.name }} em {{ c.createdAt.slice(0, 10) }}</span>
+      <div class="cat-actions">
+        <button type="button" class="cat-btn-text" (click)="toggle(key + 'new')">
+          {{ expanded() === key + 'new' ? 'Esconder' : 'Ver como fica' }}
         </button>
-        @if (expanded() === key && profileView(a); as v) {
-          <div class="cat-preview cat-admin-preview"><app-professional-view [professional]="v" [preview]="true" /></div>
-        }
-        <div class="cat-field">
-          <label [for]="key + '-slug'">Endereço da página (ao aprovar)</label>
-          <input class="cat-input" [id]="key + '-slug'" [value]="slug(key)" (input)="setSlug(key, text($event))" />
-          <p class="cat-hint">/profissionais/{{ slug(key) }}</p>
-        </div>
-        <div class="cat-field">
-          <label [for]="key + '-note'">Nota para a pessoa (obrigatória ao recusar)</label>
-          <textarea class="cat-input" [id]="key + '-note'" rows="2" [value]="note(key)" (input)="setNote(key, text($event))"></textarea>
-        </div>
-        @if (errors()[key]) {
-          <p class="cat-error-box" role="alert">{{ errors()[key] }}</p>
-        }
-        <div class="cat-actions">
-          <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === key" (click)="application(a, true)">Aprovar</button>
-          <button type="button" class="cat-btn-pill" [disabled]="busy() === key" (click)="application(a, false)">Recusar</button>
-        </div>
-      </div>
-    }
-  }
-
-  @if (r.serviceProposals.length) {
-    <h2>Propostas de serviço</h2>
-    @for (s of r.serviceProposals; track s.id) {
-      @let key = 'svc' + s.id;
-      <div class="cat-admin-item">
-        <strong>{{ s.name }}</strong>
-        <span class="cat-hint">Proposto por {{ s.proposedBy?.name }} ({{ s.proposedBy?.email }}) em {{ s.createdAt?.slice(0, 10) }}</span>
-        @if (pendingAudiences(s).length) {
-          <span>Públicos novos (aprovados com o serviço): {{ pendingAudiences(s).join(', ') }}</span>
-        }
-        <button type="button" class="cat-btn-text" (click)="toggle(key)">
-          {{ expanded() === key ? 'Esconder página' : 'Ver página' }}
+        <button type="button" class="cat-btn-text" (click)="toggle(key + 'old')">
+          {{ expanded() === key + 'old' ? 'Esconder' : 'Ver como está' }}
         </button>
-        @if (expanded() === key) {
-          <div class="cat-preview cat-admin-preview"><app-service-view [service]="serviceView(s)" notice="proposal" [preview]="true" /></div>
-        }
-        <div class="cat-field">
-          <label [for]="key + '-slug'">Endereço da página (ao aprovar)</label>
-          <input class="cat-input" [id]="key + '-slug'" [value]="slug(key)" (input)="setSlug(key, text($event))" />
-          <p class="cat-hint">/servicos/{{ slug(key) }} — para ajustar o texto antes de aprovar, edite-o em Serviços.</p>
-        </div>
-        <div class="cat-field">
-          <label [for]="key + '-note'">Nota para quem propôs (obrigatória ao recusar)</label>
-          <textarea class="cat-input" [id]="key + '-note'" rows="2" [value]="note(key)" (input)="setNote(key, text($event))"></textarea>
-        </div>
-        @if (errors()[key]) {
-          <p class="cat-error-box" role="alert">{{ errors()[key] }}</p>
-        }
-        <div class="cat-actions">
-          <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === key" (click)="service(s, true)">Aprovar</button>
-          <button type="button" class="cat-btn-pill" [disabled]="busy() === key" (click)="service(s, false)">Recusar</button>
-        </div>
       </div>
-    }
-  }
-
-  @if (r.changeProposals.length) {
-    <h2>Propostas de alteração</h2>
-    @for (c of r.changeProposals; track c.id) {
-      @let key = 'chg' + c.id;
-      <div class="cat-admin-item">
-        <strong>{{ c.current.name }}</strong>
-        <span class="cat-hint">Proposta de {{ c.proposedBy.name }} em {{ c.createdAt.slice(0, 10) }}</span>
-        <div class="cat-actions">
-          <button type="button" class="cat-btn-text" (click)="toggle(key + 'new')">
-            {{ expanded() === key + 'new' ? 'Esconder' : 'Ver como fica' }}
-          </button>
-          <button type="button" class="cat-btn-text" (click)="toggle(key + 'old')">
-            {{ expanded() === key + 'old' ? 'Esconder' : 'Ver como está' }}
-          </button>
-        </div>
-        @if (expanded() === key + 'new') {
-          <div class="cat-preview cat-admin-preview"><app-service-view [service]="changeView(c)" [preview]="true" /></div>
-        }
-        @if (expanded() === key + 'old') {
-          <div class="cat-preview cat-admin-preview"><app-service-view [service]="serviceView(c.current)" [preview]="true" /></div>
-        }
-        <div class="cat-field">
-          <label [for]="key + '-note'">Nota para quem propôs (obrigatória ao recusar)</label>
-          <textarea class="cat-input" [id]="key + '-note'" rows="2" [value]="note(key)" (input)="setNote(key, text($event))"></textarea>
-        </div>
-        @if (errors()[key]) {
-          <p class="cat-error-box" role="alert">{{ errors()[key] }}</p>
-        }
-        <div class="cat-actions">
-          <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === key" (click)="change(c, true)">Aprovar</button>
-          <button type="button" class="cat-btn-pill" [disabled]="busy() === key" (click)="change(c, false)">Recusar</button>
-        </div>
+      @if (expanded() === key + 'new') {
+        <div class="cat-preview cat-admin-preview"><app-service-view [service]="changeView(c)" [preview]="true" /></div>
+      }
+      @if (expanded() === key + 'old') {
+        <div class="cat-preview cat-admin-preview"><app-service-view [service]="serviceView(c.current)" [preview]="true" /></div>
+      }
+      <div class="cat-field">
+        <label [for]="key + '-note'">Nota para quem propôs (obrigatória ao recusar)</label>
+        <textarea class="cat-input" [id]="key + '-note'" rows="2" [value]="note(key)" (input)="setNote(key, text($event))"></textarea>
       </div>
-    }
+      @if (errors()[key]) {
+        <p class="cat-error-box" role="alert">{{ errors()[key] }}</p>
+      }
+      <div class="cat-actions">
+        <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === key" (click)="change(c, true)">Aprovar</button>
+        <button type="button" class="cat-btn-pill" [disabled]="busy() === key" (click)="change(c, false)">Recusar</button>
+      </div>
+    </div>
   }
 }

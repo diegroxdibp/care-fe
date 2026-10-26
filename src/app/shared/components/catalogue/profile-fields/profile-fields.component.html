@@ -1,7 +1,7 @@
 <fieldset class="cat-fieldset">
   <legend>Identificação</legend>
   <div class="cat-field">
-    <span class="cat-label">Fotografia</span>
+    <span class="cat-label">Foto</span>
     <app-image-field [tile]="true" [url]="value().photoUrl" (urlChange)="patch({ photoUrl: $event })" />
   </div>
   <div class="cat-field">
@@ -15,7 +15,7 @@
       [value]="value().displayName"
       (input)="patch({ displayName: text($event) })"
     />
-    <p class="cat-hint">O nome com que aparece como pessoa profissional — pode ser diferente do nome da sua conta.</p>
+    <p class="cat-hint">O nome com que você aparece como pessoa profissional — pode ser diferente do nome da sua conta.</p>
   </div>
   <div class="cat-field">
     <label for="pf-title">Título profissional</label>
@@ -34,7 +34,7 @@
       <span class="cat-label">Email</span>
       <input class="cat-input" type="email" [value]="accountEmail()" disabled />
       <p class="cat-hint">
-        O email e o telefone da sua conta servem apenas para contacto com a equipa da CARE e não aparecem na página.
+        O email e o telefone da sua conta servem apenas para contato com a equipe da CARE e não aparecem na página.
       </p>
     </div>
   }
@@ -52,7 +52,7 @@
       [value]="value().whoAmI"
       (input)="patch({ whoAmI: text($event) })"
     ></textarea>
-    <p class="cat-hint">Na primeira pessoa. Separe os parágrafos com uma linha em branco.</p>
+    <p class="cat-hint">Em primeira pessoa. Separe os parágrafos com uma linha em branco.</p>
   </div>
   <div class="cat-field">
     <label for="pf-quote">Citação (opcional)</label>
@@ -62,7 +62,7 @@
 </fieldset>
 
 <fieldset class="cat-fieldset">
-  <legend>B. Formação e percurso profissional</legend>
+  <legend>B. Formação e trajetória profissional</legend>
   <div class="cat-field">
     <label for="pf-education">Formação acadêmica e especializações</label>
     <textarea class="cat-input" id="pf-education" rows="5" [value]="educationText()"
@@ -98,7 +98,7 @@
           (click)="toggleLanguage(l.code)">{{ l.name }}</button>
       }
     </div>
-    <p class="cat-hint">As modalidades, os formatos e os públicos vêm dos serviços que oferece.</p>
+    <p class="cat-hint">As modalidades, os formatos e os públicos vêm dos serviços que você oferece.</p>
   </div>
   <div class="cat-field">
     <label for="pf-areas">Áreas de experiência</label>

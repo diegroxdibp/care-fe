@@ -23,8 +23,8 @@ import { SessionService } from '../../../shared/services/session.service';
               doença, e que trabalham a partir da integralidade da pessoa: corpo, vivências, vínculos e contexto social.
             </p>
             <p>
-              Se a sua prática se reconhece nesta perspectiva, poderá enviar um pedido para fazer parte da clínica. O
-              pedido é feito através de um formulário, que reúne as informações que irão compor o seu perfil na
+              Se sua prática se reconhece nessa perspectiva, você poderá enviar um pedido para fazer parte da clínica. O
+              pedido é feito através de um formulário, que reúne as informações que irão compor seu perfil na
               plataforma.
             </p>
           </div>
@@ -33,7 +33,7 @@ import { SessionService } from '../../../shared/services/session.service';
 
         <div class="cat-block">
           <h2>O que sustenta cada atendimento</h2>
-          <p>As pessoas profissionais da CARE partilham quatro pilares, que orientam a forma como o acompanhamento é construído.</p>
+          <p>As pessoas profissionais da CARE compartilham quatro pilares, que orientam a forma como o acompanhamento é construído.</p>
           <dl class="cat-rows">
             <div class="cat-row"><dt>Cuidado centrado na pessoa</dt><dd>Cada plano de cuidado é único e feito para a pessoa, não para um protocolo.</dd></div>
             <div class="cat-row"><dt>Abordagem integral</dt><dd>Corpo, vivências e vínculos entram na mesma sala. Todos são protagonistas.</dd></div>
@@ -49,37 +49,38 @@ import { SessionService } from '../../../shared/services/session.service';
               <span class="cat-step-n">1</span>
               <h3>Envio do formulário</h3>
               <p>
-                Com a sua conta na Care, preencha a apresentação, a formação, a forma de trabalho e as informações
+                Com sua conta na Care, preencha a apresentação, a formação, a forma de trabalho e as informações
                 práticas. É possível ver, enquanto escreve, como o perfil ficará na plataforma. No mesmo formulário,
                 poderá também propor um novo serviço.
               </p>
             </li>
             <li>
               <span class="cat-step-n">2</span>
-              <h3>Análise pela equipa da CARE</h3>
-              <p>A equipa lê o pedido com atenção e poderá solicitar documentos que comprovem a formação indicada.</p>
+              <h3>Análise pela equipe da CARE</h3>
+              <p>A equipe lê o pedido com atenção e poderá solicitar documentos que comprovem a formação indicada.</p>
             </li>
             <li>
               <span class="cat-step-n">3</span>
-              <h3>Conversa</h3>
+              <h3>Entrevista</h3>
               <p>
-                Um encontro para conhecer a sua prática e esclarecer, de parte a parte, o que significa trabalhar na
-                clínica ampliada.
+                Com o perfil aprovado, a pessoa escolhe um dos horários disponibilizados pela equipe para uma
+                entrevista, que serve para conhecer sua prática e esclarecer, dos dois lados, o que significa
+                trabalhar na clínica ampliada.
               </p>
             </li>
             <li>
               <span class="cat-step-n">4</span>
               <h3>Publicação do perfil</h3>
               <p>
-                O perfil e os serviços aprovados são publicados na plataforma. Novas propostas de serviço podem ser
-                enviadas a qualquer momento, a partir do seu perfil.
+                Depois da entrevista, o perfil e os serviços aprovados são publicados na plataforma. Novas propostas
+                de serviço podem ser enviadas a qualquer momento, a partir do seu perfil.
               </p>
             </li>
           </ol>
         </div>
 
         @if (!signedIn()) {
-          <p class="cat-hint">Para enviar o pedido, entre na sua conta ou crie uma — volta logo a seguir ao formulário.</p>
+          <p class="cat-hint">Para enviar o pedido, entre na sua conta ou crie uma — você volta ao formulário logo em seguida.</p>
         }
         <button class="cat-cta" type="button" (click)="apply()">Enviar pedido</button>
       </div>

@@ -38,7 +38,7 @@
 }
 
 @if (navbarService.showUserMenu()) {
-  @for (row of userRows; track row.label; let i = $index) {
+  @for (row of userRows(); track row.label; let i = $index) {
     <a class="row"
        [style.--row-delay.s]="0.12 + (navigationService.visibleNavigationItems().length + i) * 0.04"
        tabindex="0"
@@ -59,7 +59,7 @@
 
   <a
     class="row row-danger"
-    [style.--row-delay.s]="0.12 + (navigationService.visibleNavigationItems().length + userRows.length) * 0.04"
+    [style.--row-delay.s]="0.12 + (navigationService.visibleNavigationItems().length + userRows().length) * 0.04"
     tabindex="0"
     (click)="logout()"
     (keydown.enter)="logout()"

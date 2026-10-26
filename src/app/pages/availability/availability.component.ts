@@ -678,7 +678,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         untilDate: once,
         message: result.message,
       }))).subscribe({
-        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa tem de aceitar.' }),
+        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa precisa aceitar.' }),
         // O interceptor já diz se a pessoa tem uma sessão a essa hora.
         error: () => {},
       });
@@ -707,7 +707,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         untilDate: once,
         message: result.message,
       }).subscribe({
-        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa tem de aceitar.' }),
+        next: () => this.snackbarService.openSnackBar({ message: 'Pedido enviado. A outra pessoa precisa aceitar.' }),
         error: () => {},
       });
     });
@@ -916,10 +916,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   readonly editorServices = computed(() =>
     this.services()
-      // Só ofertas que incluem o formato da vaga, de serviços que permitem a visibilidade dela
-      // (um serviço privado só em vagas privadas).
+      // Só ofertas que incluem o formato da vaga. Um serviço só privado (a
+      // Entrevista) aparece sempre: escolhê-lo torna a vaga privada.
       .filter(s => offersFormat(s, this.editorFormat()))
-      .filter(s => this.editorVisibility() === 'PRIVATE' ? s.serviceAllowsPrivate !== false : s.serviceAllowsPublic !== false)
       .filter(s => s.active !== false || this.selectedServiceIds().has(s.id)),
   );
 
@@ -929,7 +928,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const n = Number(this.editorCapacity());
     return Number.isInteger(n) && n >= 2 && n <= MAX_GROUP_CAPACITY
       ? null
-      : `Um grupo tem de ter entre 2 e ${MAX_GROUP_CAPACITY} lugares.`;
+      : `Um grupo precisa ter entre 2 e ${MAX_GROUP_CAPACITY} lugares.`;
   });
 
   private capacityValue(): number {
@@ -1637,10 +1636,32 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     const set = new Set(this.selectedServiceIds());
     if (set.has(id)) {
       set.delete(id);
-    } else {
-      set.add(id);
+      this.selectedServiceIds.set(set);
+      return;
     }
+    set.add(id);
     this.selectedServiceIds.set(set);
+    // Um serviço que só permite uma visibilidade leva a vaga para ela (e larga
+    // os serviços que não a permitem).
+    const svc = this.services().find(s => s.id === id);
+    if (svc?.serviceAllowsPublic === false) this.setEditorVisibility('PRIVATE');
+    else if (svc?.serviceAllowsPrivate === false) this.setEditorVisibility('PUBLIC');
+  }
+
+  /** Muda quem pode marcar, largando os serviços que não permitem essa visibilidade. */
+  setEditorVisibility(v: SlotVisibility): void {
+    this.editorVisibility.set(v);
+    const allowed = new Set(this.services().filter(s => this.allowsVisibility(s, v)).map(s => s.id));
+    this.selectedServiceIds.update(ids => new Set([...ids].filter(id => allowed.has(id))));
+  }
+
+  private allowsVisibility(s: ProfessionalService, v: SlotVisibility): boolean {
+    return v === 'PRIVATE' ? s.serviceAllowsPrivate !== false : s.serviceAllowsPublic !== false;
+  }
+
+  /** O serviço só pode estar em vagas privadas (ex.: a Entrevista). */
+  isPrivateOnly(s: ProfessionalService): boolean {
+    return s.serviceAllowsPublic === false;
   }
 
   isServiceEligible(svc: ProfessionalService): boolean {

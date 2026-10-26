@@ -10,8 +10,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     <div class="cat-form-page">
       <div class="cat-form-layout">
         <div class="cat-card cat-admin-card">
-          <h1>Equipa da CARE</h1>
-          <nav class="cat-admin-nav" aria-label="Área da equipa">
+          <h1>Equipe da CARE</h1>
+          <nav class="cat-admin-nav" aria-label="Área da equipe">
             <a class="cat-chip" routerLink="pedidos" routerLinkActive #a="routerLinkActive" [attr.aria-pressed]="a.isActive">Pedidos</a>
             <a class="cat-chip" routerLink="servicos" routerLinkActive #b="routerLinkActive" [attr.aria-pressed]="b.isActive">Serviços</a>
             <a class="cat-chip" routerLink="profissionais" routerLinkActive #c="routerLinkActive" [attr.aria-pressed]="c.isActive">Profissionais</a>
