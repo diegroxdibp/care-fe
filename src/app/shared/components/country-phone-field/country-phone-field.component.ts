@@ -88,8 +88,29 @@ export class CountryPhoneFieldComponent implements OnChanges, AfterViewChecked {
     this.dropdownOpen.set(false);
   }
 
+  // Como no StyledSelect: clicar na barra de scroll da lista de países tira o
+  // foco da pesquisa (para lado nenhum, ou para o contentor de um diálogo) e
+  // fechava a lista a meio do scroll. Um clique que começou cá dentro não é
+  // sair; no fim dele o foco volta à pesquisa.
+  private pointerDownInside = false;
+
+  @HostListener('mousedown')
+  onHostMousedown(): void {
+    this.pointerDownInside = true;
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseup(): void {
+    if (!this.pointerDownInside) return;
+    this.pointerDownInside = false;
+    if (this.dropdownOpen() && !this.elementRef.nativeElement.contains(document.activeElement)) {
+      this.searchInputRef?.nativeElement.focus();
+    }
+  }
+
   @HostListener('focusout', ['$event'])
   onFocusOut(event: FocusEvent): void {
+    if (this.pointerDownInside) return;
     const next = event.relatedTarget as Node | null;
     if (!next || !this.elementRef.nativeElement.contains(next)) {
       this.dropdownOpen.set(false);
