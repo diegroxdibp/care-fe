@@ -484,6 +484,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   selectedBlockId = signal<number | null>(null);
   selectedAppointment = signal<Appointment | null>(null);
+  /**
+   * A data da sessão aberta, fixada no clique. O painel fica aberto ao mudar de
+   * semana, e reler a data da semana em vista misturava duas séries na mesma
+   * vaga: cancelar mandava a marcação de uma com a data da outra (out. 2026).
+   */
+  private readonly selectedOccurrence = signal<string | null>(null);
 
   /**
    * Os meus pedidos de reagendamento por responder. O destino de cada um está
@@ -2574,23 +2580,36 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     return new Intl.NumberFormat(this.locale, { style: 'currency', currency: this.CURRENCY_BRL }).format(appt.priceBRL);
   }
 
-  /** O dia da sessão em vista no fuso da agenda: só o dia da semana numa série. */
+  /**
+   * O dia da sessão no fuso da agenda, com a data também numa série: duas
+   * séries intercaladas na mesma vaga têm o mesmo dia da semana.
+   */
   apptDateLabel(appt: Appointment): string {
-    const { dateKey } = this.apptInCalendar(appt, this.occurrenceInView(appt));
+    const { dateKey } = this.apptInCalendar(appt, this.occurrenceOf(appt));
     if (!dateKey) return '';
     const d = new Date(dateKey + 'T00:00:00');
     const dow = PT_DOW_LONG[(d.getDay() + 6) % 7];
     const day = dow.charAt(0).toUpperCase() + dow.slice(1);
-    return appt.isRecurring ? day : `${day}, ${d.getDate()} ${PT_MONTHS[d.getMonth()]}`;
+    return `${day}, ${d.getDate()} ${PT_MONTHS[d.getMonth()]}`;
   }
 
-  /** "12:00–13:00": a sessão em vista no fuso da agenda. */
+  /** "12:00–13:00": a sessão no fuso da agenda. */
   apptTimeRange(appt: Appointment): string {
-    const { start, end } = this.apptInCalendar(appt, this.occurrenceInView(appt));
+    const { start, end } = this.apptInCalendar(appt, this.occurrenceOf(appt));
     return `${start}–${end}`;
   }
 
-  /** A ocorrência em vista de uma sessão (data na marcação): a do bloco nesta semana, ou a dela. */
+  /**
+   * A ocorrência de uma sessão (data na marcação). A sessão aberta guarda a
+   * data do clique; as outras são a do bloco na semana em vista, ou a dela.
+   */
+  private occurrenceOf(appt: Appointment): string {
+    const selected = this.selectedOccurrence();
+    if (selected && this.selectedAppointment()?.id === appt.id) return selected;
+    return this.occurrenceInView(appt);
+  }
+
+  /** A ocorrência na semana em vista: a do bloco desta semana, ou a da própria marcação. */
   private occurrenceInView(appt: Appointment): string {
     const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
     return (block && this.blockDateInView(block)) || appt.startDate;
@@ -2617,6 +2636,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   selectSlot(event: Event, appt: Appointment): void {
     event.stopPropagation();
+    this.selectedOccurrence.set(this.occurrenceInView(appt));
     this.selectedAppointment.set(appt);
     this.sheetOpen.set(true);
     this.scrollPanelToTop();
@@ -2661,8 +2681,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     // A sessão que cai é a ocorrência em vista, não a âncora da série. Sem a
     // data, o backend desmarcava a primeira sessão da série - a de hoje ficava
     // na agenda e a pessoa cliente era avisada na mesma (07/10/2026).
-    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
-    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    const occurrenceDate = this.occurrenceOf(appt);
     const justificationLabel = 'Justificativa do cancelamento:';
     const justificationPlaceholder = 'Explique o motivo do cancelamento para a pessoa cliente.';
 
@@ -2722,8 +2741,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   /** O pedido por responder sobre esta marcação, na ocorrência em vista. */
   pendingRescheduleOf(appt: Appointment): RescheduleRequest | undefined {
     if (appt.id <= 0) return undefined;
-    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
-    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    const occurrenceDate = this.occurrenceOf(appt);
     return this.rescheduleRequests().find(r => r.appointmentId === appt.id && r.occurrenceDate === occurrenceDate);
   }
 
@@ -3224,8 +3242,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * periódico continua a valer — a próxima ocorrência ainda está para vir.
    */
   isApptPast(appt: Appointment): boolean {
-    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
-    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    const occurrenceDate = this.occurrenceOf(appt);
     if (!occurrenceDate) return false;
 
     // No fuso da marcação: com setHours era o fuso do computador, e um
@@ -3285,8 +3302,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
     // A data que está a ser movida é a ocorrência em vista, não a âncora da
     // série: numa sessão semanal a âncora pode ser de há meses.
-    const block = this.blocks().find(b => b.backendSlots.some(s => s.backendId === appt.availabilityId));
-    const occurrenceDate = (block && this.blockDateInView(block)) || appt.startDate;
+    const occurrenceDate = this.occurrenceOf(appt);
 
     // As vagas vêm do servidor no momento de abrir, e não dos blocos em
     // memória: estes são editados localmente entre gravações e não trazem as
