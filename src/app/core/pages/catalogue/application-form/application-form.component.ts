@@ -22,6 +22,7 @@ import { ServiceFieldsComponent } from '../../../../shared/components/catalogue/
 import { FormPreviewComponent } from '../../../../shared/components/catalogue/form-preview/form-preview.component';
 import { missingServiceFields } from '../../../../shared/utils/catalogue.util';
 import { professionalViewFromForm, serviceViewFromContent } from '../../../../shared/utils/catalogue-views.util';
+import { detectBrowserTimezone, wallTimeInZone } from '../../../../shared/utils/timezones.util';
 
 interface ProposalDraft {
   key: string;
@@ -64,6 +65,15 @@ export class ApplicationFormComponent implements OnInit {
   readonly Pages = Pages;
   readonly state = signal<State>('loading');
   readonly application = signal<Application | null>(null);
+  /** O dia do envio, dd/mm/aaaa, no fuso do perfil (não no do computador). */
+  readonly submittedDay = computed(() => {
+    const at = this.application()?.submittedAt;
+    if (!at) return null;
+    const zone = this.session.user()?.timeZone || detectBrowserTimezone();
+    const { year, month, day } = wallTimeInZone(new Date(at), zone);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(day)}/${pad(month)}/${year}`;
+  });
   readonly options = signal<CatalogueOptions | null>(null);
   readonly services = signal<CareService[]>([]);
 

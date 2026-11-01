@@ -17,10 +17,13 @@
         }
         @case ('pending') {
           <span class="cat-pill-status cat-pill-pending">Pedido em análise</span>
-          <h1>Seu pedido está com a equipe da CARE</h1>
+          <h1>O seu pedido está em análise pela equipe da CARE.</h1>
           <p>
-            Enviado em {{ application()?.submittedAt?.slice(0, 10) }}. A equipe lê cada pedido com atenção e entra em
-            contato pelo email da sua conta. Enquanto isso, continue usando a Care como sempre.
+            @if (submittedDay()) {
+              Enviado em {{ submittedDay() }}.
+            }
+            A equipe da CARE irá analisar as informações enviadas e entrará em contato por email assim que houver uma
+            resposta.
           </p>
           @if (application()?.proposals?.length) {
             <p>Propostas de serviço enviadas:</p>
@@ -45,12 +48,8 @@
           <span class="cat-pill-status">Pedido enviado</span>
           <h1>Obrigado!</h1>
           <p>
-            Seu pedido chegou à equipe da CARE
-            @if (application()?.proposals?.length) {
-              , com {{ application()!.proposals.length === 1 ? 'uma proposta de serviço' : application()!.proposals.length + ' propostas de serviço' }}
-            }
-            . A equipe analisa cada parte do pedido e pode deixar comentários; você vai receber as novidades por email e
-            numa notificação aqui na Care.
+            A equipe da CARE irá analisar as informações enviadas. Receberá uma resposta por email e uma notificação na
+            plataforma assim que houver uma atualização.
           </p>
           <a class="cat-link" [routerLink]="trackLink()">Acompanhar o pedido →</a>
         }
