@@ -26,6 +26,7 @@ export interface ServiceView {
   slug: string | null;
   name: string;
   intro: string[];
+  howItWorks: string[];
   quote: string | null;
   imageUrl: string | null;
   imageAlt: string | null;
@@ -78,6 +79,7 @@ export function serviceViewFrom(s: CareService, withPending = false): ServiceVie
     slug: s.slug,
     name: s.name,
     intro: paragraphs(s.intro),
+    howItWorks: paragraphs(s.howItWorks),
     quote: s.quote,
     imageUrl: s.imageUrl,
     imageAlt: s.imageAlt,
@@ -113,6 +115,7 @@ export function serviceViewFromContent(c: ServiceContent, options: CatalogueOpti
     slug: null,
     name: c.name.trim() || 'Nome do serviço',
     intro: paragraphs(c.intro),
+    howItWorks: paragraphs(c.howItWorks),
     quote: c.quote?.trim() || null,
     imageUrl: c.imageUrl,
     imageAlt: c.imageAlt,

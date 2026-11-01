@@ -13,6 +13,12 @@
     @for (p of service().intro; track $index) {
       <p>{{ p }}</p>
     }
+    @if (service().howItWorks.length) {
+      <h2>Como funciona o acompanhamento</h2>
+      @for (p of service().howItWorks; track $index) {
+        <p>{{ p }}</p>
+      }
+    }
     @if (service().quote) {
       <p class="quotation quotation-margins">{{ service().quote }}</p>
     }

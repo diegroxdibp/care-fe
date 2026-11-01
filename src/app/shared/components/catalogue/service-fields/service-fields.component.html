@@ -29,6 +29,18 @@
     <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
   </div>
   <div class="cat-field">
+    <label [for]="idPrefix() + '-how'">Como funciona o acompanhamento (opcional)</label>
+    <textarea
+      class="cat-input"
+      [id]="idPrefix() + '-how'"
+      rows="5"
+      [value]="value().howItWorks ?? ''"
+      (input)="patch({ howItWorks: text($event) })"
+      placeholder="Saber o que vai viver: primeiro atendimento, acordos, duração de sessões/acompanhamento, frequência."
+    ></textarea>
+    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+  </div>
+  <div class="cat-field">
     <label [for]="idPrefix() + '-quote'">Citação (opcional)</label>
     <textarea
       class="cat-input"

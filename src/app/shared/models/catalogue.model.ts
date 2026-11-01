@@ -52,6 +52,8 @@ export interface CareService {
   allowsPublic: boolean;
   allowsPrivate: boolean;
   intro: string;
+  /** "Como funciona o acompanhamento". Parágrafos separados por uma linha em branco. */
+  howItWorks: string | null;
   quote: string | null;
   imageUrl: string | null;
   imageAlt: string | null;
@@ -81,6 +83,8 @@ export interface ServiceContent {
   allowsPublic: boolean;
   allowsPrivate: boolean;
   intro: string;
+  /** "Como funciona o acompanhamento". Parágrafos separados por uma linha em branco. */
+  howItWorks: string | null;
   quote: string | null;
   imageUrl: string | null;
   imageAlt: string | null;
@@ -241,6 +245,7 @@ export function emptyServiceContent(): ServiceContent {
     allowsPublic: true,
     allowsPrivate: false,
     intro: '',
+    howItWorks: null,
     quote: null,
     imageUrl: null,
     imageAlt: null,
@@ -314,6 +319,7 @@ export function contentOf(s: CareService): ServiceContent {
     allowsPublic: s.allowsPublic,
     allowsPrivate: s.allowsPrivate,
     intro: s.intro,
+    howItWorks: s.howItWorks,
     quote: s.quote,
     imageUrl: s.imageUrl,
     imageAlt: s.imageAlt,
