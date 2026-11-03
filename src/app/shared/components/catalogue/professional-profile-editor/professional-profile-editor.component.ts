@@ -14,7 +14,7 @@ import {
 import { Pages } from '../../../enums/pages.enum';
 import { SnackbarService } from '../../../services/snackbar.service';
 import { professionalViewFromForm } from '../../../utils/catalogue-views.util';
-import { FormPreviewComponent } from '../form-preview/form-preview.component';
+import { FormPreviewComponent, PublicPageState } from '../form-preview/form-preview.component';
 import { ProfileFieldsComponent } from '../profile-fields/profile-fields.component';
 
 /**
@@ -64,7 +64,7 @@ import { ProfileFieldsComponent } from '../profile-fields/profile-fields.compone
           }
         </div>
         @if (loaded()) {
-          <app-form-preview [professional]="view()" [proposalNotice]="false" [publicUrl]="publicUrl()" />
+          <app-form-preview [professional]="view()" [proposalNotice]="false" [publicPage]="publicPage()" />
         }
       </div>
     </div>
@@ -98,6 +98,12 @@ export class ProfessionalProfileEditorComponent implements OnInit {
     const p = this.profile();
     return p.status === 'PUBLISHED' && p.slug ? `/${Pages.PROFISSIONAIS}/${p.slug}` : null;
   });
+
+  /** A faixa do topo da pré-visualização: o link, ou porque ainda não há página. */
+  readonly publicPage = computed<PublicPageState>(() => ({
+    status: this.profile().status,
+    url: this.publicUrl(),
+  }));
 
   readonly view = computed(() =>
     professionalViewFromForm(
