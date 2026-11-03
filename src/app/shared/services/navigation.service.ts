@@ -72,11 +72,26 @@ export class NavigationService {
         // clicking the footer FAQ link while already on Home) — that case
         // should scroll smoothly from wherever the user already is instead.
         if (this.isRouteWithAnchor(event.url) && !isSamePageNavigation) {
-          setTimeout(() => {
-            this.viewportScroller.scrollToPosition([0, 0]);
-          }, 50);
+          this.topScroll = new Promise((resolve) =>
+            setTimeout(() => {
+              this.viewportScroller.scrollToPosition([0, 0]);
+              resolve();
+            }, 50),
+          );
         }
       });
+  }
+
+  /** O scroll para o topo da última navegação (feito 50 ms depois dela). */
+  private topScroll: Promise<void> = Promise.resolve();
+
+  /**
+   * Resolve depois do scroll para o topo da navegação em curso. Uma página
+   * que queira rolar até um ponto ao abrir espera por isto: rolar antes era
+   * desfeito pelo scroll para o topo, se os dados chegassem em menos de 50 ms.
+   */
+  afterNavigationScroll(): Promise<void> {
+    return this.topScroll;
   }
 
   isRouteWithAnchor(url: string): boolean {

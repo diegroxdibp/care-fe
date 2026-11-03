@@ -48,6 +48,7 @@
           [tucked]="section === 'quem-sou'"
           [busy]="busy()"
           [locked]="closed()"
+          [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
         />
@@ -72,6 +73,54 @@
           [team]="team()"
           [busy]="busy()"
           [locked]="closed()"
+          [focused]="p.key === focusKey()"
+          (statusChange)="setStatus(p, $event)"
+          (comment)="comment(p, $event)"
+        />
+      }
+    </ng-template>
+  }
+
+  <!-- Proposta de alteração: o serviço como fica, e sob cada parte mudada o
+       que muda (antes → depois) e a conversa. Partes sem mudança não se revêem. -->
+  @if (r.change; as ch) {
+    <div class="rv-band">
+      <div class="rv-band-inner">
+        <span class="cat-overline">Alteração proposta</span>
+        <span class="rv-band-name">{{ ch.current.name }}</span>
+      </div>
+    </div>
+    <div class="cat-page">
+      <app-service-view [service]="changeView()!" [preview]="true" [sectionFooter]="chgThread" />
+    </div>
+    <ng-template #chgThread let-section>
+      @if (point(changeItem() + ':' + section); as p) {
+        @if (p.changes.length) {
+          <div class="rv-diff">
+            <span class="rv-diff-title">O que muda nesta parte</span>
+            @for (c of p.changes; track c.label) {
+              <div class="rv-diff-row">
+                <span class="rv-diff-label">{{ c.label }}</span>
+                <div class="rv-diff-values">
+                  <div class="rv-diff-before">
+                    <span class="rv-diff-tag">Antes</span>
+                    <span class="rv-diff-text" [class.rv-diff-empty]="!c.before">{{ c.before || '(vazio)' }}</span>
+                  </div>
+                  <div class="rv-diff-after">
+                    <span class="rv-diff-tag">Depois</span>
+                    <span class="rv-diff-text" [class.rv-diff-empty]="!c.after">{{ c.after || '(vazio)' }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        <app-review-thread
+          [point]="p"
+          [team]="team()"
+          [busy]="busy()"
+          [locked]="closed()"
+          [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
         />
@@ -81,7 +130,8 @@
 
   <div class="rv-foot">
     <div class="rv-col">
-      @if (team()) {
+      <!-- Numa alteração não há o que configurar: o serviço já tem endereço e já está no agendamento. -->
+      @if (team() && r.kind !== 'CHANGE') {
         <div class="rv-section">
           <div class="rv-section-head">
             <h2>Configuração da publicação</h2>
@@ -196,6 +246,7 @@
             [team]="team()"
             [defaultOpen]="true"
             [busy]="busy()"
+            [focused]="g.key === focusKey()"
             (comment)="comment(g, $event)"
           />
         }
@@ -255,6 +306,18 @@
 
         @if (editable()) {
           <div class="rv-section">
+            <!-- Os comentários e estados da equipa ficam em rascunho; vão todos
+                 juntos ao devolver ou concluir (ReviewService.publishDrafts). -->
+            @if (draftSummary(); as summary) {
+              <div class="rv-draft-box" role="status">
+                <span><strong>Por enviar:</strong> {{ summary }}.</span>
+                <span>A pessoa só recebe quando você devolver para alterações ou concluir a análise.</span>
+              </div>
+            } @else {
+              <span class="rv-hint">
+                Comentários e mudanças de status ficam em rascunho e vão todos juntos ao devolver ou concluir.
+              </span>
+            }
             <div class="rv-actions">
               <button
                 type="button"

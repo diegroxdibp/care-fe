@@ -23,7 +23,8 @@ export class ReviewApiService {
   private readonly opts = { withCredentials: true };
 
   private path(kind: ReviewKind, id: number): string {
-    return `${kind === 'APPLICATION' ? 'application' : 'proposal'}/${id}`;
+    const path = { APPLICATION: 'application', PROPOSAL: 'proposal', CHANGE: 'change' }[kind];
+    return `${path}/${id}`;
   }
 
   // ─ A pessoa (e a equipa) ──────────────────────────────────────────────────

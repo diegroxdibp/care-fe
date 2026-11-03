@@ -3,10 +3,11 @@
  * (ReviewDTO e companhia, ver ReviewService). Plano em
  * docs/plans/application-review.md.
  */
-import { CareService, Person, ProfessionalProfile, ReviewStatus } from './catalogue.model';
+import { CareService, Person, ProfessionalProfile, ReviewStatus, ServiceContent } from './catalogue.model';
 
 /** Uma candidatura (com as propostas que trouxe) ou uma proposta de serviço avulsa. */
-export type ReviewKind = 'APPLICATION' | 'PROPOSAL';
+/** Candidatura, proposta de serviço avulsa ou proposta de alteração a um serviço publicado. */
+export type ReviewKind = 'APPLICATION' | 'PROPOSAL' | 'CHANGE';
 
 export type ReviewStage =
   | 'ANALYSIS'
@@ -24,6 +25,8 @@ export interface ReviewComment {
   author: string;
   text: string;
   at: string;
+  /** Da equipa, ainda por enviar: só a equipa o recebe, até devolver ou concluir. */
+  draft: boolean;
 }
 
 /**
@@ -35,8 +38,43 @@ export interface ReviewPoint {
   itemKey: string | null;
   section: string;
   label: string;
+  /** Para a equipa, o estado de trabalho (com o rascunho); para a pessoa, o publicado. */
   status: ReviewStatus | null;
   comments: ReviewComment[];
+  /** O que a pessoa vê; diferente de status = mudança ainda por enviar. */
+  publishedStatus: ReviewStatus | null;
+  /** Numa proposta de alteração: o que mudou nesta parte (vazio nos outros pedidos). */
+  changes: FieldChange[];
+}
+
+/** Um campo mudado numa proposta de alteração; vazio = sem valor. Listas vêm uma por linha. */
+export interface FieldChange {
+  label: string;
+  before: string;
+  after: string;
+}
+
+/** Numa proposta de alteração: o serviço como está publicado e o que se propõe. */
+export interface ChangeReview {
+  serviceId: number;
+  serviceSlug: string;
+  current: CareService;
+  proposed: ServiceContent;
+}
+
+/** O que a equipa mudou e ainda não enviou (vai ao devolver ou concluir). */
+export interface ReviewDraft {
+  comments: { point: string; text: string }[];
+  statuses: { point: string; from: ReviewStatus; to: ReviewStatus }[];
+}
+
+export function reviewDraft(points: ReviewPoint[]): ReviewDraft {
+  return {
+    comments: points.flatMap(p => p.comments.filter(c => c.draft).map(c => ({ point: p.label, text: c.text }))),
+    statuses: points
+      .filter(p => p.status && p.publishedStatus && p.status !== p.publishedStatus)
+      .map(p => ({ point: p.label, from: p.publishedStatus!, to: p.status! })),
+  };
 }
 
 /** O perfil ("pro") ou uma proposta ("svc:{id}"), cada um com a sua decisão. */
@@ -88,6 +126,8 @@ export interface Review {
   /** Só para a equipa. */
   audiences: ReviewAudience[];
   interview: Interview | null;
+  /** Só numa proposta de alteração. */
+  change: ChangeReview | null;
 }
 
 export interface ReviewSummary {
@@ -101,6 +141,8 @@ export interface ReviewSummary {
   points: number;
   approved: number;
   denied: number;
+  /** Numa proposta de alteração, o serviço que ela muda. */
+  serviceId: number | null;
 }
 
 export interface ReviewUpdate {
@@ -141,13 +183,26 @@ export const ITEM_DECISION: Partial<Record<ReviewStatus, { label: string; tone: 
 };
 
 /** O segmento do endereço: /admin/pedidos/candidatura/12, /meus-pedidos/proposta/40. */
-export function kindPath(kind: ReviewKind): 'candidatura' | 'proposta' {
-  return kind === 'APPLICATION' ? 'candidatura' : 'proposta';
+const KIND_PATHS: Record<ReviewKind, string> = {
+  APPLICATION: 'candidatura',
+  PROPOSAL: 'proposta',
+  CHANGE: 'alteracao',
+};
+
+export function kindPath(kind: ReviewKind): string {
+  return KIND_PATHS[kind];
 }
 
 export function kindFromPath(path: string | null): ReviewKind | null {
-  return path === 'candidatura' ? 'APPLICATION' : path === 'proposta' ? 'PROPOSAL' : null;
+  return (Object.keys(KIND_PATHS) as ReviewKind[]).find(k => KIND_PATHS[k] === path) ?? null;
 }
+
+/** Como o tipo de pedido aparece nas listas e no topo das páginas. */
+export const KIND_LABEL: Record<ReviewKind, string> = {
+  APPLICATION: 'Candidatura',
+  PROPOSAL: 'Proposta de serviço',
+  CHANGE: 'Alteração de serviço',
+};
 
 /** "2 propostas de serviço", "1 ponto aprovado"… */
 export function plural(n: number, one: string, many: string): string {

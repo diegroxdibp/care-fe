@@ -1,5 +1,15 @@
-import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 
@@ -11,23 +21,30 @@ import {
   kindFromPath,
   kindPath,
   plural,
+  KIND_LABEL,
   POINT_STATUS,
   Review,
+  reviewDraft,
   ReviewAudience,
   ReviewItem,
   ReviewPoint,
   ReviewStage,
   STAGE,
 } from '../../../models/review.model';
+import { NavigationService } from '../../../services/navigation.service';
 import { SessionService } from '../../../services/session.service';
 import { SnackbarService } from '../../../services/snackbar.service';
 import { slugify } from '../../../utils/catalogue.util';
-import { professionalViewFromForm, serviceViewFrom } from '../../../utils/catalogue-views.util';
+import { professionalViewFromForm, serviceViewFrom, serviceViewFromContent } from '../../../utils/catalogue-views.util';
 import { detectBrowserTimezone } from '../../../utils/timezones.util';
 import { ProfessionalViewComponent } from '../../catalogue/professional-view/professional-view.component';
 import { ServiceViewComponent } from '../../catalogue/service-view/service-view.component';
 import { InterviewSectionComponent } from '../interview-section/interview-section.component';
 import { ReviewThreadComponent } from '../review-thread/review-thread.component';
+import {
+  ReviewSendDialogComponent,
+  ReviewSendDialogData,
+} from '../review-send-dialog/review-send-dialog.component';
 
 interface ItemRow {
   item: ReviewItem;
@@ -64,6 +81,29 @@ export class ReviewPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly snackbar = inject(SnackbarService);
   private readonly session = inject(SessionService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly dialog = inject(MatDialog);
+
+  /**
+   * ?ponto=<chave>: o ponto escolhido em "O que precisa de resposta" no
+   * acompanhamento. Abre-se, fica destacado e a página rola até ele.
+   */
+  readonly focusKey = signal<string | null>(this.route.snapshot.queryParamMap.get('ponto'));
+
+  /**
+   * NavigationService volta ao topo 50 ms depois de cada navegação. Rolar até
+   * ao ponto antes disso era desfeito quando o pedido chegava depressa (a
+   * navegação dentro da app, com o pedido já em cache): espera-se pelo
+   * pedido carregado e por esse scroll, e rola-se no frame seguinte, com a
+   * página já desenhada.
+   */
+  private readonly navigation = inject(NavigationService);
+  private focusDone = false;
+  private readonly focusWhenReady = effect(() => {
+    if (this.focusDone || !this.focusKey() || !this.review()) return;
+    this.focusDone = true;
+    void this.navigation.afterNavigationScroll().then(() => requestAnimationFrame(() => this.scrollToFocus()));
+  });
 
   readonly finalRef = viewChild<ElementRef<HTMLElement>>('final');
   readonly interviewRef = viewChild<ElementRef<HTMLElement>>('interview');
@@ -90,6 +130,7 @@ export class ReviewPageComponent implements OnInit {
   readonly title = computed(() => {
     const r = this.review();
     if (!r) return '';
+    if (r.kind === 'CHANGE') return 'Alterações em ' + (r.change?.current.name ?? '');
     return r.kind === 'APPLICATION'
       ? r.profile?.displayName || r.person?.name || ''
       : r.proposals[0]?.name ?? '';
@@ -100,7 +141,7 @@ export class ReviewPageComponent implements OnInit {
     if (!r) return '';
     const head = r.kind === 'APPLICATION'
       ? 'Candidatura' + (r.proposals.length ? ' com ' + plural(r.proposals.length, 'proposta de serviço', 'propostas de serviço') : '')
-      : 'Proposta de serviço' + (r.person ? ' de ' + r.person.name : '');
+      : KIND_LABEL[r.kind] + (r.person ? ' de ' + r.person.name : '');
     return head + (r.submittedAt ? ' · ' + this.day(r.submittedAt) : '');
   });
 
@@ -164,6 +205,17 @@ export class ReviewPageComponent implements OnInit {
 
   /** Decidir itens, públicos e endereços só com o pedido em análise. */
   readonly editable = computed(() => this.team() && this.review()?.stage === 'ANALYSIS');
+
+  /** O rascunho da equipa: comentários e estados ainda por enviar à pessoa. */
+  readonly draft = computed(() => reviewDraft(this.review()?.points ?? []));
+  readonly draftSummary = computed(() => {
+    const d = this.draft();
+    const parts = [
+      d.comments.length ? plural(d.comments.length, 'comentário', 'comentários') : '',
+      d.statuses.length ? plural(d.statuses.length, 'mudança de status', 'mudanças de status') : '',
+    ].filter(Boolean);
+    return parts.join(' e ');
+  });
 
   readonly items = computed<ItemRow[]>(() => {
     const r = this.review();
@@ -369,6 +421,29 @@ export class ReviewPageComponent implements OnInit {
     });
   }
 
+  /** Rola até ao ponto de ?ponto= (já aberto e destacado pelo ReviewThread). */
+  private scrollToFocus(): void {
+    const key = this.focusKey();
+    if (!key) return;
+    const thread = [...this.host.nativeElement.querySelectorAll<HTMLElement>('[data-point-key]')]
+      .find(el => el.dataset['pointKey'] === key);
+    if (!thread) return;
+    // Por cima da página ficam a barra do site e a barra do pedido (.rv-bar,
+    // fixa por baixo dela), cuja altura muda com a largura: mede-se o fundo
+    // dela quando presa, para o ponto (e a faixa "Aguardando sua resposta")
+    // não ficar escondido por trás.
+    const bar = this.host.nativeElement.querySelector<HTMLElement>('.rv-bar');
+    const covered = bar ? (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight : 94;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({
+      top: thread.getBoundingClientRect().top + window.scrollY - covered - 16,
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+    // Para leitores de ecrã e teclado: o foco vai para a barra do ponto,
+    // sem segundo salto (o scroll já está a ser feito acima).
+    thread.querySelector<HTMLElement>('.rv-thread-head')?.focus({ preventScroll: true });
+  }
+
   private act(call: Observable<Review>, after?: () => void): void {
     this.busy.set(true);
     call.subscribe({
@@ -404,9 +479,30 @@ export class ReviewPageComponent implements OnInit {
     this.act(this.api.setItemDecision(r.kind, r.id, item.key, { status: item.decision === decision ? null : decision }));
   }
 
+  /**
+   * Concluir envia à pessoa a decisão e todo o rascunho da equipa: mostra-se
+   * antes o que vai, para confirmar ou voltar e mudar alguma coisa.
+   */
   conclude(): void {
     const r = this.review();
-    if (r && this.canConclude()) this.act(this.api.conclude(r.kind, r.id));
+    if (!r || !this.canConclude()) return;
+    this.dialog
+      .open<ReviewSendDialogComponent, ReviewSendDialogData, boolean>(ReviewSendDialogComponent, {
+        width: '560px',
+        maxWidth: 'calc(100vw - 32px)',
+        panelClass: 'care-dialog',
+        autoFocus: false,
+        data: {
+          actionLabel: this.concludeLabel(),
+          decisionText: this.concludeHint(),
+          danger: this.concludeDanger(),
+          draft: this.draft(),
+        },
+      })
+      .afterClosed()
+      .subscribe(ok => {
+        if (ok) this.act(this.api.conclude(r.kind, r.id));
+      });
   }
 
   requestChanges(): void {
@@ -427,6 +523,15 @@ export class ReviewPageComponent implements OnInit {
   proposalView(s: CareService) {
     return serviceViewFrom(s, true);
   }
+
+  /** Numa alteração: o serviço como ficaria (a página mostra-o com os pontos sob as partes mudadas). */
+  readonly changeView = computed(() => {
+    const ch = this.review()?.change;
+    return ch ? serviceViewFromContent(ch.proposed, this.options(), ch.current.audiences) : null;
+  });
+
+  /** A chave do item de uma alteração ("chg:{id}"), prefixo dos seus pontos. */
+  readonly changeItem = computed(() => 'chg:' + (this.review()?.id ?? ''));
 
   proposalBand(i: number): string {
     return 'Proposta de serviço' + ((this.review()?.proposals.length ?? 0) > 1 ? ` ${i + 1}` : '');

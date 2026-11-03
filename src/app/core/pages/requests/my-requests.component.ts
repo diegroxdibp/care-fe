@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { ReviewApiService } from '../../services/review-api.service';
 import { MyRequestsService } from '../../services/my-requests.service';
-import { kindPath, plural, ReviewSummary, STAGE } from '../../../shared/models/review.model';
+import { KIND_LABEL, kindPath, plural, ReviewSummary, STAGE } from '../../../shared/models/review.model';
 import { Pages } from '../../../shared/enums/pages.enum';
 import { SessionService } from '../../../shared/services/session.service';
 import { detectBrowserTimezone } from '../../../shared/utils/timezones.util';
@@ -64,7 +64,7 @@ export class MyRequestsComponent implements OnInit {
     (this.list() ?? []).map(q => ({
       key: q.kind + q.id,
       link: ['/', Pages.MEUS_PEDIDOS, kindPath(q.kind), q.id],
-      kind: (q.kind === 'APPLICATION' ? 'Candidatura' : 'Proposta de serviço')
+      kind: KIND_LABEL[q.kind]
         + (q.submittedAt ? ' · enviado a ' + this.day(q.submittedAt) : ''),
       title: q.title,
       sub: q.kind === 'APPLICATION' && q.proposals

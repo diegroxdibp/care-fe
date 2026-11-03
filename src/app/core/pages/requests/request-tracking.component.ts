@@ -11,6 +11,7 @@ import {
   Review,
   ReviewStage,
   STAGE,
+  KIND_LABEL,
 } from '../../../shared/models/review.model';
 import { Pages } from '../../../shared/enums/pages.enum';
 import { SessionService } from '../../../shared/services/session.service';
@@ -33,7 +34,7 @@ import { InterviewSectionComponent } from '../../../shared/components/review/int
         <section class="rv-col rv-col--tracking">
           <div class="rv-head">
             <a class="rv-back" [routerLink]="['/', Pages.MEUS_PEDIDOS]">← Meus pedidos</a>
-            <span class="cat-overline">{{ r.kind === 'APPLICATION' ? 'Candidatura' : 'Proposta de serviço' }}</span>
+            <span class="cat-overline">{{ kindLabel[r.kind] }}</span>
             <h1>{{ title() }}</h1>
             @if (subtitle()) {
               <span class="rv-subtitle">{{ subtitle() }}</span>
@@ -87,7 +88,9 @@ import { InterviewSectionComponent } from '../../../shared/components/review/int
               </div>
               <div class="rv-rows">
                 @for (p of attention(); track p.key) {
-                  <div class="rv-row rv-row--tight">
+                  <!-- O cartão inteiro leva ao ponto no pedido completo, que abre a
+                       conversa, rola até ela e a destaca (?ponto=). -->
+                  <a class="rv-row rv-row--tight rv-row--link" [routerLink]="reviewLink()" [queryParams]="{ ponto: p.key }">
                     <div class="rv-choices">
                       @if (p.status) {
                         <span class="rv-badge" [class]="'rv-tone-' + p.status.tone"><span class="rv-dot"></span>{{ p.status.label }}</span>
@@ -100,8 +103,8 @@ import { InterviewSectionComponent } from '../../../shared/components/review/int
                         <span class="rv-attention-text">{{ p.last }}</span>
                       </div>
                     }
-                    <a class="rv-text-btn" [routerLink]="reviewLink()">{{ inAnalysis() ? 'Ver e responder →' : 'Ver no pedido →' }}</a>
-                  </div>
+                    <span class="rv-text-btn">{{ inAnalysis() ? 'Ver e responder →' : 'Ver no pedido →' }}</span>
+                  </a>
                 }
               </div>
             </div>
@@ -141,6 +144,7 @@ export class RequestTrackingComponent implements OnInit {
   private readonly session = inject(SessionService);
 
   readonly Pages = Pages;
+  readonly kindLabel = KIND_LABEL;
   readonly review = signal<Review | null>(null);
   readonly notFound = signal(false);
 
@@ -152,6 +156,7 @@ export class RequestTrackingComponent implements OnInit {
   readonly title = computed(() => {
     const r = this.review();
     if (!r) return '';
+    if (r.kind === 'CHANGE') return 'Alterações em ' + (r.change?.current.name ?? '');
     return r.kind === 'APPLICATION' ? r.profile?.displayName || r.person?.name || '' : r.proposals[0]?.name ?? '';
   });
 
@@ -228,7 +233,9 @@ export class RequestTrackingComponent implements OnInit {
       INTERVIEW_BOOKED: `A entrevista está agendada para ${when}. Depois da entrevista, o perfil e os serviços aprovados são publicados.` + this.refusedNote(),
       PUBLISHED: (r.kind === 'APPLICATION'
         ? 'Seu perfil e os serviços aprovados estão publicados na plataforma.'
-        : 'A proposta foi aprovada e o serviço está publicado.') + this.refusedNote(),
+        : r.kind === 'CHANGE'
+          ? 'As alterações foram aprovadas e já estão na página do serviço.'
+          : 'A proposta foi aprovada e o serviço está publicado.') + this.refusedNote(),
       REJECTED: 'O pedido não foi aprovado. Os comentários da equipe estão no pedido completo.',
     };
     return texts[r.stage];
@@ -268,7 +275,7 @@ export class RequestTrackingComponent implements OnInit {
         : { label: 'Em análise', tone: 'blue' });
       return {
         key: it.key,
-        kind: it.key === 'pro' ? 'Perfil profissional' : 'Proposta de serviço',
+        kind: it.key === 'pro' ? 'Perfil profissional' : kindLabelOf(it.key),
         name: it.name,
         progress: `${ok} de ${plural(pts.length, 'ponto aprovado', 'pontos aprovados')}`
           + (denied ? ' · ' + plural(denied, 'negado', 'negados') : ''),
@@ -282,13 +289,19 @@ export class RequestTrackingComponent implements OnInit {
     return r ? ['/', Pages.MEUS_PEDIDOS, kindPath(r.kind), r.id, 'pedido'] : [];
   });
 
-  /** Rever: a candidatura no formulário do pedido; uma proposta na página de propostas. */
-  readonly reviseLink = computed(() =>
-    this.review()?.kind === 'APPLICATION' ? ['/', ...Pages.JUNTE_SE_PEDIDO.split('/')] : ['/', 'dashboard', 'servicos', 'propor'],
-  );
+  /**
+   * Rever: a candidatura no formulário do pedido; uma proposta na página de
+   * propostas; uma alteração na página de alteração do serviço.
+   */
+  readonly reviseLink = computed(() => {
+    const r = this.review();
+    if (r?.kind === 'APPLICATION') return ['/', ...Pages.JUNTE_SE_PEDIDO.split('/')];
+    if (r?.kind === 'CHANGE') return ['/', 'dashboard', 'servicos', r.change?.serviceId, 'alterar'];
+    return ['/', 'dashboard', 'servicos', 'propor'];
+  });
   readonly reviseQuery = computed(() => {
     const r = this.review();
-    return r && r.kind === 'PROPOSAL' ? { rever: r.id } : {};
+    return r && r.kind !== 'APPLICATION' ? { rever: r.id } : {};
   });
 
   ngOnInit(): void {
@@ -316,4 +329,9 @@ export class RequestTrackingComponent implements OnInit {
     const s = instant.toLocaleDateString('pt-PT', { timeZone: this.zone(), weekday: 'long', day: 'numeric', month: 'long' });
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
+}
+
+/** O tipo de um item do pedido pela chave: "svc:{id}" = proposta, "chg:{id}" = alteração. */
+function kindLabelOf(itemKey: string): string {
+  return itemKey.startsWith('chg:') ? KIND_LABEL.CHANGE : KIND_LABEL.PROPOSAL;
 }

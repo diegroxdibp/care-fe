@@ -510,6 +510,43 @@
   &.rv-thread--tucked {
     margin-top: -2.25em;
   }
+
+  // O ponto a que se chegou por "Ver e responder": um anel que pulsa duas
+  // vezes e fica, até a pessoa responder. box-shadow e não outline/border:
+  // não mexe no layout, e o overflow: hidden do próprio .rv-thread não o corta.
+  &.rv-thread--focus {
+    --rv-bd: var(--color-primary-purple);
+    box-shadow: 0 0 0 3px var(--color-primary-purple);
+    animation: rv-thread-focus 0.9s ease-out 2;
+  }
+}
+
+.rv-thread-flag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-primary-purple);
+  color: var(--fg-on-dark);
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+@keyframes rv-thread-focus {
+  0% { box-shadow: 0 0 0 3px var(--color-primary-purple); }
+  50% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 3px var(--color-primary-purple); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-thread.rv-thread--focus {
+    animation: none;
+  }
 }
 
 .rv-thread-head {
@@ -589,6 +626,18 @@
   &.rv-comment--team {
     border-color: var(--color-surface-tint);
     background: var(--color-surface-tint);
+  }
+
+  // Comentário da equipa ainda por enviar (só a equipa o vê).
+  &.rv-comment--draft {
+    border: 1px dashed var(--color-primary-purple);
+    background: var(--color-white);
+  }
+
+  .rv-draft-tag {
+    font-size: 12.5px;
+    font-weight: var(--fw-semibold);
+    color: var(--color-primary-purple);
   }
 
   .rv-comment-meta {
@@ -897,6 +946,118 @@
   line-height: 1.4;
 }
 
+// Estado de um ponto mudado no rascunho da equipa, ainda não enviado.
+.rv-draft-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--color-primary-purple);
+  line-height: 1.4;
+}
+
+// Proposta de alteração: o que muda numa parte, campo a campo (antes → depois).
+.rv-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: -1.5em;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+
+  .rv-diff-title {
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+.rv-diff-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .rv-diff-label {
+    font-size: 14px;
+    font-weight: var(--fw-semibold);
+  }
+}
+
+.rv-diff-values {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+
+  @media (min-width: breakpoint.$breakpoint-md) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rv-diff-before,
+.rv-diff-after {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.rv-diff-before {
+  background: var(--color-error-soft);
+  color: var(--fg-1);
+
+  .rv-diff-text:not(.rv-diff-empty) {
+    text-decoration: line-through;
+    text-decoration-color: var(--color-error);
+  }
+}
+
+.rv-diff-after {
+  background: var(--color-surface-tint);
+}
+
+.rv-diff-tag {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-hint);
+}
+
+.rv-diff-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+
+  &.rv-diff-empty {
+    font-style: italic;
+    color: var(--color-hint);
+  }
+}
+
+// Resumo do rascunho por enviar, junto dos botões de devolver / concluir.
+.rv-draft-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-primary-purple);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  color: var(--fg-1);
+
+  strong {
+    color: var(--color-primary-purple);
+  }
+}
+
 // ─ Acompanhamento ──────────────────────────────────────────────────────────
 
 // Etapas, como o scheduling-stepper
@@ -1001,6 +1162,27 @@
   .rv-choices {
     align-items: center;
     gap: 8px 12px;
+  }
+}
+
+// "O que precisa de resposta": o cartão inteiro é o link para o ponto.
+a.rv-row.rv-row--link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover .rv-text-btn,
+  &:focus-visible .rv-text-btn {
+    color: var(--color-primary-purple);
+  }
+
+  &:hover .rv-row-name {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-purple);
+    outline-offset: 4px;
   }
 }
 

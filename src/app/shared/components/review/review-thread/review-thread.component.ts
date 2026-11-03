@@ -14,7 +14,19 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
   selector: 'app-review-thread',
   standalone: true,
   template: `
-    <div class="rv-thread" [class]="'rv-tone-' + tone()" [class.rv-thread--tucked]="tucked()">
+    <div
+      class="rv-thread"
+      [class]="'rv-tone-' + tone()"
+      [class.rv-thread--tucked]="tucked()"
+      [class.rv-thread--focus]="highlighted()"
+      [attr.data-point-key]="point().key"
+    >
+      @if (highlighted()) {
+        <span class="rv-thread-flag">
+          <span translate="no" aria-hidden="true" class="material-symbols-outlined">reply</span>
+          Aguardando sua resposta
+        </span>
+      }
       <button type="button" class="rv-thread-head" [attr.aria-expanded]="isOpen()" (click)="toggle()">
         @if (showStatus()) {
           <span class="rv-badge"><span class="rv-dot"></span>{{ statusLabel() }}</span>
@@ -44,16 +56,24 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
                   </button>
                 }
               </div>
+              @if (statusDraft(); as seen) {
+                <span class="rv-draft-note">
+                  Rascunho: a pessoa ainda vê “{{ seen }}”. A mudança vai junto ao devolver ou concluir.
+                </span>
+              }
             </div>
           } @else if (showStatus()) {
             <p class="rv-intro">O status deste ponto é definido pela equipe da CARE.</p>
           }
           <div class="rv-comments">
             @for (c of point().comments; track $index) {
-              <div class="rv-comment" [class.rv-comment--team]="c.fromTeam">
+              <div class="rv-comment" [class.rv-comment--team]="c.fromTeam" [class.rv-comment--draft]="c.draft">
                 <div class="rv-comment-meta">
                   <span class="rv-comment-author">{{ c.author }}</span>
                   <span class="rv-comment-when">{{ when(c.at) }}</span>
+                  @if (c.draft) {
+                    <span class="rv-draft-tag">Rascunho · ainda não enviado</span>
+                  }
                 </div>
                 <p class="rv-comment-text">{{ c.text }}</p>
               </div>
@@ -68,13 +88,16 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
               class="cat-input"
               rows="3"
               aria-label="Escrever comentário"
-              [placeholder]="team() ? 'Comentário para a pessoa profissional' : 'Responder à equipe da CARE'"
+              [placeholder]="team()
+                ? 'Comentário para a pessoa profissional (enviado ao devolver ou concluir)'
+                : 'Responder à equipe da CARE'"
               [value]="draft()"
               (input)="draft.set($any($event.target).value)"
             ></textarea>
             <div class="rv-compose-actions">
+              <!-- A equipa não envia daqui: o comentário fica no rascunho até devolver ou concluir. -->
               <button type="button" class="rv-btn" [disabled]="!draft().trim() || busy()" (click)="send()">
-                Enviar comentário
+                {{ team() ? 'Salvar no rascunho' : 'Enviar comentário' }}
               </button>
             </div>
           </div>
@@ -95,6 +118,11 @@ export class ReviewThreadComponent {
   readonly busy = input(false);
   /** Com o pedido fechado, o estado já não muda. */
   readonly locked = input(false);
+  /**
+   * O ponto a que se chegou por "Ver e responder" no acompanhamento: abre-se
+   * e fica destacado até a pessoa responder (ReviewPageComponent rola até ele).
+   */
+  readonly focused = input(false);
   readonly statusChange = output<ReviewStatus>();
   readonly comment = output<string>();
 
@@ -105,14 +133,24 @@ export class ReviewThreadComponent {
 
   readonly open = signal<boolean | null>(null);
   readonly draft = signal('');
+  /** Respondeu aqui: o destaque já cumpriu o papel. */
+  private readonly answered = signal(false);
 
   readonly showStatus = computed(() => this.point().status !== null);
-  readonly isOpen = computed(() => this.open() ?? this.defaultOpen());
+  readonly isOpen = computed(() => this.open() ?? (this.defaultOpen() || this.focused()));
+  readonly highlighted = computed(() => this.focused() && !this.answered());
   readonly tone = computed(() => {
     const s = this.point().status;
     return s ? POINT_STATUS[s].tone : 'muted';
   });
   readonly statusLabel = computed(() => POINT_STATUS[this.point().status ?? 'PENDING'].label);
+  /** Para a equipa: o estado que a pessoa ainda vê, quando o de trabalho é outro (rascunho). */
+  readonly statusDraft = computed(() => {
+    const p = this.point();
+    return this.team() && p.status && p.publishedStatus && p.status !== p.publishedStatus
+      ? POINT_STATUS[p.publishedStatus].label
+      : null;
+  });
   readonly countLabel = computed(() => {
     const n = this.point().comments.length;
     return n === 0 ? 'Sem comentários' : n === 1 ? '1 comentário' : `${n} comentários`;
@@ -127,6 +165,7 @@ export class ReviewThreadComponent {
     if (!text) return;
     this.comment.emit(text);
     this.draft.set('');
+    this.answered.set(true);
   }
 
   /** Data e hora no fuso do perfil de quem lê (não no do computador). */
