@@ -61,7 +61,37 @@
 
     <div class="field span-full">
       <label for="pf-email">Email:</label>
-      <input id="pf-email" type="email" [formControl]="emailCtrl" />
+      <!-- Só leitura: o email troca-se pelo fluxo com confirmação (ver changeEmail). -->
+      <div class="email-row">
+        <input id="pf-email" type="email" [value]="user()?.email ?? ''" readonly />
+        @if (emailChange(); as status) {
+          @if (!status.googleAccount && status.hasPassword) {
+            <button type="button" class="btn-outline-sm" (click)="changeEmail()">Alterar email</button>
+          }
+        }
+      </div>
+      @if (emailChange(); as status) {
+        @if (status.googleAccount) {
+          <span class="hint">Este é o email da sua conta Google e não pode ser alterado aqui.</span>
+        } @else if (!status.hasPassword) {
+          <span class="hint">
+            Para alterar o email, primeiro defina uma senha pelo "Esqueci minha senha" na tela de login.
+          </span>
+        } @else if (status.pendingEmail) {
+          <div class="email-pending" role="status">
+            <span>
+              Enviamos um link para <strong>{{ status.pendingEmail }}</strong>. O email só muda quando você abrir
+              o link, que vale por 24 horas a partir do pedido.
+            </span>
+            <button type="button" class="link-btn" [disabled]="emailChangeBusy()" (click)="cancelEmailChange()">
+              Cancelar pedido
+            </button>
+          </div>
+        }
+      }
+      @if (emailChangeError()) {
+        <span class="error-msg">{{ emailChangeError() }}</span>
+      }
     </div>
 
     @if (showBio()) {

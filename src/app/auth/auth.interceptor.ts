@@ -9,6 +9,7 @@ const AUTH_ENDPOINTS = [
   '/api/auth/register',
   '/api/auth/me',
   '/api/auth/confirm-email',
+  '/api/auth/confirm-email-change',
   '/api/auth/resend-confirmation',
 ];
 

@@ -8,6 +8,7 @@ import { CallbackComponent } from './callback/callback.component';
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { ConfirmEmailComponent } from './confirm-email/confirm-email.component';
+import { ConfirmEmailChangeComponent } from './confirm-email-change/confirm-email-change.component';
 import { GuestOnlyGuard } from './guest-only.guard';
 
 const routes: Routes = [
@@ -35,6 +36,12 @@ const routes: Routes = [
         path: 'confirm-email',
         canMatch: [GuestOnlyGuard],
         component: ConfirmEmailComponent,
+      },
+      {
+        // Sem GuestOnlyGuard: o link pode ser aberto com a sessão do email
+        // antigo ainda aberta (a troca invalida-a e põe uma nova).
+        path: 'confirm-email-change',
+        component: ConfirmEmailChangeComponent,
       },
       { path: 'callback', component: CallbackComponent },
       { path: '', redirectTo: 'signin', pathMatch: 'full' },

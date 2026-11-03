@@ -12,6 +12,8 @@ export const AppConstants = {
     updateProfile: `${environment.apiUrl}/api/user/profile`,
     getProfile: `${environment.apiUrl}/api/user/profile`,
     profilePicture: `${environment.apiUrl}/api/user/profile/picture`,
+    emailChange: `${environment.apiUrl}/api/user/email-change`,
+    confirmEmailChange: `${environment.apiUrl}/api/auth/confirm-email-change`,
     login: `${environment.apiUrl}/api/auth/login`,
     logout: `${environment.apiUrl}/api/auth/logout`,
     forgotPassword: `${environment.apiUrl}/api/auth/forgot-password`,

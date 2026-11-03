@@ -12,6 +12,10 @@ const SELF_HANDLED_ENDPOINTS = [
   '/api/auth/me',
   '/api/user/onboarding',
   '/api/user/profile/picture',
+  // Troca de email: o diálogo mostra "senha incorreta", "email em uso"... por
+  // baixo do botão, e a página do link mostra o erro no cartão.
+  '/api/user/email-change',
+  '/api/auth/confirm-email-change',
   // Pedidos feitos de dentro da videochamada (VideoCallStageComponent): um
   // 5xx aqui mandava toda a gente para /error a meio da conversa.
   '/video-session',

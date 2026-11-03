@@ -84,6 +84,18 @@ export class AuthService {
     );
   }
 
+  /**
+   * Abre o link da troca de email. O backend troca o email e põe uma sessão
+   * nova no cookie (a antiga, com o email anterior, deixa de valer).
+   */
+  confirmEmailChange(token: string): Observable<{ message: string; email: string }> {
+    return this.http.post<{ message: string; email: string }>(
+      AppConstants.apiEndpoints.confirmEmailChange,
+      { token },
+      { withCredentials: true },
+    );
+  }
+
   resendConfirmation(payload: ResendConfirmationPayload): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(
       AppConstants.apiEndpoints.resendConfirmation,

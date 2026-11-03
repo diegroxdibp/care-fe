@@ -36,6 +36,8 @@ import {
   ImageCropState,
 } from '../catalogue/image-crop-dialog/image-crop-dialog.component';
 import { shrinkImage } from '../../utils/catalogue.util';
+import { ChangeEmailDialogComponent, ChangeEmailDialogData } from './change-email-dialog.component';
+import { EmailChangeStatus } from '../../models/email-change-status.model';
 
 /** Valores de exemplo da seção Preferências (o preço real vem do serviço). */
 const SAMPLE_PRICE: Record<Currency, number> = {
@@ -93,6 +95,11 @@ export class DashboardProfileComponent implements OnInit {
       : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   });
 
+  /** Troca de email: o pedido em curso e se esta conta pode trocar (null até carregar). */
+  readonly emailChange = signal<EmailChangeStatus | null>(null);
+  readonly emailChangeBusy = signal(false);
+  readonly emailChangeError = signal<string | null>(null);
+
   readonly saveSuccess = signal(false);
   saveError: string | null = null;
 
@@ -118,10 +125,6 @@ export class DashboardProfileComponent implements OnInit {
 
   get nameCtrl(): FormControl {
     return this.formService.profileForm.get(FormControlsNames.NAME_PROFILE) as FormControl;
-  }
-
-  get emailCtrl(): FormControl {
-    return this.formService.profileForm.get(FormControlsNames.EMAIL_PROFILE) as FormControl;
   }
 
   get birthdateCtrl(): FormControl {
@@ -209,6 +212,40 @@ export class DashboardProfileComponent implements OnInit {
     );
     this.userService.getProfile().subscribe({
       next: (user) => this.patchForm(user),
+    });
+    this.userService.getEmailChange().subscribe({
+      next: (status) => this.emailChange.set(status),
+    });
+  }
+
+  /** Pede a troca (novo email + senha atual); o email só muda ao abrir o link enviado. */
+  changeEmail(): void {
+    this.emailChangeError.set(null);
+    this.dialog
+      .open<ChangeEmailDialogComponent, ChangeEmailDialogData, EmailChangeStatus>(ChangeEmailDialogComponent, {
+        width: '480px',
+        maxWidth: 'calc(100vw - 32px)',
+        panelClass: 'care-dialog',
+        data: { currentEmail: this.user()?.email ?? '' },
+      })
+      .afterClosed()
+      .subscribe((status) => {
+        if (status) this.emailChange.set(status);
+      });
+  }
+
+  cancelEmailChange(): void {
+    this.emailChangeError.set(null);
+    this.emailChangeBusy.set(true);
+    this.userService.cancelEmailChange().subscribe({
+      next: (status) => {
+        this.emailChangeBusy.set(false);
+        this.emailChange.set(status);
+      },
+      error: (err) => {
+        this.emailChangeBusy.set(false);
+        this.emailChangeError.set(err.error?.error ?? 'Não foi possível cancelar o pedido. Tente novamente.');
+      },
     });
   }
 
@@ -306,7 +343,6 @@ export class DashboardProfileComponent implements OnInit {
 
     const payload: UpdateProfilePayload = {
       name: this.nameCtrl.value ?? '',
-      email: this.emailCtrl.value ?? '',
       birthDate: this.birthdateCtrl.value ?? '',
       phone,
       gender: getEnumKeyByValue(Genders, this.genderCtrl.value) as Genders,

@@ -3,7 +3,7 @@ import { Genders } from '../enums/genders.enum';
 
 export interface UpdateProfilePayload {
   name: string;
-  email: string;
+  // Sem email: troca-se pelo fluxo de confirmação (UserService.requestEmailChange).
   birthDate: string;
   phone: string;
   gender: Genders;

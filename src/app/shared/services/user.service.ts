@@ -9,6 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 import { OnboardingResponse } from '../models/onboarding-response.model';
 import { ProfileView } from '../models/profile-view.model';
 import { UpdateProfilePayload } from '../models/update-profile-payload.model';
+import { EmailChangeStatus } from '../models/email-change-status.model';
 import { RequestDeletionPayload } from '../models/request-deletion-payload';
 
 @Injectable({
@@ -86,6 +87,27 @@ export class UserService {
           this.sessionService.updateUser(updatedUser)
         )
       );
+  }
+
+  getEmailChange(): Observable<EmailChangeStatus> {
+    return this.http.get<EmailChangeStatus>(AppConstants.apiEndpoints.emailChange, {
+      withCredentials: true,
+    });
+  }
+
+  /** Envia o link de confirmação para o email novo; o email da conta só muda ao abri-lo. */
+  requestEmailChange(newEmail: string, currentPassword: string): Observable<EmailChangeStatus> {
+    return this.http.post<EmailChangeStatus>(
+      AppConstants.apiEndpoints.emailChange,
+      { newEmail, currentPassword },
+      { withCredentials: true },
+    );
+  }
+
+  cancelEmailChange(): Observable<EmailChangeStatus> {
+    return this.http.delete<EmailChangeStatus>(AppConstants.apiEndpoints.emailChange, {
+      withCredentials: true,
+    });
   }
 
   deleteAccount(): Observable<void> {
