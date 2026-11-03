@@ -33,6 +33,7 @@ import { Appointment } from '../../shared/models/appointment.model';
 import { Invitation } from '../../shared/models/invitation.model';
 import { serviceLabel } from '../../shared/utils/catalogue.util';
 import { Pages } from '../../shared/enums/pages.enum';
+import { MyRequestsService } from '../../core/services/my-requests.service';
 import { ProfessionalService } from '../../shared/models/professional-service.model';
 import { Currency } from '../../shared/enums/currency.enum';
 import { freeSlotsOn } from '../../shared/utils/free-slots.util';
@@ -118,6 +119,7 @@ export class DashboardPageComponent implements OnInit {
   private readonly featureFlagService = inject(FeatureFlagService);
   readonly notificationService = inject(NotificationService);
   readonly messageService = inject(MessageService);
+  readonly myRequests = inject(MyRequestsService);
 
   readonly Pages = Pages;
   readonly timeShiftNotice = timeShiftNotice;

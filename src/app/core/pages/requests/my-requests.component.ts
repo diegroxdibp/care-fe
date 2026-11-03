@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { ReviewApiService } from '../../services/review-api.service';
+import { MyRequestsService } from '../../services/my-requests.service';
 import { kindPath, plural, ReviewSummary, STAGE } from '../../../shared/models/review.model';
 import { Pages } from '../../../shared/enums/pages.enum';
 import { SessionService } from '../../../shared/services/session.service';
@@ -54,6 +55,7 @@ import { detectBrowserTimezone } from '../../../shared/utils/timezones.util';
 export class MyRequestsComponent implements OnInit {
   private readonly api = inject(ReviewApiService);
   private readonly session = inject(SessionService);
+  private readonly myRequests = inject(MyRequestsService);
 
   readonly Pages = Pages;
   readonly list = signal<ReviewSummary[] | null>(null);
@@ -74,7 +76,10 @@ export class MyRequestsComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.mine().subscribe({
-      next: l => this.list.set(l),
+      next: l => {
+        this.list.set(l);
+        this.myRequests.setCount(l.length);
+      },
       error: () => this.list.set([]),
     });
   }

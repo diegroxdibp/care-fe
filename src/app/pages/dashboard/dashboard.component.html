@@ -42,6 +42,15 @@
             <span class="badge">{{ notificationService.unreadCount() }}</span>
           }
         </a>
+        @if (myRequests.hasRequests()) {
+          <a
+            [routerLink]="['/', Pages.MEUS_PEDIDOS]"
+            routerLinkActive="active"
+          >
+            <span translate="no" class="material-symbols-outlined">assignment</span>
+            <span>Meus pedidos</span>
+          </a>
+        }
         @if (isProfessional()) {
           <a
             [routerLink]="['my-appointments']"

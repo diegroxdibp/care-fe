@@ -125,6 +125,12 @@
                 <span translate="no" class="material-symbols-outlined">person</span>
                 <span>Conta</span>
               </button>
+              @if (myRequests.hasRequests()) {
+                <button class="dropdown-item" (click)="closeMenus(); navigateTo(navigationService.Pages.MEUS_PEDIDOS)">
+                  <span translate="no" class="material-symbols-outlined">assignment</span>
+                  <span>Meus pedidos</span>
+                </button>
+              }
               @if (isAdmin()) {
                 <button class="dropdown-item" (click)="closeMenus(); navigateTo(navigationService.Pages.ADMIN)">
                   <span translate="no" class="material-symbols-outlined">admin_panel_settings</span>

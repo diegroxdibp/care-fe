@@ -14,6 +14,7 @@ import {
 } from '../../../models/catalogue.model';
 import { Pages } from '../../../enums/pages.enum';
 import { SnackbarService } from '../../../services/snackbar.service';
+import { MyRequestsService } from '../../../../core/services/my-requests.service';
 import { missingServiceFields } from '../../../utils/catalogue.util';
 import { serviceViewFromContent } from '../../../utils/catalogue-views.util';
 import { FormPreviewComponent } from '../form-preview/form-preview.component';
@@ -86,6 +87,7 @@ export class ServiceProposalPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snackbar = inject(SnackbarService);
+  private readonly myRequests = inject(MyRequestsService);
 
   readonly Pages = Pages;
   readonly current = signal<CareService | null>(null);
@@ -143,6 +145,8 @@ export class ServiceProposalPageComponent implements OnInit {
     request.subscribe({
       next: () => {
         this.snackbar.openSnackBar({ message: 'Enviado para a equipe da CARE.', action: true });
+        // Uma primeira proposta faz aparecer "Meus pedidos" nos menus.
+        this.myRequests.refresh();
         if (r) this.router.navigate(['/', Pages.MEUS_PEDIDOS, 'proposta', r.id]);
         else this.router.navigate(['/', 'dashboard', 'servicos']);
       },

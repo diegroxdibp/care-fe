@@ -6,6 +6,7 @@ import { SessionService } from '../../services/session.service';
 import { ScreenSizeService } from '../../services/screen-size.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessageService } from '../../../core/services/message.service';
+import { MyRequestsService } from '../../../core/services/my-requests.service';
 import { Pages } from '../../enums/pages.enum';
 import { Roles } from '../../enums/roles.enum';
 
@@ -35,6 +36,7 @@ export class MobileMenuSheetComponent {
   readonly navbarService = inject(NavigationBarService);
   readonly notificationService = inject(NotificationService);
   readonly messageService = inject(MessageService);
+  private readonly myRequests = inject(MyRequestsService);
   readonly Pages = Pages;
 
   constructor() {
@@ -79,12 +81,21 @@ export class MobileMenuSheetComponent {
     { label: 'Conta', icon: 'person', page: Pages.DASHBOARD_PROFILE },
   ];
 
-  /** As linhas da conta, mais a área da equipa (/admin) para quem é ADMIN. */
-  readonly userRows = computed<NavRow[]>(() =>
-    this.user()?.roles?.includes(Roles.ADMIN)
-      ? [...this.baseRows, { label: 'Área da equipe', icon: 'admin_panel_settings', page: Pages.ADMIN }]
-      : this.baseRows,
-  );
+  /**
+   * As linhas da conta: "Meus pedidos" antes de Conta para quem tem pedidos
+   * (a barra lateral do painel, onde também está, não aparece no telemóvel),
+   * e a área da equipa (/admin) para quem é ADMIN.
+   */
+  readonly userRows = computed<NavRow[]>(() => {
+    const rows = [...this.baseRows];
+    if (this.myRequests.hasRequests()) {
+      rows.splice(rows.length - 1, 0, { label: 'Meus pedidos', icon: 'assignment', page: Pages.MEUS_PEDIDOS });
+    }
+    if (this.user()?.roles?.includes(Roles.ADMIN)) {
+      rows.push({ label: 'Área da equipe', icon: 'admin_panel_settings', page: Pages.ADMIN });
+    }
+    return rows;
+  });
 
   go(page: Pages): void {
     this.navigationService.navigateTo(page);

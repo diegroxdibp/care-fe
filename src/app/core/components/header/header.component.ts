@@ -20,6 +20,7 @@ import { AuthService } from '../../../auth/auth.service';
 import { LogoHorizontalComponent } from "../../../shared/components/logo-horizontal/logo-horizontal.component";
 import { SessionService } from '../../../shared/services/session.service';
 import { NotificationService } from '../../services/notification.service';
+import { MyRequestsService } from '../../services/my-requests.service';
 import { NotificationResponse } from '../../../shared/models/notification.types';
 
 @Component({
@@ -39,6 +40,8 @@ export class HeaderComponent {
   readonly screenSizeService = inject(ScreenSizeService);
   readonly navigationService = inject(NavigationService);
   readonly notificationsService = inject(NotificationService);
+  /** "Meus pedidos" no menu da conta, só para quem tem pedidos. */
+  readonly myRequests = inject(MyRequestsService);
   readonly renderer = inject(Renderer2);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
