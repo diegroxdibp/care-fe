@@ -39,6 +39,9 @@
         <span translate="no" class="material-symbols-outlined">file_upload</span>
         Alterar foto
       </button>
+      @if (canAdjustPicture()) {
+        <button type="button" class="btn-outline-sm" [disabled]="pictureUploading()" (click)="adjustPicture()">Ajustar</button>
+      }
       @if (displayPicture()) {
         <button type="button" class="btn-outline-sm" [disabled]="pictureUploading()" (click)="removePicture()">Remover</button>
       }

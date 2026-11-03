@@ -15,6 +15,8 @@ export interface ImageCropDialogData {
   source: File | string;
   /** Proporção fixa (largura / altura). Sem ela, escolhe-se: livre, 1:1, 4:3, 16:9. */
   aspectRatio?: number;
+  /** Moldura redonda (para avatares). Só muda a moldura: a imagem sai quadrada. */
+  round?: boolean;
   state?: ImageCropState | null;
 }
 
@@ -46,6 +48,7 @@ const RATIOS: { label: string; value: number | null }[] = [
           [imageURL]="url"
           [maintainAspectRatio]="ratio() !== null"
           [aspectRatio]="ratio() ?? 1"
+          [roundCropper]="!!data.round"
           [transform]="transform()"
           [cropper]="cropperPos()"
           [canvasRotation]="rotation()"

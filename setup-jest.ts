@@ -15,6 +15,17 @@ class MockIntersectionObserver {
 }
 (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = MockIntersectionObserver;
 
+// jsdom doesn't implement URL.createObjectURL either. ngx-image-cropper calls
+// it at import time (to probe EXIF auto-rotation), so any spec that imports
+// the image crop dialog — even indirectly, like the profile page — failed
+// before running a single test.
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = () => 'blob:jest';
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  URL.revokeObjectURL = () => {};
+}
+
 setupZoneTestEnv();
 
 // Providers every spec needs by default (HttpClient, a routed ActivatedRoute,

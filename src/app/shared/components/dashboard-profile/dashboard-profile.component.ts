@@ -29,6 +29,13 @@ import {
   timezoneLabel,
   timezoneOffsetLabel,
 } from '../../utils/timezones.util';
+import {
+  ImageCropDialogComponent,
+  ImageCropDialogData,
+  ImageCropDialogResult,
+  ImageCropState,
+} from '../catalogue/image-crop-dialog/image-crop-dialog.component';
+import { shrinkImage } from '../../utils/catalogue.util';
 
 /** Valores de exemplo da seção Preferências (o preço real vem do serviço). */
 const SAMPLE_PRICE: Record<Currency, number> = {
@@ -99,6 +106,11 @@ export class DashboardProfileComponent implements OnInit {
   private readonly pendingPictureFile = signal<File | null>(null);
   private readonly pendingPictureRemoved = signal(false);
   private readonly picturePreviewUrl = signal<string | null>(null);
+  // A foto escolhida, antes do recorte, e o ajuste feito: "Ajustar" reabre o
+  // recorte a partir do original (sem perder qualidade) e onde ficou.
+  private readonly pictureOriginal = signal<File | null>(null);
+  private pictureCropState: ImageCropState | null = null;
+  readonly canAdjustPicture = computed(() => !!this.pictureOriginal() && !!this.pendingPictureFile());
 
   readonly displayPicture = computed(() =>
     this.pendingPictureRemoved() ? null : this.picturePreviewUrl() ?? this.user()?.picture ?? null,
@@ -344,10 +356,51 @@ export class DashboardProfileComponent implements OnInit {
       return;
     }
 
-    this.revokePreview();
-    this.picturePreviewUrl.set(URL.createObjectURL(file));
-    this.pendingPictureFile.set(file);
-    this.pendingPictureRemoved.set(false);
+    this.cropPicture(file, null);
+  }
+
+  /** Reabre o recorte da foto escolhida, a partir do original. */
+  adjustPicture(): void {
+    const original = this.pictureOriginal();
+    if (!original) return;
+    this.pictureError = null;
+    this.cropPicture(original, this.pictureCropState);
+  }
+
+  /**
+   * Recorta (quadrado, moldura redonda como o avatar) e gira a foto antes de
+   * a deixar pendente. O servidor ainda corta para 512×512 com gravity face,
+   * mas um quadrado chega lá inteiro, por isso o enquadramento escolhido fica.
+   * Cancelar o recorte deixa a foto anterior como estava.
+   */
+  private cropPicture(source: File, state: ImageCropState | null): void {
+    this.dialog
+      .open<ImageCropDialogComponent, ImageCropDialogData, ImageCropDialogResult>(ImageCropDialogComponent, {
+        width: '640px',
+        maxWidth: 'calc(100vw - 32px)',
+        panelClass: 'care-dialog',
+        autoFocus: false,
+        data: { source, aspectRatio: 1, round: true, state },
+      })
+      .afterClosed()
+      .subscribe(async result => {
+        if (!result) return;
+        let blob: Blob;
+        try {
+          // O recorte sai em JPEG no tamanho original; reduzi-lo poupa o
+          // envio e garante que fica abaixo do limite de 5 MB do backend.
+          blob = await shrinkImage(result.blob);
+        } catch (message) {
+          this.pictureError = String(message);
+          return;
+        }
+        this.pictureOriginal.set(source);
+        this.pictureCropState = result.state;
+        this.revokePreview();
+        this.picturePreviewUrl.set(URL.createObjectURL(blob));
+        this.pendingPictureFile.set(new File([blob], 'foto-perfil.jpg', { type: 'image/jpeg' }));
+        this.pendingPictureRemoved.set(false);
+      });
   }
 
   removePicture(): void {
@@ -355,6 +408,8 @@ export class DashboardProfileComponent implements OnInit {
     const hadPendingFile = !!this.pendingPictureFile();
     this.revokePreview();
     this.pendingPictureFile.set(null);
+    this.pictureOriginal.set(null);
+    this.pictureCropState = null;
     // Só marca remoção de verdade se já havia foto guardada no servidor; se
     // era apenas uma seleção pendente, cancelar a seleção já basta.
     this.pendingPictureRemoved.set(!hadPendingFile && !!this.user()?.picture);
@@ -370,6 +425,8 @@ export class DashboardProfileComponent implements OnInit {
     this.revokePreview();
     this.pendingPictureFile.set(null);
     this.pendingPictureRemoved.set(false);
+    this.pictureOriginal.set(null);
+    this.pictureCropState = null;
   }
 
   openDeleteDialog(): void {
