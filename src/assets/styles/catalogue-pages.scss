@@ -94,7 +94,14 @@
   flex-direction: column;
   gap: 0.5em;
 
+  // styles.scss põe todos os li em flex com justify-content: center e sem
+  // marcador: cada item virava uma linha centrada, por isso um item curto
+  // ficava no meio e um longo (que quebra linha) encostava à esquerda. Aqui o
+  // li volta a ser um item de lista normal, alinhado à esquerda e com o disco.
   li {
+    display: list-item;
+    list-style: inherit;
+    text-align: left;
     font-size: 18px;
     font-weight: var(--fw-medium);
     font-style: italic;
