@@ -5,9 +5,15 @@ import { Modality } from '../enums/modality.enum';
 import { serviceLabel } from './catalogue.util';
 import { RecurrenceFrequency } from '../enums/recurrence-frequency.enum';
 import { Currency, formatPrice } from '../enums/currency.enum';
-import { generateOccurrences } from './recurrence.util';
+import { generateOccurrences, occursOnDate } from './recurrence.util';
 import { normalizeModality } from './modality-compatibility.util';
-import { sessionZone, wallTimeInZone, zonedWallTimeToInstant } from './timezones.util';
+import {
+  sessionZone,
+  timezoneCity,
+  timezoneOffsetLabel,
+  wallTimeInZone,
+  zonedWallTimeToInstant,
+} from './timezones.util';
 import { REMOTE_SESSION_INFO } from './remote-session.util';
 import { isPendingSeriesChange } from './series-change.util';
 
@@ -95,6 +101,37 @@ export interface BuiltSession {
   callExtraMinutes: number;
   /** Novo fim, no fuso de quem vê, quando a chamada foi estendida. */
   extendedEndTime?: string;
+  /** Só na primeira ocorrência de uma série cuja hora mudou para quem vê. */
+  timeShift?: SessionTimeShift;
+}
+
+/**
+ * A hora desta ocorrência, no fuso de quem vê, não é a da anterior da série.
+ *
+ * Uma série fica à mesma hora no fuso em que foi combinada (o da
+ * profissional). Quando só um dos dois fusos muda de horário — Lisboa no fim
+ * de outubro, São Paulo nunca —, quem está do outro lado vê a sessão mudar de
+ * hora sem que nada tenha sido mexido. Isto é o aviso disso.
+ */
+export interface SessionTimeShift {
+  /** Hora de início da ocorrência anterior, no fuso de quem vê. */
+  from: string;
+  /** Hora de início desta ocorrência, no fuso de quem vê. */
+  to: string;
+  /**
+   * Cidade do fuso da sessão quando foi esse relógio que mudou; null quando
+   * foi o de quem vê.
+   */
+  changedIn: string | null;
+}
+
+/** O texto do aviso, igual em todos os ecrãs. */
+export function timeShiftNotice(shift: SessionTimeShift): string {
+  return shift.changedIn
+    ? `A partir desta sessão, o horário passa de ${shift.from} para ${shift.to} no seu fuso, `
+      + `por causa da mudança de horário em ${shift.changedIn}.`
+    : `A partir desta sessão, o horário passa de ${shift.from} para ${shift.to}, `
+      + 'por causa da mudança de horário no seu fuso.';
 }
 
 /** Do ponto de vista de quem vê a lista: a pessoa cliente vê a(s) profissional(is); a profissional vê a pessoa cliente. */
@@ -363,6 +400,46 @@ function resolveOccurrenceDisplay(
   };
 }
 
+/**
+ * A data anterior do padrão da série, ou null na primeira. Ignora as datas
+ * canceladas: a hora a que a pessoa está habituada é a do padrão.
+ */
+function previousPatternDate(appt: Appointment, date: Date): Date | null {
+  if (!appt.isRecurring || !appt.startDate) return null;
+  const anchor = new Date(appt.startDate + 'T00:00:00');
+  const candidate = new Date(date);
+  // Mensal: a anterior está a 4 ou 5 semanas.
+  for (let i = 0; i < 6; i++) {
+    candidate.setDate(candidate.getDate() - 7);
+    if (candidate < anchor) return null;
+    if (occursOnDate(appt.recurrenceFrequency, anchor, candidate)) return new Date(candidate);
+  }
+  return null;
+}
+
+function timeShiftOf(
+  appt: Appointment,
+  date: Date,
+  startTime: string,
+  current: { startTime: string; startInstant?: Date },
+  viewerTimeZone: string,
+): SessionTimeShift | undefined {
+  if (!current.startInstant) return undefined;
+  const previousDate = previousPatternDate(appt, date);
+  if (!previousDate) return undefined;
+  const previous = resolveOccurrenceDisplay(previousDate, startTime, '', appt.timeZone, viewerTimeZone);
+  if (!previous.startInstant || previous.startTime === current.startTime) return undefined;
+
+  const zone = sessionZone(appt.timeZone);
+  const sessionClockChanged = timezoneOffsetLabel(zone, previous.startInstant)
+    !== timezoneOffsetLabel(zone, current.startInstant);
+  return {
+    from: previous.startTime,
+    to: current.startTime,
+    changedIn: sessionClockChanged ? timezoneCity(zone) : null,
+  };
+}
+
 function oneTimeDates(appt: Appointment): Date[] {
   if (!appt.startDate) return [];
   // Meia-noite local, não UTC — ver a mesma nota em recurringDates.
@@ -438,9 +515,10 @@ export function buildSessions(
       const key = `${appt.id}@${occurrenceKey}`;
       const extraMinutes = appt.callExtensions
         ?.find(e => e.occurrenceDate === occurrenceKey)?.extraMinutes ?? 0;
+      const startTime = appt.startTime?.slice(0, 5) ?? '';
       const resolved = resolveOccurrenceDisplay(
         date,
-        appt.startTime?.slice(0, 5) ?? '',
+        startTime,
         appt.endTime?.slice(0, 5) ?? '',
         appt.timeZone,
         options.viewerTimeZone,
@@ -492,6 +570,9 @@ export function buildSessions(
               return `${pad2(wall.hour)}:${pad2(wall.minute)}`;
             })()
             : addMinutesToLabel(resolved.endTime, extraMinutes),
+        timeShift: pending
+          ? undefined
+          : timeShiftOf(appt, date, startTime, resolved, options.viewerTimeZone),
       });
     }
   }

@@ -1248,6 +1248,28 @@
   color: var(--fg-3);
 }
 
+/* ---- Hora de uma série mudou para quem vê ---- */
+// Só um dos fusos mudou de horário. Cores do "por responder": é para reparar.
+.time-shift {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-pending-soft);
+  color: var(--color-pending-ink);
+  font-size: var(--fs-small);
+  line-height: 1.4;
+
+  span.material-symbols-outlined {
+    font-size: 19px;
+    line-height: 1.1;
+    color: var(--color-pending-ink);
+    flex-shrink: 0;
+  }
+}
+
 /* ---- Proposta recorrente por responder ---- */
 .pending-pill {
   flex-shrink: 0;

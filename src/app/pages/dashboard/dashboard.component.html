@@ -153,6 +153,13 @@
                   </div>
                 </div>
 
+                @if (s.timeShift; as shift) {
+                  <div class="time-shift" role="note">
+                    <span translate="no" class="material-symbols-outlined">update</span>
+                    <span>{{ timeShiftNotice(shift) }}</span>
+                  </div>
+                }
+
                 <!-- Duração + Valor, logo a seguir ao título -->
                 <div class="row3">
                   <div class="row3-item">
@@ -338,6 +345,9 @@
                       @if (s.pending) {
                         <span class="pending-pill">Proposta pendente</span>
                       }
+                      @if (s.timeShift) {
+                        <span class="pending-pill">Novo horário</span>
+                      }
                       <span class="mode-pill" [class.remoto]="s.mode === 'Remoto'">
                         {{ s.mode }}
                       </span>
@@ -351,6 +361,12 @@
 
                     @if (openSessionId() === s.appointmentId) {
                       <div class="panel" id="panel-{{ s.appointmentId }}" @detailEnter>
+                        @if (s.timeShift; as shift) {
+                          <div class="time-shift" role="note">
+                            <span translate="no" class="material-symbols-outlined">update</span>
+                            <span>{{ timeShiftNotice(shift) }}</span>
+                          </div>
+                        }
                         <div class="ad-rows">
                           <div class="ad-row">
                             <svg class="trifecta-icon" viewBox="0 0 808.9 784.3" aria-hidden="true" focusable="false">

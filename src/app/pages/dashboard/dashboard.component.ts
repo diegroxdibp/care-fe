@@ -47,6 +47,7 @@ import {
   isCallOvertime,
   isUpcomingOrOngoing,
   sessionBounds,
+  timeShiftNotice,
 } from '../../shared/utils/session-list.util';
 import { Roles } from '../../shared/enums/roles.enum';
 import { environment } from '../../../environments/environment';
@@ -119,6 +120,7 @@ export class DashboardPageComponent implements OnInit {
   readonly messageService = inject(MessageService);
 
   readonly Pages = Pages;
+  readonly timeShiftNotice = timeShiftNotice;
 
   readonly appointments = signal<Appointment[]>([]);
   /** Convites ainda por responder — cada um leva à sua página (/invitations/:token). */

@@ -12,6 +12,7 @@ import {
   isCallOvertime,
   isUpcomingOrOngoing,
   sessionBounds,
+  timeShiftNotice,
 } from './session-list.util';
 
 /**
@@ -425,5 +426,98 @@ describe('buildSessions — lugar num grupo', () => {
     const [session] = buildSessions([makeAppointment()], [SERVICE], options());
     expect(session.isGroup).toBe(false);
     expect(session.service).not.toContain('grupo');
+  });
+});
+
+/**
+ * O caso real de novembro de 2026: uma série às 17:00 de Lisboa, vista de São
+ * Paulo, passou das 13:00 para as 14:00 quando Lisboa saiu do horário de
+ * verão (25 out 2026). A série fica certa no fuso da profissional; o aviso é
+ * para quem está do outro lado.
+ */
+describe('buildSessions — aviso de mudança de hora numa série (fim do horário de verão em Lisboa, 25 out 2026)', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 9, 20, 12, 0, 0)); // 20 out 2026
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const lisbonSeries = (overrides: Partial<Appointment> = {}) => makeAppointment({
+    startDate: '2026-10-01',
+    endDate: '2026-12-31',
+    startTime: '17:00',
+    endTime: '18:00',
+    isRecurring: true,
+    dayOfWeek: DayOfWeek.THURSDAY,
+    recurrenceFrequency: 'WEEKLY',
+    timeZone: LISBON,
+    ...overrides,
+  });
+
+  const byKey = (sessions: ReturnType<typeof buildSessions>, key: string) =>
+    sessions.find((s) => s.occurrenceKey === key)!;
+
+  it('vista de São Paulo, só a primeira sessão depois da mudança avisa: 13:00 → 14:00, por causa de Lisboa', () => {
+    const sessions = buildSessions([lisbonSeries()], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(byKey(sessions, '2026-10-22').startTime).toBe('13:00');
+    expect(byKey(sessions, '2026-10-22').timeShift).toBeUndefined();
+    expect(byKey(sessions, '2026-10-29').startTime).toBe('14:00');
+    expect(byKey(sessions, '2026-10-29').timeShift).toEqual({ from: '13:00', to: '14:00', changedIn: 'Lisboa' });
+    expect(byKey(sessions, '2026-11-05').timeShift).toBeUndefined();
+  });
+
+  it('vista de Lisboa, o fuso da própria sessão, nunca avisa', () => {
+    const sessions = buildSessions([lisbonSeries()], [SERVICE], options({ viewerTimeZone: LISBON }));
+
+    expect(sessions.every((s) => s.timeShift === undefined)).toBe(true);
+    expect(byKey(sessions, '2026-10-29').startTime).toBe('17:00');
+  });
+
+  it('direção inversa: série às 13:00 de São Paulo, vista de Lisboa, passa de 17:00 para 16:00 — foi o relógio de quem vê que mudou', () => {
+    const series = lisbonSeries({ startTime: '13:00', endTime: '14:00', timeZone: SAO_PAULO });
+    const sessions = buildSessions([series], [SERVICE], options({ viewerTimeZone: LISBON }));
+
+    expect(byKey(sessions, '2026-10-29').timeShift).toEqual({ from: '17:00', to: '16:00', changedIn: null });
+  });
+
+  it('uma série que começa já depois da mudança não tem nada a avisar', () => {
+    const series = lisbonSeries({ startDate: '2026-10-29' });
+    const sessions = buildSessions([series], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(byKey(sessions, '2026-10-29').timeShift).toBeUndefined();
+  });
+
+  it('quinzenal: compara com a sessão de duas semanas antes', () => {
+    const series = lisbonSeries({ startDate: '2026-10-15', recurrenceFrequency: 'BIWEEKLY' });
+    const sessions = buildSessions([series], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(byKey(sessions, '2026-10-29').timeShift).toEqual({ from: '13:00', to: '14:00', changedIn: 'Lisboa' });
+  });
+
+  it('a sessão anterior cancelada não esconde o aviso: a hora habitual é a do padrão', () => {
+    const series = lisbonSeries({ excludedDates: ['2026-10-22'] });
+    const sessions = buildSessions([series], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(byKey(sessions, '2026-10-29').timeShift?.from).toBe('13:00');
+  });
+
+  it('uma proposta por responder não avisa', () => {
+    const series = lisbonSeries({ startDate: '2026-10-29', status: 'PENDING' });
+    const sessions = buildSessions([series], [SERVICE], options({ viewerTimeZone: SAO_PAULO }));
+
+    expect(sessions.every((s) => s.timeShift === undefined)).toBe(true);
+  });
+
+  it('o texto diz de quanto para quanto e porquê', () => {
+    expect(timeShiftNotice({ from: '13:00', to: '14:00', changedIn: 'Lisboa' })).toBe(
+      'A partir desta sessão, o horário passa de 13:00 para 14:00 no seu fuso, '
+      + 'por causa da mudança de horário em Lisboa.');
+    expect(timeShiftNotice({ from: '17:00', to: '16:00', changedIn: null })).toBe(
+      'A partir desta sessão, o horário passa de 17:00 para 16:00, '
+      + 'por causa da mudança de horário no seu fuso.');
   });
 });
