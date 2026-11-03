@@ -509,6 +509,34 @@
   }
 }
 
+// Primeira faixa da pré-visualização do perfil já publicado: o link para a
+// página pública (abre noutra aba, para não perder o que se está a escrever).
+.cat-preview-public {
+  border-top: none;
+
+  .cat-preview-public-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    color: var(--fg-1);
+  }
+
+  .cat-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--fs-small);
+
+    .material-symbols-outlined {
+      font-size: 16px;
+      font-style: normal;
+    }
+  }
+}
+
 .cat-fieldset {
   border: none;
   margin: 0;

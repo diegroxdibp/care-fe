@@ -32,8 +32,8 @@ import { ProfileFieldsComponent } from '../profile-fields/profile-fields.compone
         <div class="cat-card">
           <h1>Perfil profissional</h1>
           <p class="cat-hint">
-            Esta é sua página pública@if (profile().slug) {
-              (<a class="cat-link" [routerLink]="['/', Pages.PROFISSIONAIS, profile().slug]">ver página</a>)
+            Esta é sua página pública@if (publicUrl(); as url) {
+              (<a class="cat-link" [href]="url" target="_blank" rel="noopener">ver página</a>)
             }. Seu perfil pessoal (nome da conta, foto, contatos) continua em Perfil. Cada alteração é comunicada à
             equipe da CARE.
           </p>
@@ -64,7 +64,7 @@ import { ProfileFieldsComponent } from '../profile-fields/profile-fields.compone
           }
         </div>
         @if (loaded()) {
-          <app-form-preview [professional]="view()" [proposalNotice]="false" />
+          <app-form-preview [professional]="view()" [proposalNotice]="false" [publicUrl]="publicUrl()" />
         }
       </div>
     </div>
@@ -88,6 +88,15 @@ export class ProfessionalProfileEditorComponent implements OnInit {
     if (!this.profile().displayName.trim()) m.push('nome');
     if (!this.profile().whoAmI.trim()) m.push('apresentação');
     return m;
+  });
+
+  /**
+   * A página pública só existe com o perfil publicado (rascunho e oculto dão
+   * "não encontrado"). Usa o slug guardado: o que ainda não se salvou não está lá.
+   */
+  readonly publicUrl = computed(() => {
+    const p = this.profile();
+    return p.status === 'PUBLISHED' && p.slug ? `/${Pages.PROFISSIONAIS}/${p.slug}` : null;
   });
 
   readonly view = computed(() =>
