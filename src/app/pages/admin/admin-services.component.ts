@@ -3,6 +3,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { CatalogueApiService } from '../../core/services/catalogue-api.service';
+import { ReviewApiService } from '../../core/services/review-api.service';
+import { ReviewSummary } from '../../shared/models/review.model';
 import { CareService, CatalogueOptions, contentOf, ServiceContent } from '../../shared/models/catalogue.model';
 import { Pages } from '../../shared/enums/pages.enum';
 import { SnackbarService } from '../../shared/services/snackbar.service';
@@ -11,7 +13,7 @@ import { ServiceViewComponent } from '../../shared/components/catalogue/service-
 import { missingServiceFields } from '../../shared/utils/catalogue.util';
 import { serviceViewFromContent } from '../../shared/utils/catalogue-views.util';
 
-const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Na lista', REJECTED: 'Recusado' };
+const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Publicado', REJECTED: 'Recusado' };
 
 /**
  * /admin/servicos e /admin/servicos/:id — a lista inteira (propostas e
@@ -62,6 +64,12 @@ const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Na list
             [class.cat-pill-rejected]="s.status === 'REJECTED'">{{ statusLabel(s.status) }}</span>
           <strong>{{ s.name }}</strong>
           <span class="cat-hint">/servicos/{{ s.slug }}@if (!s.allowsPublic) { · privado }</span>
+          <!-- Uma alteração proposta por quem oferece o serviço analisa-se na fila de pedidos. -->
+          @for (c of pendingChanges()[s.id] ?? []; track c.id) {
+            <a class="cat-pill-status cat-pill-pending" [routerLink]="changeLink(c.id)">
+              Alteração em análise{{ c.proposedBy ? ' · ' + c.proposedBy : '' }}
+            </a>
+          }
           <a class="cat-btn-text" [routerLink]="['/admin/servicos', s.id]">Editar</a>
         </div>
       }
@@ -73,6 +81,7 @@ export class AdminServicesComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snackbar = inject(SnackbarService);
+  private readonly reviews = inject(ReviewApiService);
 
   readonly Pages = Pages;
   readonly services = signal<CareService[]>([]);
@@ -83,6 +92,8 @@ export class AdminServicesComponent implements OnInit {
   readonly attempted = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  /** As alterações por fechar (em análise ou devolvidas), por serviço. */
+  readonly pendingChanges = signal<Record<number, ReviewSummary[]>>({});
 
   readonly missing = computed(() => (this.content() ? missingServiceFields(this.content()!) : []));
   readonly preview = computed(() => {
@@ -90,12 +101,23 @@ export class AdminServicesComponent implements OnInit {
     return c ? serviceViewFromContent(c, this.options(), this.editing()?.audiences ?? []) : null;
   });
 
+  /** A análise de uma alteração: /admin/pedidos/alteracao/:id. */
+  changeLink(id: number): (string | number)[] {
+    return ['/', ...Pages.ADMIN_PEDIDOS.split('/'), 'alteracao', id];
+  }
+
   statusLabel(s: string): string {
     return STATUS[s] ?? s;
   }
 
   ngOnInit(): void {
     this.api.options().subscribe(o => this.options.set(o));
+    this.reviews.queue().subscribe(queue => {
+      const open = queue.filter(q => q.kind === 'CHANGE' && q.serviceId && (q.stage === 'ANALYSIS' || q.stage === 'CHANGES'));
+      const byService: Record<number, ReviewSummary[]> = {};
+      open.forEach(q => (byService[q.serviceId!] ??= []).push(q));
+      this.pendingChanges.set(byService);
+    });
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id'));
       this.api.adminServices().subscribe(list => {

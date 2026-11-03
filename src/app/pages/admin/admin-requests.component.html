@@ -2,8 +2,9 @@
   <div class="rv-section-head">
     <h2>Fila de aprovação</h2>
     <p class="rv-lead">
-      Candidaturas e propostas de serviço aguardando análise. Cada parte da página é discutida e aprovada em separado.
-      No fim, o perfil e cada proposta recebem sua própria decisão, e as candidaturas aprovadas seguem para entrevista.
+      Candidaturas, propostas de serviço e propostas de alteração aguardando análise. Cada parte da página é discutida
+      e aprovada em separado. No fim, o perfil e cada proposta recebem sua própria decisão, e as candidaturas aprovadas
+      seguem para entrevista.
     </p>
   </div>
   @if (queue(); as q) {
@@ -34,39 +35,3 @@
     <p class="cat-empty">Carregando…</p>
   }
 </div>
-
-@if (changes().length) {
-  <h2>Propostas de alteração</h2>
-  @for (c of changes(); track c.id) {
-    @let key = 'chg' + c.id;
-    <div class="cat-admin-item">
-      <strong>{{ c.current.name }}</strong>
-      <span class="cat-hint">Proposta de {{ c.proposedBy.name }} em {{ c.createdAt.slice(0, 10) }}</span>
-      <div class="cat-actions">
-        <button type="button" class="cat-btn-text" (click)="toggle(key + 'new')">
-          {{ expanded() === key + 'new' ? 'Esconder' : 'Ver como fica' }}
-        </button>
-        <button type="button" class="cat-btn-text" (click)="toggle(key + 'old')">
-          {{ expanded() === key + 'old' ? 'Esconder' : 'Ver como está' }}
-        </button>
-      </div>
-      @if (expanded() === key + 'new') {
-        <div class="cat-preview cat-admin-preview"><app-service-view [service]="changeView(c)" [preview]="true" /></div>
-      }
-      @if (expanded() === key + 'old') {
-        <div class="cat-preview cat-admin-preview"><app-service-view [service]="serviceView(c.current)" [preview]="true" /></div>
-      }
-      <div class="cat-field">
-        <label [for]="key + '-note'">Nota para quem propôs (obrigatória ao recusar)</label>
-        <textarea class="cat-input" [id]="key + '-note'" rows="2" [value]="note(key)" (input)="setNote(key, text($event))"></textarea>
-      </div>
-      @if (errors()[key]) {
-        <p class="cat-error-box" role="alert">{{ errors()[key] }}</p>
-      }
-      <div class="cat-actions">
-        <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="busy() === key" (click)="change(c, true)">Aprovar</button>
-        <button type="button" class="cat-btn-pill" [disabled]="busy() === key" (click)="change(c, false)">Recusar</button>
-      </div>
-    </div>
-  }
-}

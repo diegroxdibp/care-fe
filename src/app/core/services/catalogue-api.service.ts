@@ -127,6 +127,11 @@ export class CatalogueApiService {
     );
   }
 
+  /** Rever uma proposta de alteração que a equipa devolveu para alterações. */
+  reviseChange(id: number, body: ServiceContent): Observable<ChangeProposal> {
+    return this.http.put<ChangeProposal>(`${this.base}/api/catalogue/change-proposals/${id}`, body, this.opts);
+  }
+
   myChangeProposals(): Observable<ChangeProposal[]> {
     return this.http.get<ChangeProposal[]>(`${this.base}/api/catalogue/change-proposals/mine`, this.opts);
   }
@@ -135,12 +140,6 @@ export class CatalogueApiService {
 
   adminRequests(): Observable<AdminRequests> {
     return this.http.get<AdminRequests>(`${this.base}/api/admin/requests`, this.opts);
-  }
-
-  decideChange(id: number, approve: boolean, body: ReviewDecision): Observable<ChangeProposal> {
-    return this.http.post<ChangeProposal>(
-      `${this.base}/api/admin/change-proposals/${id}/${approve ? 'approve' : 'reject'}`, body, this.opts,
-    );
   }
 
   adminServices(): Observable<CareService[]> {

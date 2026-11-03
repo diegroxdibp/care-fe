@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { CatalogueApiService } from '../../../../core/services/catalogue-api.service';
 import {
   CareService,
+  ChangeProposal,
   CatalogueOptions,
   contentOf,
   emptyServiceContent,
@@ -24,8 +25,9 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
  * Painel → Os meus serviços → Propor um serviço (sem :serviceId) ou Propor
  * alterações (com :serviceId, a um serviço que se oferece). Fica à espera da
  * equipa da CARE; a resposta chega por notificação e email. Com ?rever=:id,
- * revê uma proposta que a equipa devolveu para alterações (e volta ao
- * acompanhamento do pedido).
+ * revê um pedido que a equipa devolveu para alterações (e volta ao
+ * acompanhamento dele): uma proposta (sem :serviceId) ou uma proposta de
+ * alteração (com :serviceId).
  */
 @Component({
   selector: 'app-service-proposal-page',
@@ -35,18 +37,20 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
     <div class="cat-form-page">
       <div class="cat-form-layout">
         <div class="cat-card">
-          @if (revising(); as r) {
-            <a class="cat-link" [routerLink]="['/', Pages.MEUS_PEDIDOS, 'proposta', r.id]">← Acompanhamento do pedido</a>
+          @if (trackingLink(); as back) {
+            <a class="cat-link" [routerLink]="back">← Acompanhamento do pedido</a>
           } @else {
             <a class="cat-link" [routerLink]="['/', 'dashboard', 'servicos']">← Meus serviços</a>
           }
           <h1>
-            {{ revising() ? 'Revisar a proposta' : current() ? 'Propor alterações em ' + current()!.name : 'Propor um serviço' }}
+            {{ revising() ? 'Revisar a proposta'
+              : revisingChange() ? 'Revisar as alterações em ' + current()?.name
+              : current() ? 'Propor alterações em ' + current()!.name : 'Propor um serviço' }}
           </h1>
           <p class="cat-hint">
-            @if (revising()) {
-              A equipe da CARE pediu alterações: veja os comentários no acompanhamento do pedido, revise a proposta e
-              envie de novo. A análise continua a partir daí.
+            @if (revising() || revisingChange()) {
+              A equipe da CARE pediu alterações: veja os comentários no acompanhamento do pedido, revise e envie de novo.
+              A análise continua a partir daí.
             } @else if (current()) {
               A equipe da CARE revisa as alterações antes de elas aparecerem na página. Formatos, modalidades, visibilidades ou
               especialidades que alguém já usa não podem ser removidos; públicos novos entram como especialidade.
@@ -76,7 +80,8 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
           }
         </div>
         @if (ready()) {
-          <app-form-preview [services]="[preview()]" />
+          <!-- Numa alteração o serviço já está publicado: sem o aviso de proposta nova. -->
+          <app-form-preview [services]="[preview()]" [proposalNotice]="!current()" />
         }
       </div>
     </div>
@@ -93,6 +98,15 @@ export class ServiceProposalPageComponent implements OnInit {
   readonly current = signal<CareService | null>(null);
   /** A proposta devolvida para alterações que se está a rever. */
   readonly revising = signal<CareService | null>(null);
+  /** A proposta de alteração devolvida que se está a rever. */
+  readonly revisingChange = signal<ChangeProposal | null>(null);
+  /** Ao rever: o acompanhamento do pedido, para onde se volta. */
+  readonly trackingLink = computed(() => {
+    const r = this.revising();
+    if (r) return ['/', Pages.MEUS_PEDIDOS, 'proposta', r.id];
+    const c = this.revisingChange();
+    return c ? ['/', Pages.MEUS_PEDIDOS, 'alteracao', c.id] : null;
+  });
   readonly options = signal<CatalogueOptions | null>(null);
   readonly content = signal<ServiceContent>(emptyServiceContent());
   readonly ready = signal(false);
@@ -108,6 +122,19 @@ export class ServiceProposalPageComponent implements OnInit {
   ngOnInit(): void {
     this.api.options().subscribe(o => this.options.set(o));
     const revise = Number(this.route.snapshot.queryParamMap.get('rever'));
+    const id = Number(this.route.snapshot.paramMap.get('serviceId'));
+    if (revise && id) {
+      this.api.myChangeProposals().subscribe(list => {
+        const c = list.find(x => x.id === revise) ?? null;
+        this.revisingChange.set(c);
+        if (c) {
+          this.current.set(c.current);
+          this.content.set(c.proposed);
+        }
+        this.ready.set(true);
+      });
+      return;
+    }
     if (revise) {
       this.api.myProposals().subscribe(list => {
         const s = list.find(x => x.id === revise) ?? null;
@@ -117,7 +144,6 @@ export class ServiceProposalPageComponent implements OnInit {
       });
       return;
     }
-    const id = Number(this.route.snapshot.paramMap.get('serviceId'));
     if (!id) {
       this.ready.set(true);
       return;
@@ -137,17 +163,22 @@ export class ServiceProposalPageComponent implements OnInit {
     this.sending.set(true);
     const s = this.current();
     const r = this.revising();
-    const request: Observable<unknown> = r
+    const c = this.revisingChange();
+    const request: Observable<{ id: number }> = r
       ? this.api.reviseProposal(r.id, this.content())
-      : s
-        ? this.api.proposeChange(s.id, this.content())
-        : this.api.propose(this.content());
+      : c
+        ? this.api.reviseChange(c.id, this.content())
+        : s
+          ? this.api.proposeChange(s.id, this.content())
+          : this.api.propose(this.content());
     request.subscribe({
-      next: () => {
+      next: sent => {
         this.snackbar.openSnackBar({ message: 'Enviado para a equipe da CARE.', action: true });
         // Uma primeira proposta faz aparecer "Meus pedidos" nos menus.
         this.myRequests.refresh();
         if (r) this.router.navigate(['/', Pages.MEUS_PEDIDOS, 'proposta', r.id]);
+        // Uma alteração segue-se no acompanhamento, como os outros pedidos.
+        else if (s) this.router.navigate(['/', Pages.MEUS_PEDIDOS, 'alteracao', sent.id]);
         else this.router.navigate(['/', 'dashboard', 'servicos']);
       },
       error: (err: HttpErrorResponse) => {

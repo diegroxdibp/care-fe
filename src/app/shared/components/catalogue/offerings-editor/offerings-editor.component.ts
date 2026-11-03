@@ -59,6 +59,9 @@ export class OfferingsEditorComponent implements OnInit {
   });
 
   readonly statusLabel = (s: ReviewStatus) => STATUS_LABELS[s];
+  /** Uma alteração devolvida continua PENDING; o que conta para a pessoa é que lhe pediram alterações. */
+  readonly changeLabel = (c: ChangeProposal) =>
+    c.status === 'PENDING' && c.decision === 'CHANGES' ? 'Alterações pedidas' : STATUS_LABELS[c.status];
   readonly joinPt = joinPt;
 
   ngOnInit(): void {

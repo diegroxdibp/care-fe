@@ -108,17 +108,20 @@
             @if (p.reviewNote) {
               <p class="cat-hint">Nota da equipe: {{ p.reviewNote }}</p>
             }
+            <a class="cat-btn-text" [routerLink]="['/', Pages.MEUS_PEDIDOS, 'proposta', p.id]">Acompanhar o pedido</a>
           </div>
         }
         @for (c of changes(); track c.id) {
           <div class="cat-admin-item">
             <span class="cat-pill-status"
               [class.cat-pill-pending]="c.status === 'PENDING'"
-              [class.cat-pill-rejected]="c.status === 'REJECTED'">{{ statusLabel(c.status) }}</span>
+              [class.cat-pill-rejected]="c.status === 'REJECTED'">{{ changeLabel(c) }}</span>
             <strong>Alterações em {{ c.current.name }}</strong>
             @if (c.reviewNote) {
               <p class="cat-hint">Nota da equipe: {{ c.reviewNote }}</p>
             }
+            <!-- A análise (comentários, status de cada parte) está no acompanhamento do pedido. -->
+            <a class="cat-btn-text" [routerLink]="['/', Pages.MEUS_PEDIDOS, 'alteracao', c.id]">Acompanhar o pedido</a>
           </div>
         }
       }

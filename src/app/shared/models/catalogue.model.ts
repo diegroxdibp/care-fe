@@ -1,3 +1,6 @@
+// Só o tipo: review.model importa daqui, e um import de valor fecharia o ciclo.
+import type { RequestDecision } from './review.model';
+
 /**
  * A lista partilhada de serviços, ofertas, perfis profissionais e pedidos —
  * espelha os DTOs de care-be (dto/catalogue). Termos em GLOSSARY.md.
@@ -197,6 +200,8 @@ export interface ApplicationRequest {
 export interface ChangeProposal {
   id: number;
   status: ReviewStatus;
+  /** A decisão da análise: CHANGES = devolvida para a pessoa rever (analisada em /meus-pedidos/alteracao/:id). */
+  decision: RequestDecision | null;
   createdAt: string;
   reviewNote: string | null;
   proposedBy: Person;
