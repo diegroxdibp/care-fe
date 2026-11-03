@@ -171,6 +171,14 @@ const RATIOS: { label: string; value: number | null }[] = [
       justify-content: flex-end;
       align-items: center;
     }
+    /* O .cat-btn-pill traz a sombra flutuante das páginas do catálogo. Aqui
+       ele fica no fundo da folha do diálogo, que rola (overflow-y: auto) e
+       por isso corta tudo o que passa da borda: a sombra, de 24px, acabava
+       num corte seco no padding de baixo. Num diálogo o botão já está sobre
+       uma folha elevada, e os botões dos outros diálogos não têm sombra. */
+    .btns .cat-btn-pill {
+      filter: none;
+    }
   `],
 })
 export class ImageCropDialogComponent {
