@@ -198,12 +198,20 @@ export class ImageCropDialogComponent {
   readonly failed = signal(false);
   readonly busy = signal(false);
 
-  /** A moldura só se pode repor depois de a imagem estar carregada (o cropper repõe-na ao carregar). */
+  /** Se a moldura guardada já foi reposta (só na primeira carga). */
+  private restored = false;
+
+  /**
+   * O cropper emite isto ao carregar a imagem e de novo depois de cada giro.
+   * A moldura só se pode repor depois de a imagem estar carregada (o cropper
+   * repõe-na ao carregar), e só uma vez: depois de girar já não serve.
+   */
   ready(): void {
     const saved = this.data.state?.cropper;
-    if (saved && !this.isReady()) {
+    if (saved && !this.restored) {
       setTimeout(() => this.cropperPos.set({ ...saved }));
     }
+    this.restored = true;
     this.isReady.set(true);
   }
 
@@ -211,12 +219,26 @@ export class ImageCropDialogComponent {
     this.transform.update(t => ({ ...t, scale }));
   }
 
+  /**
+   * O cropper recria a imagem girada de forma assíncrona; até emitir
+   * cropperReady outra vez, recortar usaria a imagem de antes do giro (o
+   * "Aplicar" logo a seguir saía sem girar). A moldura guardada estava nas
+   * coordenadas da orientação anterior, por isso larga-se e o cropper
+   * centra uma nova.
+   */
   rotate(step: 1 | -1): void {
+    this.isReady.set(false);
+    this.cropperPos.set(undefined);
     this.rotation.update(r => r + step);
   }
 
   reset(): void {
     this.transform.set({ scale: 1 });
+    if (this.rotation() !== 0) {
+      // Desfazer o giro também recria a imagem (ver rotate).
+      this.isReady.set(false);
+      this.cropperPos.set(undefined);
+    }
     this.rotation.set(0);
     this.cropperCmp().resetCropperPosition();
   }
