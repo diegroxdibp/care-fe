@@ -16,7 +16,7 @@ import {
 import { Pages } from '../../../enums/pages.enum';
 import { SnackbarService } from '../../../services/snackbar.service';
 import { MyRequestsService } from '../../../../core/services/my-requests.service';
-import { missingServiceFields } from '../../../utils/catalogue.util';
+import { InUseFix, inUseFix, missingServiceFields } from '../../../utils/catalogue.util';
 import { serviceViewFromContent } from '../../../utils/catalogue-views.util';
 import { FormPreviewComponent } from '../form-preview/form-preview.component';
 import { ServiceFieldsComponent } from '../service-fields/service-fields.component';
@@ -54,6 +54,7 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
             } @else if (current()) {
               A equipe da CARE revisa as alterações antes de elas aparecerem na página. Formatos, modalidades, visibilidades ou
               especialidades que alguém já usa não podem ser removidos; públicos novos entram como especialidade.
+              Se só você oferece este serviço, pode mudar tudo isso desde que nenhuma sessão já marcada deixe de caber.
             } @else {
               O serviço entra na lista da CARE quando a equipe aprová-lo — ele fica então ativo em Meus serviços, e outras
               pessoas profissionais também podem oferecê-lo.
@@ -70,7 +71,11 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
               <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
             }
             @if (serverError()) {
-              <p class="cat-error-box" role="alert">{{ serverError() }}</p>
+              <p class="cat-error-box" role="alert">{{ serverError() }}
+              @if (fix(); as f) {
+                <a class="cat-link" [routerLink]="f.link">{{ f.label }}</a>
+              }
+              </p>
             }
             <div class="cat-actions">
               <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="sending()" (click)="send()">
@@ -113,6 +118,8 @@ export class ServiceProposalPageComponent implements OnInit {
   readonly attempted = signal(false);
   readonly sending = signal(false);
   readonly serverError = signal<string | null>(null);
+  /** O erro aponta vagas ou sessões: o atalho para onde se resolve. */
+  readonly fix = signal<InUseFix | null>(null);
 
   readonly missing = computed(() => missingServiceFields(this.content()));
   readonly preview = computed(() =>
@@ -159,6 +166,7 @@ export class ServiceProposalPageComponent implements OnInit {
   send(): void {
     this.attempted.set(true);
     this.serverError.set(null);
+    this.fix.set(null);
     if (this.missing().length) return;
     this.sending.set(true);
     const s = this.current();
@@ -184,6 +192,7 @@ export class ServiceProposalPageComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.sending.set(false);
         this.serverError.set(err?.error?.error ?? 'Não foi possível enviar. Tente novamente.');
+        this.fix.set(inUseFix(err?.error?.code));
       },
     });
   }

@@ -1,3 +1,4 @@
+import { Pages } from '../enums/pages.enum';
 import { Audience, CareService, FormatKey, ModalityKey, ServiceContent } from '../models/catalogue.model';
 
 /** Parágrafos de um texto: separados por uma linha em branco. */
@@ -153,4 +154,30 @@ export function shrinkImage(file: Blob): Promise<Blob> {
     };
     img.src = url;
   });
+}
+
+/** Um atalho para onde se resolve um erro de "em uso" ao alterar um serviço. */
+export interface InUseFix {
+  link: string;
+  label: string;
+}
+
+const SLOT_IN_USE_CODES = new Set([
+  'error.catalogue.modalitySlotsInUse',
+  'error.catalogue.formatSlotsInUse',
+  'error.catalogue.visibilityInUse',
+]);
+
+/**
+ * Vagas no caminho levam às disponibilidades; sessões marcadas (quem oferece
+ * o serviço sozinho) levam às sessões, para remarcar ou cancelar.
+ */
+export function inUseFix(code: string | null | undefined): InUseFix | null {
+  if (code && SLOT_IN_USE_CODES.has(code)) {
+    return { link: '/' + Pages.AVAILABILITY, label: 'Abrir minhas disponibilidades →' };
+  }
+  if (code === 'error.catalogue.sessionsInUse') {
+    return { link: '/' + Pages.DASHBOARD_PROFESSIONAL_APPOINTMENTS, label: 'Abrir minhas sessões →' };
+  }
+  return null;
 }

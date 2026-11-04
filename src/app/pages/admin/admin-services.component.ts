@@ -10,7 +10,7 @@ import { Pages } from '../../shared/enums/pages.enum';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { ServiceFieldsComponent } from '../../shared/components/catalogue/service-fields/service-fields.component';
 import { ServiceViewComponent } from '../../shared/components/catalogue/service-view/service-view.component';
-import { missingServiceFields } from '../../shared/utils/catalogue.util';
+import { InUseFix, inUseFix, missingServiceFields } from '../../shared/utils/catalogue.util';
 import { serviceViewFromContent } from '../../shared/utils/catalogue-views.util';
 
 const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Publicado', REJECTED: 'Recusado' };
@@ -44,7 +44,11 @@ const STATUS: Record<string, string> = { PENDING: 'Proposta', APPROVED: 'Publica
         <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
       }
       @if (error()) {
-        <p class="cat-error-box" role="alert">{{ error() }}</p>
+        <p class="cat-error-box" role="alert">{{ error() }}
+          @if (fix(); as f) {
+            <a class="cat-link" [routerLink]="f.link">{{ f.label }}</a>
+          }
+        </p>
       }
       <div class="cat-actions">
         <button type="button" class="cat-btn-pill cat-btn-primary" [disabled]="saving()" (click)="save(s)">
@@ -92,6 +96,8 @@ export class AdminServicesComponent implements OnInit {
   readonly attempted = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  /** O erro aponta vagas ou sessões: o atalho para onde se resolve. */
+  readonly fix = signal<InUseFix | null>(null);
   /** As alterações por fechar (em análise ou devolvidas), por serviço. */
   readonly pendingChanges = signal<Record<number, ReviewSummary[]>>({});
 
@@ -135,6 +141,7 @@ export class AdminServicesComponent implements OnInit {
   save(s: CareService): void {
     this.attempted.set(true);
     this.error.set(null);
+    this.fix.set(null);
     if (this.missing().length) return;
     this.saving.set(true);
     this.api.adminUpdateService(s.id, { content: this.content(), slug: this.slug().trim() || null }).subscribe({
@@ -148,6 +155,7 @@ export class AdminServicesComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
         this.error.set(err?.error?.error ?? 'Não foi possível salvar.');
+        this.fix.set(inUseFix(err?.error?.code));
       },
     });
   }
