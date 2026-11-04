@@ -48,6 +48,7 @@
           [tucked]="section === 'quem-sou'"
           [busy]="busy()"
           [locked]="closed()"
+          [readOnly]="rejected()"
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
@@ -73,6 +74,7 @@
           [team]="team()"
           [busy]="busy()"
           [locked]="closed()"
+          [readOnly]="rejected()"
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
@@ -120,6 +122,7 @@
           [team]="team()"
           [busy]="busy()"
           [locked]="closed()"
+          [readOnly]="rejected()"
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
@@ -247,6 +250,7 @@
             [defaultOpen]="true"
             [busy]="busy()"
             [focused]="g.key === focusKey()"
+            [readOnly]="rejected()"
             (comment)="comment(g, $event)"
           />
         }

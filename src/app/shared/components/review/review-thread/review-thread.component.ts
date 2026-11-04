@@ -83,6 +83,9 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
               </p>
             }
           </div>
+          @if (readOnly()) {
+            <p class="rv-intro">Este pedido foi recusado e não recebe mais comentários.</p>
+          } @else {
           <div class="rv-compose">
             <textarea
               class="cat-input"
@@ -101,6 +104,7 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
               </button>
             </div>
           </div>
+          }
         </div>
       }
     </div>
@@ -113,6 +117,8 @@ export class ReviewThreadComponent {
   /** A equipa muda o estado; a pessoa só comenta. */
   readonly team = input(false);
   readonly defaultOpen = input(false);
+  /** Pedido recusado e concluído: mostra a conversa, sem caixa para comentar. */
+  readonly readOnly = input(false);
   /** Junto da secção da página a que pertence (sobe para a encostar). */
   readonly tucked = input(false);
   readonly busy = input(false);

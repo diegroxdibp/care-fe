@@ -217,24 +217,41 @@ export class ReviewPageComponent implements OnInit {
     return parts.join(' e ');
   });
 
+  /**
+   * Recusar um item pede pelo menos uma das suas partes negada (o backend
+   * confirma ao decidir e ao concluir). As propostas recusadas com o perfil
+   * não precisam da sua.
+   */
+  private rejectionHolds(item: ReviewItem): boolean {
+    if (item.decision !== 'REJECTED') return true;
+    const withTheProfile = item.key !== 'pro' && this.review()?.kind === 'APPLICATION' && this.proRejected();
+    return withTheProfile || this.summary(item.key).denied > 0;
+  }
+
   readonly items = computed<ItemRow[]>(() => {
     const r = this.review();
     if (!r) return [];
     return r.items.map(item => {
       const rd = this.ready(item);
+      const denied = this.summary(item.key).denied > 0;
       let hint = '';
-      if (this.editable() && item.decision !== 'REJECTED') {
+      if (this.editable() && item.decision === 'REJECTED' && !this.rejectionHolds(item)) {
+        hint = 'A recusa precisa de pelo menos uma parte negada: negue uma parte ou desfaça a recusa.';
+      } else if (this.editable() && item.decision !== 'REJECTED') {
         if (rd.blockedByPro) hint = 'Com o perfil recusado, esta proposta também é recusada.';
-        else if (!rd.points) hint = 'Para aprovar, todos os pontos deste item devem estar aprovados.';
-        else if (!rd.audiences) hint = 'Para aprovar, decida os públicos propostos neste serviço.';
+        else if (!rd.points) {
+          hint = denied
+            ? 'Para aprovar, todos os pontos deste item devem estar aprovados.'
+            : 'Para aprovar, todos os pontos deste item devem estar aprovados. Para recusar, negue pelo menos um.';
+        } else if (!rd.audiences) hint = 'Para aprovar, decida os públicos propostos neste serviço.';
       }
       return {
         item,
-        kind: item.key === 'pro' ? 'Perfil profissional' : 'Proposta de serviço',
+        kind: item.key === 'pro' ? 'Perfil profissional' : item.key.startsWith('chg:') ? KIND_LABEL.CHANGE : KIND_LABEL.PROPOSAL,
         progress: this.progress(item.key),
         hint,
         canApprove: rd.ok || item.decision === 'APPROVED',
-        canReject: !rd.blockedByPro || item.decision === 'REJECTED',
+        canReject: (!rd.blockedByPro && denied) || item.decision === 'REJECTED',
       };
     });
   });
@@ -256,8 +273,13 @@ export class ReviewPageComponent implements OnInit {
     () => this.isApplication() && this.review()?.items.find(i => i.key === 'pro')?.decision === 'APPROVED',
   );
   readonly canConclude = computed(
-    () => this.allDecided() && (this.review()?.items ?? []).filter(i => i.decision === 'APPROVED').every(i => this.ready(i).ok),
+    () => this.allDecided()
+      && (this.review()?.items ?? []).filter(i => i.decision === 'APPROVED').every(i => this.ready(i).ok)
+      && (this.review()?.items ?? []).every(i => this.rejectionHolds(i)),
   );
+
+  /** Recusado e concluído: nada mais muda, nem a conversa (o backend recusa comentários). */
+  readonly rejected = computed(() => this.review()?.stage === 'REJECTED');
   readonly concludeLabel = computed(() =>
     !this.allDecided()
       ? 'Concluir análise'
@@ -273,7 +295,9 @@ export class ReviewPageComponent implements OnInit {
       ? this.proApproved()
         ? 'A pessoa profissional é convidada a agendar a entrevista. A publicação acontece depois da entrevista.'
         : ''
-      : 'Decida cada item para concluir a análise.',
+      : this.allDecided()
+        ? 'Um item recusado precisa de pelo menos uma parte negada.'
+        : 'Decida cada item para concluir a análise.',
   );
 
   readonly summaryText = computed(() => {
