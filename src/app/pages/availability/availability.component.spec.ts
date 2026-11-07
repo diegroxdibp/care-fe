@@ -706,3 +706,84 @@ describe('AvailabilityComponent — a sessão aberta mantém a sua data ao mudar
     expect(apiService['deleteAppointment']).toHaveBeenCalledWith(76, '', '2026-10-27', 'SINGLE');
   });
 });
+
+/** Vagas com a Entrevista (GLOSSARY.md, Interview slot). */
+describe('AvailabilityComponent — vagas com a Entrevista', () => {
+  let component: AvailabilityComponent;
+
+  const interview = {
+    id: 30, serviceId: 6, serviceSlug: 'entrevista', name: 'Entrevista', label: 'Entrevista',
+    offersIndividual: true, offersGroup: false, serviceAllowsPublic: false, serviceAllowsPrivate: true,
+    interview: true, modality: 'ANY', price: '', active: true,
+  };
+  const therapy = {
+    id: 31, serviceId: 7, serviceSlug: 'psicoterapia', name: 'Psicoterapia', label: 'Psicoterapia',
+    offersIndividual: true, offersGroup: true, serviceAllowsPublic: true, serviceAllowsPrivate: true,
+    modality: 'ANY', price: '', active: true,
+  };
+
+  beforeEach(async () => {
+    const apiService = {
+      getServices: jest.fn().mockReturnValue(of([interview, therapy])),
+      getMyServices: jest.fn().mockReturnValue(of([interview, therapy])),
+      getAvailabilitiesByProfessionalId: jest.fn().mockReturnValue(of([])),
+      getProfessionalAppointments: jest.fn().mockReturnValue(of([])),
+      getSentInvitations: jest.fn().mockReturnValue(of([])),
+      getCommitments: jest.fn().mockReturnValue(of([])),
+      getSentRescheduleRequests: jest.fn().mockReturnValue(of([])),
+    };
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityComponent, NoopAnimationsModule],
+      providers: [
+        { provide: ApiService, useValue: apiService },
+        { provide: SessionService, useValue: { user: signal({ id: ME, timeZone: LISBON }) } },
+        { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
+        { provide: SchedulingService, useValue: {} },
+        { provide: MatDialog, useValue: { open: jest.fn() } },
+        {
+          provide: ScreenSizeService,
+          useValue: { isMobile: signal(false), isTablet: signal(false), isDesktop: signal(true) },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(AvailabilityComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.services.set([interview, therapy] as never);
+  });
+
+  it('um editor novo não junta a Entrevista aos outros serviços', () => {
+    component.openSheet();
+    expect([...component.selectedServiceIds()]).toEqual([31]);
+    expect(component.editorHasInterview()).toBe(false);
+  });
+
+  it('só com a Entrevista, a vaga fica individual, de 60 min, privada e sem valor', () => {
+    component.openSheet();
+    component.setEditorFormat('GROUP');
+    component.setEditorSessionDuration(30);
+    component.editorPrice.set('50');
+    component.selectedServiceIds.set(new Set());
+    component.editorFormat.set('INDIVIDUAL');
+    component.toggleService(30);
+
+    expect(component.editorInterviewOnly()).toBe(true);
+    expect(component.editorFormat()).toBe('INDIVIDUAL');
+    expect(component.editorSessionDuration()).toBe(60);
+    expect(component.editorVisibility()).toBe('PRIVATE');
+    expect(component.editorPrice()).toBe('');
+  });
+
+  it('com outros serviços, a Entrevista fixa 60 min mas deixa o valor e a vaga pública', () => {
+    component.openSheet();
+    component.setEditorSessionDuration(90);
+    component.editorPrice.set('50');
+    component.toggleService(30);
+
+    expect(component.editorHasInterview()).toBe(true);
+    expect(component.editorInterviewOnly()).toBe(false);
+    expect(component.editorSessionDuration()).toBe(60);
+    expect(component.editorVisibility()).toBe('PUBLIC');
+    expect(component.editorPrice()).toBe('50');
+  });
+});

@@ -728,6 +728,16 @@
     @if (serviceErrorMessage(); as err) {
       <span class="field-error">{{ err }}</span>
     }
+    @if (editorHasInterview()) {
+      <div class="hint">
+        <span translate="no" class="material-symbols-outlined">info</span>
+        @if (editorInterviewOnly()) {
+          A Entrevista é gratuita, individual e de 60 min. Só aparece para quem está na etapa de entrevista do pedido para fazer parte da CARE, nunca no Agendar.
+        } @else {
+          Com a Entrevista, cada sessão é individual e de 60 min. A Entrevista é gratuita e nunca aparece no Agendar: o valor e quem pode marcar valem só para os outros serviços.
+        }
+      </div>
+    }
   </div>
 
   <!-- Modalidade -->
@@ -790,7 +800,8 @@
     }
   </div>
 
-  <!-- Valor -->
+  <!-- Valor (a Entrevista é gratuita) -->
+  @if (!editorInterviewOnly()) {
   <div class="be-section" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
     <label class="control-label">
       Valor
@@ -859,26 +870,28 @@
       </div>
     </div>
   </div>
+  }
 
-  <!-- Individual ou grupo -->
-  <div class="be-section" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
+  <!-- Individual ou grupo (com a Entrevista, sempre individual) -->
+  @if (!editorInterviewOnly()) {
+  <div class="be-section" [class.fixed]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()">
     <label class="control-label">
       Formato
-      @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
+      @if ((selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()) {
         <span class="fixed-tag">fixo</span>
       }
     </label>
     <div class="seg">
       <button
         [class.on]="editorFormat() === 'INDIVIDUAL'"
-        [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
+        [disabled]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()"
         (click)="setEditorFormat('INDIVIDUAL')"
       >
         Individual
       </button>
       <button
         [class.on]="editorFormat() === 'GROUP'"
-        [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
+        [disabled]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()"
         (click)="setEditorFormat('GROUP')"
       >
         <span translate="no" class="material-symbols-outlined seg-icon">groups</span>
@@ -909,8 +922,10 @@
       }
     }
   </div>
+  }
 
-  <!-- Quem encontra a vaga -->
+  <!-- Quem encontra a vaga (só com a Entrevista, sempre privada) -->
+  @if (!editorInterviewOnly()) {
   <div class="be-section">
     <label class="control-label">Quem pode marcar</label>
     <div class="seg">
@@ -930,6 +945,7 @@
       }
     </p>
   </div>
+  }
 
   <!-- Frequência -->
   <div class="be-section" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
@@ -1055,17 +1071,19 @@
       </div>
     </div>
 
-    <label class="control-label" style="margin-top: 14px;" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
+    <!-- Duração (só com a Entrevista, sempre 60 min) -->
+    @if (!editorInterviewOnly()) {
+    <label class="control-label" style="margin-top: 14px;" [class.fixed]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()">
       Duração de cada sessão
-      @if (selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) {
+      @if ((selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()) {
         <span class="fixed-tag">fixo</span>
       }
     </label>
-    <div class="seg" [class.fixed]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)">
+    <div class="seg" [class.fixed]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()">
       @for (dur of SESSION_DURATIONS; track dur) {
         <button
           [class.on]="editorSessionDuration() === dur"
-          [disabled]="selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)"
+          [disabled]="(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!)) || editorHasInterview()"
           (click)="setEditorSessionDuration(dur)"
         >
           @if (editorSessionDuration() === dur) {
@@ -1080,6 +1098,7 @@
         <span translate="no" class="material-symbols-outlined">info</span>
         A duração só muda quando não há sessões reservadas.
       </div>
+    }
     }
 
     @if (generatedSlots().length > 0 && !(selectedBlockId() !== null && selectedBlock() && hasBookings(selectedBlock()!))) {

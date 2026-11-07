@@ -16,6 +16,10 @@ _Avoid_: Open slot
 An availability slot hidden from Agendar, which clients can only join through an invitation from the professional.
 _Avoid_: Hidden slot, closed slot
 
+**Interview slot**:
+An individual availability slot with one-hour sessions that offers the interview, alone or alongside other services. Every applicant booking their interview can see it, whatever its visibility. Each interview takes one date, even when the slot repeats, and whoever books an hour first takes it.
+_Avoid_: Interview availability, horário de entrevista
+
 **Session**:
 One meeting at a date and time, attended by one or more professionals and one or more clients.
 _Avoid_: Appointment (in conversation), meeting, call
@@ -106,6 +110,10 @@ _Avoid_: Therapist, provider, profissional (in code)
 **Application**:
 A person's request to become a professional on Care, sent from their account with their professional profile and any service proposals, approved or rejected by the Care team.
 _Avoid_: Candidatura (in code), professional sign-up
+
+**Interview**:
+A free, one-hour, individual conversation between an applicant and the Care team, booked by the applicant once their professional profile is approved and held before their profile is published.
+_Avoid_: Entrevista (in code), meeting, call
 
 **Personal profile**:
 What a person's account says about them (name, photo, contact details, time zone), seen in their own settings and by the Care team.

@@ -18,6 +18,8 @@ export interface ProfessionalService {
   /** O serviço permite vagas públicas / privadas (um serviço privado só em vagas privadas). */
   serviceAllowsPublic?: boolean;
   serviceAllowsPrivate?: boolean;
+  /** A Entrevista: as vagas com ela são individuais, de 60 min (e, só com ela, gratuitas e privadas). */
+  interview?: boolean;
   modality: ProfessionalServiceModality;
   price: string;
   active: boolean;

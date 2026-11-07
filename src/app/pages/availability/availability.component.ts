@@ -139,6 +139,8 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  */
 const DAY_START_MIN = 8 * 60;
 const DAY_END_MIN = 24 * 60;
+/** Cada entrevista dura uma hora - e com ela, cada sessão da vaga. */
+const INTERVIEW_MINUTES = 60;
 
 /** Uma linha por hora; a última começa uma hora antes do fecho. */
 const HOURS = Array.from(
@@ -807,7 +809,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   readonly pricePlaceholderBRL = this.moneyBRL.placeholder;
 
   readonly priceErrorMessage = computed<string | null>(() => {
-    if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
+    // Só com a Entrevista não há valor: é gratuita.
+    if (!this.attemptedSave() || this.isEditingLockedBlock() || this.editorInterviewOnly()) return null;
     return validatePriceInput(this.editorPrice(), {
       locale: this.locale, currency: this.CURRENCY, separator: this.decimalSeparator, required: true,
     });
@@ -815,7 +818,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // BRL is optional — a professional who doesn't bill in Reais just leaves it blank.
   readonly priceBRLErrorMessage = computed<string | null>(() => {
-    if (!this.attemptedSave() || this.isEditingLockedBlock()) return null;
+    if (!this.attemptedSave() || this.isEditingLockedBlock() || this.editorInterviewOnly()) return null;
     return validatePriceInput(this.editorPriceBRL(), {
       locale: this.locale, currency: this.CURRENCY_BRL, separator: this.decimalSeparator, required: false,
     });
@@ -942,7 +945,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   setEditorFormat(format: SessionFormat): void {
     if (this.editorFormat() === format) return;
     this.editorFormat.set(format);
-    this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
+    this.selectDefaultServices();
   }
 
   readonly selectedBlock = computed(() =>
@@ -1517,7 +1520,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       }
 
       this.resetEditor();
-      this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
+      this.selectDefaultServices();
       this.selectedWeekdays.set(new Set([COL_TO_DOW[colIndex]]));
       this.editorFrequency.set('weekly');
       this.editorStartTime.set(sel.startTime);
@@ -1637,15 +1640,59 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     if (set.has(id)) {
       set.delete(id);
       this.selectedServiceIds.set(set);
+      // Tirar os outros serviços pode deixar só a Entrevista.
+      this.applyInterviewRules();
       return;
     }
     set.add(id);
     this.selectedServiceIds.set(set);
     // Um serviço que só permite uma visibilidade leva a vaga para ela (e larga
-    // os serviços que não a permitem).
+    // os serviços que não a permitem). A Entrevista não conta: ver applyInterviewRules.
     const svc = this.services().find(s => s.id === id);
-    if (svc?.serviceAllowsPublic === false) this.setEditorVisibility('PRIVATE');
-    else if (svc?.serviceAllowsPrivate === false) this.setEditorVisibility('PUBLIC');
+    if (!svc?.interview) {
+      if (svc?.serviceAllowsPublic === false) this.setEditorVisibility('PRIVATE');
+      else if (svc?.serviceAllowsPrivate === false) this.setEditorVisibility('PUBLIC');
+    }
+    this.applyInterviewRules();
+  }
+
+  /**
+   * Os serviços já escolhidos ao abrir o editor: todos os do formato, menos a
+   * Entrevista quando há outros (juntá-la é uma escolha, não o padrão). Quem
+   * só oferece a Entrevista abre o editor já com ela.
+   */
+  private selectDefaultServices(): void {
+    const all = this.editorServices();
+    const others = all.filter(s => !s.interview);
+    this.selectedServiceIds.set(new Set((others.length ? others : all).map(s => s.id)));
+    this.applyInterviewRules();
+  }
+
+  /** A vaga oferece a Entrevista (sozinha ou com outros serviços). */
+  readonly editorHasInterview = computed(() =>
+    this.services().some(s => s.interview && this.selectedServiceIds().has(s.id)),
+  );
+
+  /** Só a Entrevista: o editor esconde valor, formato, visibilidade e duração. */
+  readonly editorInterviewOnly = computed(() => {
+    const ids = this.selectedServiceIds();
+    const chosen = this.services().filter(s => ids.has(s.id));
+    return chosen.length > 0 && chosen.every(s => s.interview);
+  });
+
+  /**
+   * Com a Entrevista, cada sessão é uma entrevista: individual e de 60 min.
+   * Só com ela, a vaga é também privada e sem valor (GLOSSARY.md, Interview slot).
+   */
+  private applyInterviewRules(): void {
+    if (!this.editorHasInterview()) return;
+    if (this.editorFormat() !== 'INDIVIDUAL') this.editorFormat.set('INDIVIDUAL');
+    if (this.editorSessionDuration() !== INTERVIEW_MINUTES) this.setEditorSessionDuration(INTERVIEW_MINUTES);
+    if (this.editorInterviewOnly()) {
+      this.editorVisibility.set('PRIVATE');
+      this.editorPrice.set('');
+      this.editorPriceBRL.set('');
+    }
   }
 
   /** Muda quem pode marcar, largando os serviços que não permitem essa visibilidade. */
@@ -1656,12 +1703,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   private allowsVisibility(s: ProfessionalService, v: SlotVisibility): boolean {
+    // A Entrevista nunca está no Agendar, por isso cabe em vagas públicas com outros serviços.
+    if (s.interview) return true;
     return v === 'PRIVATE' ? s.serviceAllowsPrivate !== false : s.serviceAllowsPublic !== false;
   }
 
   /** O serviço só pode estar em vagas privadas (ex.: a Entrevista). */
   isPrivateOnly(s: ProfessionalService): boolean {
-    return s.serviceAllowsPublic === false;
+    return s.serviceAllowsPublic === false && !s.interview;
   }
 
   isServiceEligible(svc: ProfessionalService): boolean {
@@ -3864,7 +3913,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   openSheet(): void {
     this.resetEditor();
-    this.selectedServiceIds.set(new Set(this.editorServices().map(s => s.id)));
+    this.selectDefaultServices();
     const dow = COL_TO_DOW[this.selectedDayIndex()];
     this.selectedWeekdays.set(new Set([dow]));
     this.sheetOpen.set(true);
