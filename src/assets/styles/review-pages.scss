@@ -1109,12 +1109,21 @@
     margin-right: 10px;
   }
 
+  // Centrado na bolinha, como no scheduling-stepper: começa no meio dela
+  // (metade dos 28px) e recua metade da própria largura. Os rótulos longos
+  // ("Análise · alterações pedidas") quebram em linhas, também centradas.
   .rv-step-label {
+    align-self: flex-start;
+    width: max-content;
+    // Nunca mais larga do que a coluna da etapa: no telemóvel não invade a vizinha.
+    max-width: min(10em, 100%);
+    margin-left: 14px;
+    transform: translateX(-50%);
+    text-align: center;
     font-size: 14px;
     font-weight: var(--fw-medium);
     color: var(--color-secondary-indigo);
     line-height: 1.25;
-    padding-right: 8px;
   }
 
   .rv-step--done {
