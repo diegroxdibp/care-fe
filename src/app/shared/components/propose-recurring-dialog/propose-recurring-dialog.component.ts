@@ -1,6 +1,8 @@
 import { Component, ElementRef, HostListener, LOCALE_ID, OnInit, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ApiService } from '../../../core/services/api.service';
+import { ReviewApiService } from '../../../core/services/review-api.service';
+import { InterviewInvitee } from '../../models/review.model';
 import { Modality } from '../../enums/modality.enum';
 import { RecurrenceFrequency } from '../../enums/recurrence-frequency.enum';
 import { Appointment } from '../../models/appointment.model';
@@ -38,6 +40,11 @@ export interface ProposeDialogService {
   id: number;
   /** Already display-ready (e.g. via serviceDisplayName()), not the raw enum key. */
   name: string;
+  /**
+   * A Entrevista: o convite vai para quem está à espera de a marcar, para uma
+   * data, sem valor nem mensagem (GLOSSARY.md, Interview invitation).
+   */
+  interview?: boolean;
 }
 
 export interface ProposeRecurringDialogData {
@@ -113,13 +120,19 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   imports: [MatDialogModule, StyledSelectComponent],
   template: `
     <div class="dialog">
-      <h3>Enviar convite</h3>
+      <h3>{{ isInterview() ? 'Convidar para a entrevista' : 'Enviar convite' }}</h3>
       <p class="sub">{{ data.dayLabel }} · {{ data.timeLabel }}</p>
-      <p class="note">
-        Os termos abaixo valem só para este convite. A vaga continua anunciada como está.
-      </p>
+      @if (isInterview()) {
+        <p class="note">
+          A pessoa recebe o convite por email e no pedido, onde aceita ou recusa. Até responder, o horário fica guardado para ela.
+        </p>
+      } @else {
+        <p class="note">
+          Os termos abaixo valem só para este convite. A vaga continua anunciada como está.
+        </p>
+      }
 
-      @if (data.slotIsRecurring) {
+      @if (data.slotIsRecurring && !isInterview()) {
         <label class="field-label">O que oferecer</label>
         <div class="chips">
           <button type="button" class="chip" [class.on]="kind() === 'SERIES'" (click)="selectKind('SERIES')">
@@ -139,7 +152,7 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
               type="button"
               class="chip"
               [class.on]="selectedServiceId() === svc.id"
-              (click)="selectedServiceId.set(svc.id)"
+              (click)="selectService(svc.id)"
             >
               {{ svc.name }}
             </button>
@@ -263,6 +276,7 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
         <p class="hint">{{ remoteSessionInfo }}</p>
       }
 
+      @if (!isInterview()) {
       <label class="field-label">Valor</label>
       <div class="money-row">
         <div class="money-col">
@@ -310,8 +324,28 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
           @if (priceBRLError(); as err) { <span class="field-error">{{ err }}</span> }
         </div>
       </div>
+      }
 
-      @if (data.preselectedClientId) {
+      @if (isInterview()) {
+        <label class="field-label">Para</label>
+        @if (loadingInvitees()) {
+          <p class="hint">Carregando pessoas...</p>
+        } @else if (invitees().length === 0) {
+          <p class="hint">Ninguém está à espera de marcar a entrevista.</p>
+        } @else {
+          <div class="select-wrap">
+            <app-styled-select
+              inputId="invitee-select"
+              placeholder="Selecione uma pessoa"
+              searchPlaceholder="Pesquisar pessoa..."
+              [options]="inviteeOptions()"
+              [value]="selectedClientId() !== null ? String(selectedClientId()) : null"
+              (valueChange)="selectedClientId.set(+$event)"
+            />
+          </div>
+          <p class="hint tight">Pessoas com o perfil aprovado que ainda não marcaram a entrevista.</p>
+        }
+      } @else if (data.preselectedClientId) {
         <label class="field-label">Para</label>
         <p class="preselected-client">{{ data.preselectedClientName }}</p>
       } @else {
@@ -361,6 +395,7 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
         }
       }
 
+      @if (!isInterview()) {
       <div class="field field-textarea">
         <div class="field-inner">
           <span class="field-label">Mensagem (opcional)</span>
@@ -373,8 +408,9 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
           ></textarea>
         </div>
       </div>
+      }
 
-      @if (kind() === 'SERIES' && existingClientSeries(); as existing) {
+      @if (kind() === 'SERIES' && !isInterview() && existingClientSeries(); as existing) {
         <p class="warn">
           @if (existing.status === 'PENDING') {
             <strong>{{ selectedClientName() }} já tem um convite pendente neste horário</strong>
@@ -406,6 +442,7 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export class ProposeRecurringDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<ProposeRecurringDialogComponent>);
   private readonly apiService = inject(ApiService);
+  private readonly reviewApi = inject(ReviewApiService);
   private readonly locale = inject(LOCALE_ID);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   readonly data = inject<ProposeRecurringDialogData>(MAT_DIALOG_DATA);
@@ -445,6 +482,20 @@ export class ProposeRecurringDialogComponent implements OnInit {
   // uma escolha só para repetir o que já estava — o primeiro é o arranque, e
   // trocar é um toque.
   readonly selectedServiceId = signal<number | null>(this.data.services[0]?.id ?? null);
+
+  /** O serviço escolhido é a Entrevista: o diálogo convida quem está à espera dela. */
+  readonly isInterview = computed(() =>
+    !!this.data.services.find(s => s.id === this.selectedServiceId())?.interview,
+  );
+
+  /** Quem a equipe pode convidar; carregado só quando a Entrevista é escolhida. */
+  readonly invitees = signal<InterviewInvitee[]>([]);
+  readonly loadingInvitees = signal<boolean>(false);
+  private inviteesLoaded = false;
+
+  readonly inviteeOptions = computed<StyledSelectOption[]>(() =>
+    this.invitees().map(p => ({ value: String(p.userId), label: p.name })),
+  );
   readonly selectedClientId = signal<number | null>(this.data.preselectedClientId ?? null);
   readonly selectedModality = signal<Modality>(this.bookableModalities()[0]);
   readonly selectedFrequency = signal<RecurrenceFrequency>(this.data.slotRecurrenceFrequency);
@@ -518,8 +569,10 @@ export class ProposeRecurringDialogComponent implements OnInit {
   readonly priceBRLError = computed(() => this.attemptedSubmit() ? this.priceBRLValidity() : null);
 
   private readonly hasRecipient = computed(() =>
-    this.data.preselectedClientId != null
-      || (this.recipientMode() === 'list' ? this.selectedClientId() !== null : this.email().trim() !== ''),
+    this.isInterview()
+      ? this.selectedClientId() !== null
+      : this.data.preselectedClientId != null
+        || (this.recipientMode() === 'list' ? this.selectedClientId() !== null : this.email().trim() !== ''),
   );
 
   readonly emailError = computed(() => {
@@ -604,6 +657,37 @@ export class ProposeRecurringDialogComponent implements OnInit {
     if (next) this.calendarViewDate.set(new Date(next + 'T00:00:00'));
   }
 
+  /**
+   * Trocar de serviço: a Entrevista é sempre uma data só, para alguém da
+   * lista de quem está à espera dela; os outros, para os pacientes.
+   */
+  selectService(id: number): void {
+    const wasInterview = this.isInterview();
+    this.selectedServiceId.set(id);
+    if (this.isInterview() === wasInterview) return;
+    if (this.data.preselectedClientId == null) this.selectedClientId.set(null);
+    if (this.isInterview()) {
+      this.selectKind('DATE');
+      this.loadInvitees();
+    }
+  }
+
+  private loadInvitees(): void {
+    if (this.inviteesLoaded) return;
+    this.inviteesLoaded = true;
+    this.loadingInvitees.set(true);
+    this.reviewApi.interviewInvitees().subscribe({
+      next: list => {
+        this.invitees.set(list);
+        this.loadingInvitees.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Não foi possível carregar as pessoas à espera da entrevista. Tente novamente.');
+        this.loadingInvitees.set(false);
+      },
+    });
+  }
+
   /** Trocar entre data e série muda que datas servem — ver selectFrequency. */
   selectKind(kind: InvitationKind): void {
     this.kind.set(kind);
@@ -677,6 +761,10 @@ export class ProposeRecurringDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.isInterview()) {
+      this.selectKind('DATE');
+      this.loadInvitees();
+    }
     if (this.data.preselectedClientId) {
       this.loading.set(false);
       return;
@@ -715,6 +803,20 @@ export class ProposeRecurringDialogComponent implements OnInit {
     const professionalServiceId = this.selectedServiceId();
     const startDate = this.selectedStartDate();
     if (professionalServiceId === null || !startDate || !this.hasRecipient()) return;
+    if (this.isInterview()) {
+      // Uma data, para alguém da lista, gratuita e sem mensagem.
+      const modality = this.selectedModality();
+      const address = this.address().trim();
+      this.dialogRef.close({
+        kind: 'DATE',
+        professionalServiceId,
+        clientId: this.selectedClientId() ?? undefined,
+        modality,
+        address: modality !== Modality.REMOTE && address ? address : undefined,
+        startDate,
+      } as ProposeRecurringDialogResult);
+      return;
+    }
     if (this.priceValidity() !== null || this.priceBRLValidity() !== null) return;
     if (this.emailError() !== null) return;
 

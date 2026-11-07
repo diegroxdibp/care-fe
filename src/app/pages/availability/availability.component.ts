@@ -3676,7 +3676,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           panelClass: 'care-dialog',
           data: {
             professionalId,
-            services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
+            services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name), interview: !!s.interview })),
             slotModality: block.modality,
             dayLabel,
             timeLabel: `${backendSlot.slotTime}–${slotEnd}`,
@@ -3778,7 +3778,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           panelClass: 'care-dialog',
           data: {
             professionalId,
-            services: block.services.map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
+            services: block.services.filter(s => !s.interview).map(s => ({ id: s.id, name: this.serviceDisplayName(s.name) })),
             slotModality: block.modality,
             dayLabel,
             timeLabel: this.apptTimeRange(appt),

@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { AvailabilityModel } from '../../shared/models/availability.model';
 import {
   InterviewBooking,
+  InterviewInvitee,
   Review,
   ReviewKind,
   ReviewSummary,
@@ -58,6 +59,11 @@ export class ReviewApiService {
   }
 
   // ─ Equipa ─────────────────────────────────────────────────────────────────
+
+  /** Quem se pode convidar para uma entrevista: perfil aprovado, entrevista por marcar. */
+  interviewInvitees(): Observable<InterviewInvitee[]> {
+    return this.http.get<InterviewInvitee[]>(`${this.base}/api/admin/reviews/interview/invitees`, this.opts);
+  }
 
   queue(): Observable<ReviewSummary[]> {
     return this.http.get<ReviewSummary[]>(`${this.base}/api/admin/reviews`, this.opts);

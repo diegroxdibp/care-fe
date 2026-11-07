@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
+import { ApiService } from '../../../../core/services/api.service';
 import { ReviewApiService } from '../../../../core/services/review-api.service';
 import { Review } from '../../../models/review.model';
 import { SessionService } from '../../../services/session.service';
@@ -58,6 +60,23 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
         </div>
       }
 
+      @if (invitation(); as inv) {
+        <div class="rv-box rv-tone-indigo">
+          <span class="rv-status-line"><span class="rv-dot"></span>Convite da equipe</span>
+          <span class="rv-box-when">{{ invitationWhen() }}</span>
+          <span class="rv-box-who">Com {{ inv.host }} · {{ modWord(inv.modality) }}</span>
+          <span class="rv-box-text">Até você responder, este horário fica guardado para você. Se preferir outro, recuse ou escolha abaixo.</span>
+          <div class="rv-actions">
+            <button type="button" class="rv-btn rv-btn--small" [disabled]="busy()" (click)="acceptInvitation()">
+              Aceitar convite
+            </button>
+            <button type="button" class="rv-btn-outline rv-btn--small" [disabled]="busy()" (click)="declineInvitation()">
+              Recusar
+            </button>
+          </div>
+        </div>
+      }
+
       @if (error()) {
         <p class="cat-error-box" role="alert">{{ error() }}</p>
       }
@@ -84,6 +103,7 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
 })
 export class InterviewSectionComponent {
   private readonly api = inject(ReviewApiService);
+  private readonly invitations = inject(ApiService);
   private readonly session = inject(SessionService);
 
   readonly review = input.required<Review>();
@@ -99,6 +119,19 @@ export class InterviewSectionComponent {
 
   readonly zone = computed(() => this.session.user()?.timeZone || detectBrowserTimezone());
   readonly interview = computed(() => this.review().interview);
+  /** O convite da equipe por responder - só para a própria pessoa, antes de marcar. */
+  readonly invitation = computed(() => (this.team() || this.interview()) ? null : this.review().interviewInvitation ?? null);
+
+  /** "Terça-feira, 10 de novembro · 10:00 – 11:00", no fuso de quem lê. */
+  readonly invitationWhen = computed(() => {
+    const inv = this.invitation();
+    if (!inv) return '';
+    const zone = sessionZone(inv.timeZone);
+    return this.fmtRange(
+      zonedWallTimeToInstant(inv.date, inv.startTime.slice(0, 5), zone),
+      zonedWallTimeToInstant(inv.date, inv.endTime.slice(0, 5), zone),
+    );
+  });
 
   private readonly start = computed(() => {
     const iv = this.interview();
@@ -166,9 +199,9 @@ export class InterviewSectionComponent {
   });
 
   /** "Terça-feira, 10 de novembro · 10:00 – 10:45", no fuso de quem lê. */
-  readonly when = computed(() => {
-    const start = this.start();
-    const end = this.end();
+  readonly when = computed(() => this.fmtRange(this.start(), this.end()));
+
+  private fmtRange(start: Date | null, end: Date | null): string {
     if (!start || !end) return '';
     const day = start.toLocaleDateString('pt-PT', {
       timeZone: this.zone(),
@@ -177,7 +210,7 @@ export class InterviewSectionComponent {
       month: 'long',
     });
     return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${timeInZone(start, this.zone())} – ${timeInZone(end, this.zone())}`;
-  });
+  }
 
   constructor() {
     // Os horários só fazem falta a quem escolhe, ou à equipa enquanto espera.
@@ -226,6 +259,41 @@ export class InterviewSectionComponent {
       }),
       () => this.rescheduling.set(false),
     );
+  }
+
+  /** Aceitar marca a entrevista nesse horário; o pedido volta a ser lido para a mostrar. */
+  acceptInvitation(): void {
+    const inv = this.invitation();
+    if (!inv) return;
+    this.answer(this.invitations.acceptInvitation(inv.token));
+  }
+
+  /** Recusar liberta o horário; a pessoa continua a poder escolher outro abaixo. */
+  declineInvitation(): void {
+    const inv = this.invitation();
+    if (!inv) return;
+    this.answer(this.invitations.declineInvitation(inv.token));
+  }
+
+  private answer(call: Observable<unknown>): void {
+    this.busy.set(true);
+    this.error.set(null);
+    call.subscribe({
+      next: () => {
+        this.api.get('APPLICATION', this.review().id).subscribe({
+          next: r => {
+            this.busy.set(false);
+            this.slots.set(null);
+            this.changed.emit(r);
+          },
+          error: () => this.busy.set(false),
+        });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busy.set(false);
+        this.error.set(err?.error?.error ?? 'Não foi possível responder ao convite. Tente novamente.');
+      },
+    });
   }
 
   done(): void {

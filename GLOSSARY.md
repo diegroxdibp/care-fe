@@ -55,6 +55,10 @@ _Avoid_: Guest, one-off, visitor
 A professional's offer to a client of a seat on one date or a series in one of their slots, which the client accepts or declines.
 _Avoid_: Proposal, convite de sessão, offer
 
+**Interview invitation**:
+The Care team's offer to an applicant of one date in an interview slot, while the applicant still has no interview booked. An applicant has at most one open at a time. Accepting it books their interview; declining it, or booking another time instead, withdraws it.
+_Avoid_: Invitation (for applicants), interview proposal
+
 **Co-professional request**:
 A professional's offer to another professional to join a slot, session or series as co-professional.
 _Avoid_: Invitation (for professionals), co-host invite

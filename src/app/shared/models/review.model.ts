@@ -128,6 +128,25 @@ export interface Review {
   interview: Interview | null;
   /** Só numa proposta de alteração. */
   change: ChangeReview | null;
+  /** Só para a própria pessoa, à espera da entrevista: o convite da equipe por responder. */
+  interviewInvitation?: InterviewInvitation | null;
+}
+
+/** Um convite para a entrevista (GLOSSARY.md, Interview invitation); a hora é a da vaga (timeZone). */
+export interface InterviewInvitation {
+  token: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string | null;
+  host: string;
+  modality: 'LOCAL' | 'REMOTE' | 'ANY';
+}
+
+/** Quem a equipe pode convidar para uma entrevista. */
+export interface InterviewInvitee {
+  userId: number;
+  name: string;
 }
 
 export interface ReviewSummary {
