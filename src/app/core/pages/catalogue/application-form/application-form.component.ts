@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 
 import { CatalogueApiService } from '../../../services/catalogue-api.service';
+import { MyRequestsService } from '../../../services/my-requests.service';
 import {
   Application,
   CareService,
@@ -61,6 +62,7 @@ type State = 'loading' | 'form' | 'pending' | 'approved' | 'professional' | 'sen
 export class ApplicationFormComponent implements OnInit {
   private readonly api = inject(CatalogueApiService);
   private readonly session = inject(SessionService);
+  private readonly myRequests = inject(MyRequestsService);
 
   readonly Pages = Pages;
   readonly state = signal<State>('loading');
@@ -238,6 +240,8 @@ export class ApplicationFormComponent implements OnInit {
           this.application.set(app);
           this.sending.set(false);
           this.state.set('sent');
+          // A candidatura enviada faz aparecer "Meus pedidos" nos menus.
+          this.myRequests.refresh();
           try {
             localStorage.removeItem(DRAFT_KEY);
           } catch {
