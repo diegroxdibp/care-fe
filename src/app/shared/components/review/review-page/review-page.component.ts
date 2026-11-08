@@ -11,7 +11,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable } from 'rxjs';
+import { concatMap, from, Observable, tap, toArray } from 'rxjs';
 
 import { CatalogueApiService } from '../../../../core/services/catalogue-api.service';
 import { ReviewApiService } from '../../../../core/services/review-api.service';
@@ -206,8 +206,53 @@ export class ReviewPageComponent implements OnInit {
   /** Decidir itens, públicos e endereços só com o pedido em análise. */
   readonly editable = computed(() => this.team() && this.review()?.stage === 'ANALYSIS');
 
-  /** O rascunho da equipa: comentários e estados ainda por enviar à pessoa. */
-  readonly draft = computed(() => reviewDraft(this.review()?.points ?? []));
+  /**
+   * O que está escrito nas caixas de comentário e ainda não foi salvo, por
+   * ponto. Vai junto ao devolver ou concluir, como se tivesse sido salvo.
+   */
+  private readonly unsaved = signal<Record<string, string>>({});
+
+  unsavedText(key: string): string {
+    return this.unsaved()[key] ?? '';
+  }
+
+  typeComment(key: string, text: string): void {
+    this.unsaved.update(u => {
+      const { [key]: _, ...rest } = u;
+      return text ? { ...rest, [key]: text } : rest;
+    });
+  }
+
+  /** O rascunho da equipe: comentários e estados ainda por enviar à pessoa, com o texto por salvar. */
+  readonly draft = computed(() => {
+    const points = this.review()?.points ?? [];
+    const d = reviewDraft(points);
+    const typed = points
+      .filter(p => this.unsavedText(p.key).trim())
+      .map(p => ({ point: p.label, text: this.unsavedText(p.key).trim() }));
+    return { ...d, comments: [...d.comments, ...typed] };
+  });
+
+  /**
+   * Salva no rascunho o que está escrito e não foi salvo, um ponto de cada
+   * vez, e só depois devolve ou conclui - que enviam o rascunho todo.
+   */
+  private withUnsaved(r: Review, send: () => Observable<Review>): Observable<Review> {
+    const typed = Object.entries(this.unsaved())
+      .filter(([key, text]) => text.trim() && r.points.some(p => p.key === key));
+    return from(typed).pipe(
+      concatMap(([key, text]) =>
+        this.api.comment(r.kind, r.id, key, text.trim(), true).pipe(
+          tap(saved => {
+            this.review.set(saved);
+            this.typeComment(key, '');
+          }),
+        ),
+      ),
+      toArray(),
+      concatMap(() => send()),
+    );
+  }
   readonly draftSummary = computed(() => {
     const d = this.draft();
     const parts = [
@@ -284,7 +329,7 @@ export class ReviewPageComponent implements OnInit {
    */
   readonly uncommentedPending = computed(() =>
     this.statePoints()
-      .filter(p => p.status === 'PENDING' && !p.comments.some(c => c.fromTeam && c.draft))
+      .filter(p => p.status === 'PENDING' && !p.comments.some(c => c.fromTeam && c.draft) && !this.unsavedText(p.key).trim())
       .map(p => p.label),
   );
   readonly canRequestChanges = computed(() => this.uncommentedPending().length === 0);
@@ -540,13 +585,13 @@ export class ReviewPageComponent implements OnInit {
       })
       .afterClosed()
       .subscribe(ok => {
-        if (ok) this.act(this.api.conclude(r.kind, r.id));
+        if (ok) this.act(this.withUnsaved(r, () => this.api.conclude(r.kind, r.id)));
       });
   }
 
   requestChanges(): void {
     const r = this.review();
-    if (r && this.canRequestChanges()) this.act(this.api.requestChanges(r.kind, r.id));
+    if (r && this.canRequestChanges()) this.act(this.withUnsaved(r, () => this.api.requestChanges(r.kind, r.id)));
   }
 
   reopen(): void {

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, model, output, signal } from '@angular/core';
 
 import { ReviewStatus } from '../../../models/catalogue.model';
 import { POINT_STATUS, ReviewPoint } from '../../../models/review.model';
@@ -98,10 +98,24 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
               (input)="draft.set($any($event.target).value)"
             ></textarea>
             <div class="rv-compose-actions">
-              <!-- A equipa não envia daqui: o comentário fica no rascunho até devolver ou concluir. -->
-              <button type="button" class="rv-btn" [disabled]="!draft().trim() || busy()" (click)="send()">
-                {{ team() ? 'Salvar no rascunho' : 'Enviar comentário' }}
-              </button>
+              <!-- A equipe não envia daqui: o comentário fica no rascunho até devolver ou concluir. -->
+              <span class="rv-tt">
+                <button
+                  type="button"
+                  class="rv-btn"
+                  [disabled]="!draft().trim() || busy()"
+                  [attr.aria-describedby]="team() ? tipId() : null"
+                  (click)="send()"
+                >
+                  {{ team() ? 'Salvar rascunho' : 'Enviar comentário' }}
+                </button>
+                @if (team()) {
+                  <span class="rv-tt-bubble" role="tooltip" [id]="tipId()">
+                    Ao salvar rascunho, o texto fica guardado para uma sessão futura mesmo que o comentário ainda não
+                    tenha sido enviado.
+                  </span>
+                }
+              </span>
             </div>
           </div>
           }
@@ -138,7 +152,12 @@ export class ReviewThreadComponent {
   }));
 
   readonly open = signal<boolean | null>(null);
-  readonly draft = signal('');
+  /**
+   * O texto na caixa. A página acompanha-o: ao devolver ou concluir, o que
+   * está escrito e não foi salvo vai junto (ReviewPageComponent).
+   */
+  readonly draft = model('');
+  readonly tipId = computed(() => 'rv-tip-' + this.point().key);
   /** Respondeu aqui: o destaque já cumpriu o papel. */
   private readonly answered = signal(false);
 

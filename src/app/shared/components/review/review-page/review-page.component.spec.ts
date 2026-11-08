@@ -23,13 +23,23 @@ function point(key: string, label: string, status: ReviewPoint['status'], commen
 describe('ReviewPageComponent — devolver para alterações', () => {
   let component: ReviewPageComponent;
   let requestChanges: jest.Mock;
+  let commentApi: jest.Mock;
+  const calls: string[] = [];
 
   beforeEach(() => {
-    requestChanges = jest.fn().mockReturnValue(of({}));
+    calls.length = 0;
+    requestChanges = jest.fn().mockImplementation(() => {
+      calls.push('devolver');
+      return of({ kind: 'APPLICATION', id: 5, stage: 'CHANGES', points: [] });
+    });
+    commentApi = jest.fn().mockImplementation((_k, _i, key: string, text: string) => {
+      calls.push(`comentar ${key}: ${text}`);
+      return of(component.review());
+    });
     TestBed.configureTestingModule({
       imports: [ReviewPageComponent],
       providers: [
-        { provide: ReviewApiService, useValue: { requestChanges } },
+        { provide: ReviewApiService, useValue: { requestChanges, comment: commentApi } },
         { provide: CatalogueApiService, useValue: { options: () => of(null) } },
         {
           provide: ActivatedRoute,
@@ -75,5 +85,23 @@ describe('ReviewPageComponent — devolver para alterações', () => {
     expect(component.requestChangesHint()).toBe('');
     component.requestChanges();
     expect(requestChanges).toHaveBeenCalledWith('APPLICATION', 5);
+  });
+
+  it('o texto escrito e não salvo conta e vai salvo antes de devolver', () => {
+    load([
+      point('pro:foto', 'Foto', 'APPROVED'),
+      point('pro:bio', 'Apresentação', 'PENDING'),
+    ]);
+    expect(component.canRequestChanges()).toBe(false);
+
+    component.typeComment('pro:bio', '  Falta a formação.  ');
+    expect(component.canRequestChanges()).toBe(true);
+    // Foto: Pendente → Aprovado ainda por enviar; o texto por salvar conta como comentário.
+    expect(component.draftSummary()).toBe('1 comentário e 1 mudança de status');
+
+    component.requestChanges();
+    expect(calls).toEqual(['comentar pro:bio: Falta a formação.', 'devolver']);
+    expect(commentApi).toHaveBeenCalledWith('APPLICATION', 5, 'pro:bio', 'Falta a formação.', true);
+    expect(component.unsavedText('pro:bio')).toBe('');
   });
 });

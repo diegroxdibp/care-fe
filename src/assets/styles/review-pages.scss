@@ -703,6 +703,40 @@
   }
 }
 
+// "Salvar rascunho": a explicação aparece por cima do botão, ao passar o rato
+// ou com o foco. Dentro da caixa do ponto (o overflow: hidden de .rv-thread
+// não a corta: fica sobre a área de escrever).
+.rv-tt {
+  position: relative;
+  display: inline-flex;
+
+  .rv-tt-bubble {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    max-width: 260px;
+    background: var(--color-primary-blue);
+    color: var(--color-white);
+    font-size: 12px;
+    font-weight: var(--fw-medium);
+    line-height: 1.4;
+    padding: 7px 11px;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-care), transform var(--dur-fast) var(--ease-care);
+    z-index: 20;
+  }
+
+  &:hover .rv-tt-bubble,
+  &:focus-within .rv-tt-bubble {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // ─ Pedido em análise ───────────────────────────────────────────────────────
 
 // Faixa entre o perfil e cada proposta.

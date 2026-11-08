@@ -52,6 +52,8 @@
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
+          [draft]="unsavedText(p.key)"
+          (draftChange)="typeComment(p.key, $event)"
         />
       }
     </ng-template>
@@ -78,6 +80,8 @@
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
+          [draft]="unsavedText(p.key)"
+          (draftChange)="typeComment(p.key, $event)"
         />
       }
     </ng-template>
@@ -126,6 +130,8 @@
           [focused]="p.key === focusKey()"
           (statusChange)="setStatus(p, $event)"
           (comment)="comment(p, $event)"
+          [draft]="unsavedText(p.key)"
+          (draftChange)="typeComment(p.key, $event)"
         />
       }
     </ng-template>
@@ -252,6 +258,8 @@
             [focused]="g.key === focusKey()"
             [readOnly]="rejected()"
             (comment)="comment(g, $event)"
+            [draft]="unsavedText(g.key)"
+            (draftChange)="typeComment(g.key, $event)"
           />
         }
 
