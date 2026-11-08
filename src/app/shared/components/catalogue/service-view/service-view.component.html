@@ -104,6 +104,10 @@
                 @if (p.firstWhoAmI) {
                   <p>{{ p.firstWhoAmI }}</p>
                 }
+                @if (p.firstHowIWork) {
+                  <p class="cat-overline">Como trabalho</p>
+                  <p>{{ p.firstHowIWork }}</p>
+                }
                 <dl class="cat-rows">
                   @if (p.modalities.length) {
                     <div class="cat-row"><dt>Modalidades</dt><dd>{{ modalityLabels(p.modalities) }}</dd></div>
@@ -118,10 +122,6 @@
                     <div class="cat-row"><dt>Público</dt><dd>{{ joinPt(p.audiences) }}</dd></div>
                   }
                 </dl>
-                @if (p.firstHowIWork) {
-                  <p class="cat-overline">Como trabalho</p>
-                  <p>{{ p.firstHowIWork }}</p>
-                }
                 @if (p.slug) {
                   <a class="cat-link" [routerLink]="['/', Pages.PROFISSIONAIS, p.slug]">Ver perfil completo →</a>
                 }
