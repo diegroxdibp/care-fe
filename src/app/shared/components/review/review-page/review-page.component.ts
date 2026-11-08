@@ -278,6 +278,21 @@ export class ReviewPageComponent implements OnInit {
       && (this.review()?.items ?? []).every(i => this.rejectionHolds(i)),
   );
 
+  /**
+   * Devolver pede, em cada ponto ainda pendente, um comentário novo da equipe
+   * (por enviar) - o backend confirma ao devolver.
+   */
+  readonly uncommentedPending = computed(() =>
+    this.statePoints()
+      .filter(p => p.status === 'PENDING' && !p.comments.some(c => c.fromTeam && c.draft))
+      .map(p => p.label),
+  );
+  readonly canRequestChanges = computed(() => this.uncommentedPending().length === 0);
+  readonly requestChangesHint = computed(() => {
+    const missing = this.uncommentedPending();
+    return missing.length ? `Para devolver, escreva um comentário em cada ponto pendente: ${missing.join(', ')}.` : '';
+  });
+
   /** Recusado e concluído: nada mais muda, nem a conversa (o backend recusa comentários). */
   readonly rejected = computed(() => this.review()?.stage === 'REJECTED');
   readonly concludeLabel = computed(() =>
@@ -531,7 +546,7 @@ export class ReviewPageComponent implements OnInit {
 
   requestChanges(): void {
     const r = this.review();
-    if (r) this.act(this.api.requestChanges(r.kind, r.id));
+    if (r && this.canRequestChanges()) this.act(this.api.requestChanges(r.kind, r.id));
   }
 
   reopen(): void {

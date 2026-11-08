@@ -332,12 +332,20 @@
               >
                 {{ concludeLabel() }}
               </button>
-              <button type="button" class="rv-btn-outline" [disabled]="busy()" (click)="requestChanges()">
+              <button
+                type="button"
+                class="rv-btn-outline"
+                [disabled]="!canRequestChanges() || busy()"
+                (click)="requestChanges()"
+              >
                 Devolver para alterações
               </button>
             </div>
             @if (concludeHint()) {
               <span class="rv-hint">{{ concludeHint() }}</span>
+            }
+            @if (requestChangesHint()) {
+              <span class="rv-hint">{{ requestChangesHint() }}</span>
             }
           </div>
         }
