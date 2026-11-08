@@ -49,13 +49,16 @@ import { detectBrowserTimezone } from '../../../utils/timezones.util';
                     class="rv-choice"
                     [class]="'rv-tone-' + s.tone"
                     [attr.aria-pressed]="point().status === s.key"
-                    [disabled]="busy() || locked()"
+                    [disabled]="busy() || locked() || (approvedSent() && s.key !== 'APPROVED')"
                     (click)="statusChange.emit(s.key)"
                   >
                     <span class="rv-dot"></span>{{ s.label }}
                   </button>
                 }
               </div>
+              @if (approvedSent()) {
+                <span class="rv-draft-note">Aprovado e enviado: o status deste ponto não muda mais.</span>
+              }
               @if (statusDraft(); as seen) {
                 <span class="rv-draft-note">
                   Rascunho: a pessoa ainda vê “{{ seen }}”. A mudança vai junto ao devolver ou concluir.
@@ -168,6 +171,8 @@ export class ReviewThreadComponent {
     const s = this.point().status;
     return s ? POINT_STATUS[s].tone : 'muted';
   });
+  /** Aprovado e já enviado à pessoa: o status fica (a pessoa já não pode mudar esta parte). */
+  readonly approvedSent = computed(() => this.team() && this.point().publishedStatus === 'APPROVED');
   readonly statusLabel = computed(() => POINT_STATUS[this.point().status ?? 'PENDING'].label);
   /** Para a equipa: o estado que a pessoa ainda vê, quando o de trabalho é outro (rascunho). */
   readonly statusDraft = computed(() => {

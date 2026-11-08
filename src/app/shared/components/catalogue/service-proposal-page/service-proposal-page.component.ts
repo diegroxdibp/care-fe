@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { CatalogueApiService } from '../../../../core/services/catalogue-api.service';
+import { ReviewApiService } from '../../../../core/services/review-api.service';
+import { ReviewKind } from '../../../models/review.model';
 import {
   CareService,
   ChangeProposal,
@@ -49,7 +51,11 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
           </h1>
           <p class="cat-hint">
             @if (revising() || revisingChange()) {
-              A equipe da CARE pediu alterações: veja os comentários no acompanhamento do pedido, revise e envie de novo.
+              A equipe da CARE pediu alterações: veja os comentários no acompanhamento do pedido, revise os pontos
+              pendentes e envie de novo.
+              @if (locked().length) {
+                As partes já aprovadas ficam bloqueadas.
+              }
               A análise continua a partir daí.
             } @else if (current()) {
               A equipe da CARE revisa as alterações antes de elas aparecerem na página. Formatos, modalidades, visibilidades ou
@@ -66,6 +72,7 @@ import { ServiceFieldsComponent } from '../service-fields/service-fields.compone
               (valueChange)="content.set($event)"
               [attempted]="attempted()"
               [audiences]="options()?.audiences ?? []"
+              [locked]="locked()"
             />
             @if (attempted() && missing().length) {
               <p class="cat-error-box" role="alert">Faltam campos obrigatórios: {{ missing().join(', ') }}.</p>
@@ -98,6 +105,10 @@ export class ServiceProposalPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly snackbar = inject(SnackbarService);
   private readonly myRequests = inject(MyRequestsService);
+  private readonly reviewApi = inject(ReviewApiService);
+
+  /** Ao rever: as partes já aprovadas pela equipe, bloqueadas no formulário. */
+  readonly locked = signal<string[]>([]);
 
   readonly Pages = Pages;
   readonly current = signal<CareService | null>(null);
@@ -137,6 +148,7 @@ export class ServiceProposalPageComponent implements OnInit {
         if (c) {
           this.current.set(c.current);
           this.content.set(c.proposed);
+          this.loadLocks('CHANGE', c.id);
         }
         this.ready.set(true);
       });
@@ -146,7 +158,10 @@ export class ServiceProposalPageComponent implements OnInit {
       this.api.myProposals().subscribe(list => {
         const s = list.find(x => x.id === revise) ?? null;
         this.revising.set(s);
-        if (s) this.content.set(proposalContentOf(s));
+        if (s) {
+          this.content.set(proposalContentOf(s));
+          this.loadLocks('PROPOSAL', s.id);
+        }
         this.ready.set(true);
       });
       return;
@@ -160,6 +175,15 @@ export class ServiceProposalPageComponent implements OnInit {
       this.current.set(s);
       if (s) this.content.set(contentOf(s));
       this.ready.set(true);
+    });
+  }
+
+  private loadLocks(kind: ReviewKind, id: number): void {
+    this.reviewApi.get(kind, id).subscribe({
+      next: r => this.locked.set(r.points.filter(p => p.itemKey !== null && p.status === 'APPROVED').map(p => p.section)),
+      error: () => {
+        /* sem os pontos, o backend continua a recusar mudanças nas partes aprovadas */
+      },
     });
   }
 

@@ -63,7 +63,6 @@ describe('ReviewPageComponent — devolver para alterações', () => {
       point('pro:foto', 'Foto', 'APPROVED'),
       point('pro:bio', 'Apresentação', 'PENDING'),
       point('pro:formacao', 'Formação', 'PENDING', [comment(false, false), comment(true, false)]),
-      point('pro:crp', 'Registro', 'REJECTED'),
     ]);
 
     expect(component.canRequestChanges()).toBe(false);
@@ -78,7 +77,6 @@ describe('ReviewPageComponent — devolver para alterações', () => {
     load([
       point('pro:foto', 'Foto', 'APPROVED'),
       point('pro:bio', 'Apresentação', 'PENDING', [comment(true, true)]),
-      point('pro:crp', 'Registro', 'REJECTED'),
     ]);
 
     expect(component.canRequestChanges()).toBe(true);
@@ -103,5 +101,16 @@ describe('ReviewPageComponent — devolver para alterações', () => {
     expect(calls).toEqual(['comentar pro:bio: Falta a formação.', 'devolver']);
     expect(commentApi).toHaveBeenCalledWith('APPLICATION', 5, 'pro:bio', 'Falta a formação.', true);
     expect(component.unsavedText('pro:bio')).toBe('');
+  });
+  it('com um ponto negado não se devolve: recusa-se', () => {
+    load([
+      point('pro:bio', 'Apresentação', 'PENDING', [comment(true, true)]),
+      point('pro:crp', 'Registro', 'REJECTED'),
+    ]);
+
+    expect(component.canRequestChanges()).toBe(false);
+    expect(component.requestChangesHint()).toContain('não pode haver pontos negados (Registro)');
+    component.requestChanges();
+    expect(requestChanges).not.toHaveBeenCalled();
   });
 });

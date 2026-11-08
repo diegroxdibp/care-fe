@@ -1,4 +1,4 @@
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('apresentacao')">
   <legend>Identificação</legend>
   <div class="cat-field">
     <label [for]="idPrefix() + '-name'">Nome do serviço *</label>
@@ -14,8 +14,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('apresentacao')">
   <legend>1. Apresentação do serviço</legend>
+  @if (isLocked('apresentacao')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <label [for]="idPrefix() + '-intro'">Texto de apresentação *</label>
     <textarea
@@ -70,8 +73,11 @@
   }
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('caracteristicas')">
   <legend>Modalidade, formato e público</legend>
+  @if (isLocked('caracteristicas')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <span class="cat-label">Modalidade *</span>
     <div class="cat-chips" [class.cat-invalid]="attempted() && errors().modality">
@@ -122,8 +128,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('para-quem')">
   <legend>2. Para quem pode fazer sentido</legend>
+  @if (isLocked('para-quem')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <label [for]="idPrefix() + '-forwhom'">Situações e questões</label>
     <textarea
@@ -137,8 +146,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('especialidades')">
   <legend>3. Especialidades (opcional)</legend>
+  @if (isLocked('especialidades')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <p class="cat-hint">
     Um foco dentro do serviço, com seus próprios públicos — cada pessoa profissional escolhe se o oferece. Ex.: em Terapia de
     Casal, "Casais LGBT".

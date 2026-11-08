@@ -332,8 +332,14 @@ export class ReviewPageComponent implements OnInit {
       .filter(p => p.status === 'PENDING' && !p.comments.some(c => c.fromTeam && c.draft) && !this.unsavedText(p.key).trim())
       .map(p => p.label),
   );
-  readonly canRequestChanges = computed(() => this.uncommentedPending().length === 0);
+  /** Devolve-se para mudar o que está pendente; com um ponto negado, recusa-se o pedido. */
+  readonly deniedPoints = computed(() => this.statePoints().filter(p => p.status === 'REJECTED').map(p => p.label));
+  readonly canRequestChanges = computed(() => this.uncommentedPending().length === 0 && this.deniedPoints().length === 0);
   readonly requestChangesHint = computed(() => {
+    const denied = this.deniedPoints();
+    if (denied.length) {
+      return `Para devolver, não pode haver pontos negados (${denied.join(', ')}). Com um ponto negado, recuse o pedido.`;
+    }
     const missing = this.uncommentedPending();
     return missing.length ? `Para devolver, escreva um comentário em cada ponto pendente: ${missing.join(', ')}.` : '';
   });

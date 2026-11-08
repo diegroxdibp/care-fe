@@ -1,4 +1,4 @@
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('quem-sou')">
   <legend>Identificação</legend>
   <div class="cat-field">
     <span class="cat-label">Foto</span>
@@ -40,8 +40,11 @@
   }
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('quem-sou')">
   <legend>A. Quem sou</legend>
+  @if (isLocked('quem-sou')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <label for="pf-whoami">Apresentação *</label>
     <textarea
@@ -61,8 +64,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('formacao')">
   <legend>B. Formação e trajetória profissional</legend>
+  @if (isLocked('formacao')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <label for="pf-education">Formação acadêmica e especializações</label>
     <textarea class="cat-input" id="pf-education" rows="5" [value]="educationText()"
@@ -78,8 +84,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('como-trabalho')">
   <legend>C. Como trabalho</legend>
+  @if (isLocked('como-trabalho')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <label for="pf-how">Como trabalho</label>
     <textarea class="cat-input" id="pf-how" rows="6" [value]="value().howIWork ?? ''"
@@ -88,8 +97,11 @@
   </div>
 </fieldset>
 
-<fieldset class="cat-fieldset">
+<fieldset class="cat-fieldset" [disabled]="isLocked('outras-info')">
   <legend>D. Outras informações relevantes</legend>
+  @if (isLocked('outras-info')) {
+    <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
+  }
   <div class="cat-field">
     <span class="cat-label">Idiomas de atendimento</span>
     <div class="cat-chips" role="group" aria-label="Idiomas de atendimento">

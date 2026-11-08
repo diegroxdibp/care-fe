@@ -59,7 +59,10 @@
             <div class="cat-notice">
               <strong>A equipe da CARE pediu alterações.</strong>
               Veja os comentários em <a class="cat-link" [routerLink]="trackLink()">Acompanhar o pedido</a>, revise os
-              pontos negados e envie de novo — a análise continua a partir daí.
+              pontos pendentes e envie de novo — a análise continua a partir daí.
+              @if (anyLocked()) {
+                As partes já aprovadas ficam bloqueadas.
+              }
             </div>
           } @else if (application()?.status === 'REJECTED') {
             <div class="cat-notice">
@@ -77,6 +80,7 @@
             [attempted]="attempted()"
             [languages]="options()?.languages ?? []"
             [accountEmail]="accountEmail()"
+            [locked]="profileLocked()"
           />
 
           <fieldset class="cat-fieldset">
@@ -102,7 +106,9 @@
                     </span>
                     <span translate="no" class="material-symbols-outlined" [class.invert]="p.open">expand_more</span>
                   </button>
-                  <button type="button" class="cat-btn-text" (click)="removeProposal(p.key)">Remover</button>
+                  @if (!proposalLocked(p).length) {
+                    <button type="button" class="cat-btn-text" (click)="removeProposal(p.key)">Remover</button>
+                  }
                 </div>
                 @if (p.open) {
                   <div class="cat-subcard-body">
@@ -112,6 +118,7 @@
                       [attempted]="attempted()"
                       [audiences]="options()?.audiences ?? []"
                       [idPrefix]="'prop' + i"
+                      [locked]="proposalLocked(p)"
                     />
                   </div>
                 }

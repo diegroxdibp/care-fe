@@ -4,6 +4,14 @@ import { RouterLink } from '@angular/router';
 
 import { CatalogueApiService } from '../../../services/catalogue-api.service';
 import { MyRequestsService } from '../../../services/my-requests.service';
+import { ReviewApiService } from '../../../services/review-api.service';
+import { ReviewPoint } from '../../../../shared/models/review.model';
+import {
+  approvedSections,
+  keepSections,
+  PROFILE_SECTION_FIELDS,
+  SERVICE_SECTION_FIELDS,
+} from '../../../../shared/utils/review-locks.util';
 import {
   Application,
   CareService,
@@ -63,6 +71,7 @@ export class ApplicationFormComponent implements OnInit {
   private readonly api = inject(CatalogueApiService);
   private readonly session = inject(SessionService);
   private readonly myRequests = inject(MyRequestsService);
+  private readonly reviewApi = inject(ReviewApiService);
 
   readonly Pages = Pages;
   readonly state = signal<State>('loading');
@@ -87,6 +96,15 @@ export class ApplicationFormComponent implements OnInit {
   readonly serverError = signal<string | null>(null);
   /** O pedido foi devolvido para alterações e está a ser revisto. */
   readonly revising = signal(false);
+
+  /** Ao rever: os pontos do pedido como a pessoa os vê, para bloquear as partes aprovadas. */
+  readonly reviewPoints = signal<ReviewPoint[]>([]);
+  readonly profileLocked = computed(() => approvedSections(this.reviewPoints(), 'pro'));
+  readonly anyLocked = computed(() => this.reviewPoints().some(p => p.itemKey !== null && p.status === 'APPROVED'));
+
+  proposalLocked(p: ProposalDraft): string[] {
+    return p.id ? approvedSections(this.reviewPoints(), 'svc:' + p.id) : [];
+  }
 
   readonly trackLink = computed(() => {
     const app = this.application();
@@ -154,6 +172,7 @@ export class ApplicationFormComponent implements OnInit {
         if (app.status === 'PENDING' && app.decision === 'CHANGES') {
           this.revising.set(true);
           this.startForm(app);
+          this.loadLocks(app);
         } else if (app.status === 'PENDING') this.state.set('pending');
         else if (app.status === 'APPROVED') this.state.set('approved');
         else this.startForm(app);
@@ -188,6 +207,38 @@ export class ApplicationFormComponent implements OnInit {
       this.profile.set(emptyProfile(this.session.user()?.name ?? ''));
     }
     this.state.set('form');
+  }
+
+  /**
+   * As partes aprovadas ficam como foram enviadas: um rascunho guardado antes
+   * do bloqueio não as muda, e uma proposta com partes aprovadas não sai.
+   */
+  private loadLocks(app: Application): void {
+    this.reviewApi.get('APPLICATION', app.id).subscribe({
+      next: r => {
+        this.reviewPoints.set(r.points);
+        if (app.profile) {
+          const sent = profileForForm(app.profile);
+          this.profile.update(p => keepSections(p, sent, this.profileLocked(), PROFILE_SECTION_FIELDS));
+        }
+        for (const s of app.proposals ?? []) {
+          const locked = approvedSections(r.points, 'svc:' + s.id);
+          if (!locked.length) continue;
+          const sent = proposalContentOf(s);
+          const list = this.proposals();
+          if (list.some(p => p.id === s.id)) {
+            this.proposals.set(
+              list.map(p => (p.id === s.id ? { ...p, content: keepSections(p.content, sent, locked, SERVICE_SECTION_FIELDS) } : p)),
+            );
+          } else {
+            this.proposals.set([...list, this.wrap(sent, false, s.id)]);
+          }
+        }
+      },
+      error: () => {
+        /* sem os pontos, o backend continua a recusar mudanças nas partes aprovadas */
+      },
+    });
   }
 
   private readDraft(): Draft | null {

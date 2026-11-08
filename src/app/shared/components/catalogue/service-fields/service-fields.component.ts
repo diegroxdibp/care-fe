@@ -22,6 +22,12 @@ export class ServiceFieldsComponent {
   readonly audiences = input<Audience[]>([]);
   /** Prefixo dos ids dos campos, para haver vários formulários na mesma página. */
   readonly idPrefix = input('svc');
+  /** As partes já aprovadas, ao rever um pedido devolvido: ficam bloqueadas (review-locks.util). */
+  readonly locked = input<string[]>([]);
+
+  isLocked(section: string): boolean {
+    return this.locked().includes(section);
+  }
 
   readonly openSpecialties = signal<Set<number>>(new Set());
 

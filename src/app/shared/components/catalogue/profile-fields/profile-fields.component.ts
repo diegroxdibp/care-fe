@@ -21,6 +21,12 @@ export class ProfileFieldsComponent {
   readonly languages = input<Language[]>([]);
   /** O email da conta, só para mostrar (no pedido é com ele que a equipa fala). */
   readonly accountEmail = input<string | null>(null);
+  /** As partes já aprovadas, ao rever um pedido devolvido: ficam bloqueadas (review-locks.util). */
+  readonly locked = input<string[]>([]);
+
+  isLocked(section: string): boolean {
+    return this.locked().includes(section);
+  }
 
   readonly educationText = computed(() => this.value().education.join('\n'));
   readonly experienceText = computed(() => this.value().experience.join('\n'));
