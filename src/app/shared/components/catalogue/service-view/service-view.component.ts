@@ -3,6 +3,7 @@ import { Component, computed, effect, input, output, signal, TemplateRef } from 
 import { RouterLink } from '@angular/router';
 
 import { expandCollapse } from '../../../animations/expand-collapse';
+import { RichTextComponent } from '../rich-text/rich-text.component';
 import { Pages } from '../../../enums/pages.enum';
 import { formatLabels, joinPt, modalityLabels } from '../../../utils/catalogue.util';
 import { ProfessionalCardView, ServiceView } from '../../../utils/catalogue-views.util';
@@ -15,7 +16,7 @@ import { ProfessionalCardView, ServiceView } from '../../../utils/catalogue-view
 @Component({
   selector: 'app-service-view',
   standalone: true,
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, RichTextComponent],
   templateUrl: './service-view.component.html',
   animations: [expandCollapse],
 })

@@ -20,28 +20,29 @@
     <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
   }
   <div class="cat-field">
-    <label [for]="idPrefix() + '-intro'">Texto de apresentação *</label>
-    <textarea
-      class="cat-input"
-      [class.cat-invalid]="attempted() && errors().intro"
-      [id]="idPrefix() + '-intro'"
-      rows="8"
+    <span class="cat-label">Texto de apresentação *</span>
+    <app-rich-text-editor
+      label="Texto de apresentação"
+      [inputId]="idPrefix() + '-intro'"
+      [rows]="8"
+      [invalid]="attempted() && errors().intro"
+      [disabled]="isLocked('apresentacao')"
       [value]="value().intro"
-      (input)="patch({ intro: text($event) })"
-    ></textarea>
-    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+      (valueChange)="patch({ intro: $event })"
+    />
+    <p class="cat-hint">Use os botões para subtítulos, negrito, itálico e listas.</p>
   </div>
   <div class="cat-field">
-    <label [for]="idPrefix() + '-how'">Como funciona o acompanhamento (opcional)</label>
-    <textarea
-      class="cat-input"
-      [id]="idPrefix() + '-how'"
-      rows="5"
+    <span class="cat-label">Como funciona o acompanhamento (opcional)</span>
+    <app-rich-text-editor
+      label="Como funciona o acompanhamento"
+      [inputId]="idPrefix() + '-how'"
+      [rows]="5"
+      [disabled]="isLocked('apresentacao')"
       [value]="value().howItWorks ?? ''"
-      (input)="patch({ howItWorks: text($event) })"
+      (valueChange)="patch({ howItWorks: $event })"
       placeholder="Saber o que vai viver: primeiro atendimento, acordos, duração de sessões/acompanhamento, frequência."
-    ></textarea>
-    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+    />
   </div>
   <div class="cat-field">
     <label [for]="idPrefix() + '-quote'">Citação (opcional)</label>

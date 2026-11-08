@@ -46,16 +46,17 @@
     <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
   }
   <div class="cat-field">
-    <label for="pf-whoami">Apresentação *</label>
-    <textarea
-      class="cat-input"
-      [class.cat-invalid]="attempted() && errors().whoAmI"
-      id="pf-whoami"
-      rows="8"
+    <span class="cat-label">Apresentação *</span>
+    <app-rich-text-editor
+      label="Apresentação"
+      inputId="pf-whoami"
+      [rows]="8"
+      [invalid]="attempted() && errors().whoAmI"
+      [disabled]="isLocked('quem-sou')"
       [value]="value().whoAmI"
-      (input)="patch({ whoAmI: text($event) })"
-    ></textarea>
-    <p class="cat-hint">Em primeira pessoa. Separe os parágrafos com uma linha em branco.</p>
+      (valueChange)="patch({ whoAmI: $event })"
+    />
+    <p class="cat-hint">Em primeira pessoa. Use os botões para subtítulos, negrito, itálico e listas.</p>
   </div>
   <div class="cat-field">
     <label for="pf-quote">Citação (opcional)</label>
@@ -90,10 +91,16 @@
     <p class="cat-hint cat-locked-hint">Aprovado pela equipe: esta parte não muda mais.</p>
   }
   <div class="cat-field">
-    <label for="pf-how">Como trabalho</label>
-    <textarea class="cat-input" id="pf-how" rows="6" [value]="value().howIWork ?? ''"
-      (input)="patch({ howIWork: text($event) })"></textarea>
-    <p class="cat-hint">Separe os parágrafos com uma linha em branco.</p>
+    <span class="cat-label">Como trabalho</span>
+    <app-rich-text-editor
+      label="Como trabalho"
+      inputId="pf-how"
+      [rows]="6"
+      [disabled]="isLocked('como-trabalho')"
+      [value]="value().howIWork ?? ''"
+      (valueChange)="patch({ howIWork: $event })"
+    />
+    <p class="cat-hint">Use os botões para subtítulos, negrito, itálico e listas.</p>
   </div>
 </fieldset>
 

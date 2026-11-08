@@ -109,6 +109,25 @@
   }
 }
 
+// Textos com formatação (app-rich-text): subtítulo e listas dentro do texto.
+.cat-rt-heading {
+  font-size: var(--fs-h3);
+}
+
+.cat-rt-list li {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-regular);
+  font-style: normal;
+
+  @media (min-width: breakpoint.$breakpoint-lg) {
+    font-size: var(--fs-body-lg);
+  }
+}
+
+.cat-rt-numbered {
+  list-style: decimal;
+}
+
 .cat-image {
   max-width: 500px;
   width: 100%;
@@ -605,6 +624,121 @@ textarea.cat-input {
   resize: vertical;
   min-height: 120px;
   line-height: 1.5;
+}
+
+// Caixa de texto com formatação (app-rich-text-editor).
+.cat-rt-editor {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  transition: border-color var(--dur-fast) ease;
+
+  &:focus-within {
+    border-color: var(--color-primary-blue);
+  }
+
+  &.cat-invalid {
+    border-color: var(--color-error);
+  }
+
+  &.cat-rt-disabled {
+    background: var(--color-surface-tint);
+  }
+}
+
+.cat-rt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cat-rt-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-tint);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--color-surface-tint);
+    border-color: var(--color-primary-blue);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+}
+
+.cat-rt-tool-text {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-bold);
+}
+
+.cat-rt-content {
+  min-height: calc(var(--rt-rows, 6) * 1.5em);
+  padding: 13px 16px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--fg-1);
+  outline: none;
+
+  > * + * {
+    margin-top: 0.75em;
+  }
+
+  p,
+  li {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  h3 {
+    font-size: 20px;
+  }
+
+  ul,
+  ol {
+    margin: 0;
+    padding-left: 1.5em;
+  }
+
+  ul li {
+    display: list-item;
+    list-style: disc;
+  }
+
+  ol li {
+    display: list-item;
+    list-style: decimal;
+  }
+
+  // Placeholder da extensão do editor: só no primeiro parágrafo vazio.
+  p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--color-muted);
+    pointer-events: none;
+  }
 }
 
 .cat-chips {

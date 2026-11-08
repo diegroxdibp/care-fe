@@ -66,7 +66,7 @@ describe('catalogue.util', () => {
       specialties: [{ id: null, name: 'Casais LGBT', description: null, audienceIds: [], proposedAudiences: ['LGBT+'] }],
     };
     const view = serviceViewFromContent(c, { audiences: [{ id: 4, name: 'Casais', pending: false }], languages: [] });
-    expect(view.intro).toEqual(['Um.', 'Dois.']);
+    expect(view.intro.map(b => b.type === 'paragraph' && b.content[0].text)).toEqual(['Um.', 'Dois.']);
     expect(view.audiences).toEqual(['Casais']);
     expect(view.specialties[0].audiences).toEqual(['LGBT+']);
     expect(view.privateOnly).toBe(true);

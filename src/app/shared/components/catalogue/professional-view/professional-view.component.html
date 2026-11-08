@@ -6,9 +6,7 @@
         <p class="cat-subtitle">{{ professional().title }}</p>
       }
       <h2>Quem sou</h2>
-      @for (p of professional().whoAmI; track $index) {
-        <p>{{ p }}</p>
-      }
+      <app-rich-text [blocks]="professional().whoAmI" />
     </div>
     @if (professional().photoUrl) {
       <picture class="cat-photo">
@@ -25,9 +23,7 @@
   @if (professional().howIWork.length) {
     <div class="cat-block">
       <h2>Como trabalho</h2>
-      @for (p of professional().howIWork; track $index) {
-        <p>{{ p }}</p>
-      }
+      <app-rich-text [blocks]="professional().howIWork" />
       <ng-container *ngTemplateOutlet="sectionFooter(); context: { $implicit: 'como-trabalho' }" />
     </div>
   }
@@ -107,8 +103,8 @@
             </button>
             <div [@expandCollapse]="open() === (s.slug ?? s.name) ? 'expanded' : 'collapsed'">
               <div class="cat-acc-body">
-                @if (s.firstParagraph) {
-                  <p>{{ s.firstParagraph }}</p>
+                @if (s.firstParagraph.length) {
+                  <app-rich-text [inline]="s.firstParagraph" />
                 }
                 @if (s.slug) {
                   <a class="cat-link" [routerLink]="['/', Pages.SERVICOS, s.slug]">Ver página do serviço →</a>

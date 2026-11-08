@@ -2,6 +2,7 @@ import { Component, computed, input, model } from '@angular/core';
 
 import { Language, ProfessionalProfile } from '../../../models/catalogue.model';
 import { ImageFieldComponent } from '../image-field/image-field.component';
+import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
 
 /**
  * Os campos do perfil profissional (handoff: "Formulario de Profissional"):
@@ -12,7 +13,7 @@ import { ImageFieldComponent } from '../image-field/image-field.component';
 @Component({
   selector: 'app-profile-fields',
   standalone: true,
-  imports: [ImageFieldComponent],
+  imports: [ImageFieldComponent, RichTextEditorComponent],
   templateUrl: './profile-fields.component.html',
 })
 export class ProfileFieldsComponent {

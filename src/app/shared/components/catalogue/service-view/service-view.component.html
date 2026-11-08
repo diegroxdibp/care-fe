@@ -10,14 +10,10 @@
 
   <div class="cat-block">
     <h1>{{ service().name }}</h1>
-    @for (p of service().intro; track $index) {
-      <p>{{ p }}</p>
-    }
+    <app-rich-text [blocks]="service().intro" />
     @if (service().howItWorks.length) {
       <h2>Como funciona o acompanhamento</h2>
-      @for (p of service().howItWorks; track $index) {
-        <p>{{ p }}</p>
-      }
+      <app-rich-text [blocks]="service().howItWorks" />
     }
     @if (service().quote) {
       <p class="quotation quotation-margins">{{ service().quote }}</p>
@@ -101,12 +97,12 @@
             </button>
             <div [@expandCollapse]="open() === p.key ? 'expanded' : 'collapsed'">
               <div class="cat-acc-body">
-                @if (p.firstWhoAmI) {
-                  <p>{{ p.firstWhoAmI }}</p>
+                @if (p.firstWhoAmI.length) {
+                  <app-rich-text [inline]="p.firstWhoAmI" />
                 }
-                @if (p.firstHowIWork) {
+                @if (p.firstHowIWork.length) {
                   <p class="cat-overline">Como trabalho</p>
-                  <p>{{ p.firstHowIWork }}</p>
+                  <app-rich-text [inline]="p.firstHowIWork" />
                 }
                 <dl class="cat-rows">
                   @if (p.modalities.length) {

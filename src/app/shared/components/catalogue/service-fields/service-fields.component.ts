@@ -3,6 +3,7 @@ import { Component, computed, input, model, signal } from '@angular/core';
 import { Audience, ServiceContent, SpecialtyContent } from '../../../models/catalogue.model';
 import { AudiencePickerComponent } from '../audience-picker/audience-picker.component';
 import { ImageFieldComponent } from '../image-field/image-field.component';
+import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
 
 /**
  * Os campos de um serviço (handoff: "ServiceFields"): proposta nova, proposta
@@ -12,7 +13,7 @@ import { ImageFieldComponent } from '../image-field/image-field.component';
 @Component({
   selector: 'app-service-fields',
   standalone: true,
-  imports: [AudiencePickerComponent, ImageFieldComponent],
+  imports: [AudiencePickerComponent, ImageFieldComponent, RichTextEditorComponent],
   templateUrl: './service-fields.component.html',
 })
 export class ServiceFieldsComponent {

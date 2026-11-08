@@ -9,7 +9,8 @@ import {
   ProfessionalProfile,
   ServiceContent,
 } from '../models/catalogue.model';
-import { formatsOf, modalitiesOf, paragraphs, serviceMeta } from './catalogue.util';
+import { formatsOf, modalitiesOf, serviceMeta } from './catalogue.util';
+import { firstParagraph, parseRichText, RichBlock, RichInline } from './rich-text.util';
 
 /**
  * O que as páginas de serviço e de perfil mostram, separado de onde vem: da
@@ -25,8 +26,8 @@ export interface SpecialtyView {
 export interface ServiceView {
   slug: string | null;
   name: string;
-  intro: string[];
-  howItWorks: string[];
+  intro: RichBlock[];
+  howItWorks: RichBlock[];
   quote: string | null;
   imageUrl: string | null;
   imageAlt: string | null;
@@ -41,7 +42,7 @@ export interface ServiceView {
 export interface ServiceSummaryView {
   slug: string | null;
   name: string;
-  firstParagraph: string;
+  firstParagraph: RichInline[];
   imageUrl: string | null;
   imageAlt: string | null;
   meta: string;
@@ -52,11 +53,11 @@ export interface ProfessionalView {
   displayName: string;
   title: string | null;
   photoUrl: string | null;
-  whoAmI: string[];
+  whoAmI: RichBlock[];
   quote: string | null;
   education: string[];
   experience: string[];
-  howIWork: string[];
+  howIWork: RichBlock[];
   languages: string[];
   modalities: ModalityKey[];
   formats: FormatKey[];
@@ -78,8 +79,8 @@ export function serviceViewFrom(s: CareService, withPending = false): ServiceVie
   return {
     slug: s.slug,
     name: s.name,
-    intro: paragraphs(s.intro),
-    howItWorks: paragraphs(s.howItWorks),
+    intro: parseRichText(s.intro),
+    howItWorks: parseRichText(s.howItWorks),
     quote: s.quote,
     imageUrl: s.imageUrl,
     imageAlt: s.imageAlt,
@@ -114,8 +115,8 @@ export function serviceViewFromContent(c: ServiceContent, options: CatalogueOpti
   return {
     slug: null,
     name: c.name.trim() || 'Nome do serviço',
-    intro: paragraphs(c.intro),
-    howItWorks: paragraphs(c.howItWorks),
+    intro: parseRichText(c.intro),
+    howItWorks: parseRichText(c.howItWorks),
     quote: c.quote?.trim() || null,
     imageUrl: c.imageUrl,
     imageAlt: c.imageAlt,
@@ -138,7 +139,7 @@ export function summaryOf(s: CareService): ServiceSummaryView {
   return {
     slug: s.slug,
     name: s.name,
-    firstParagraph: paragraphs(s.intro)[0] ?? '',
+    firstParagraph: firstParagraph(s.intro),
     imageUrl: s.imageUrl,
     imageAlt: s.imageAlt,
     meta: serviceMeta(s),
@@ -151,11 +152,11 @@ export function professionalViewFromPage(p: ProfessionalPage): ProfessionalView 
     displayName: p.displayName,
     title: p.title,
     photoUrl: p.photoUrl,
-    whoAmI: paragraphs(p.whoAmI),
+    whoAmI: parseRichText(p.whoAmI),
     quote: p.quote,
     education: p.education,
     experience: p.experience,
-    howIWork: paragraphs(p.howIWork),
+    howIWork: parseRichText(p.howIWork),
     languages: p.languages.map(l => l.name),
     modalities: p.modalities,
     formats: p.formats,
@@ -189,11 +190,11 @@ export function professionalViewFromForm(
     displayName: p.displayName.trim() || 'Nome',
     title: p.title?.trim() || null,
     photoUrl: p.photoUrl,
-    whoAmI: paragraphs(p.whoAmI),
+    whoAmI: parseRichText(p.whoAmI),
     quote: p.quote?.trim() || null,
     education: p.education.map(e => e.trim()).filter(Boolean),
     experience: p.experience.map(e => e.trim()).filter(Boolean),
-    howIWork: paragraphs(p.howIWork),
+    howIWork: parseRichText(p.howIWork),
     languages: p.languages.map(c => langs.get(c) ?? c),
     modalities: (['LOCAL', 'REMOTE'] as ModalityKey[]).filter(m => modalities.has(m)),
     formats: (['INDIVIDUAL', 'GROUP'] as FormatKey[]).filter(f => formats.has(f)),
@@ -211,8 +212,8 @@ export interface ProfessionalCardView {
   displayName: string;
   title: string | null;
   photoUrl: string | null;
-  firstWhoAmI: string;
-  firstHowIWork: string;
+  firstWhoAmI: RichInline[];
+  firstHowIWork: RichInline[];
   languages: string[];
   modalities: ModalityKey[];
   formats: FormatKey[];
@@ -226,8 +227,8 @@ export function cardViewFrom(c: ProfessionalCard): ProfessionalCardView {
     displayName: c.displayName,
     title: c.title,
     photoUrl: c.photoUrl,
-    firstWhoAmI: paragraphs(c.whoAmI)[0] ?? '',
-    firstHowIWork: paragraphs(c.howIWork)[0] ?? '',
+    firstWhoAmI: firstParagraph(c.whoAmI),
+    firstHowIWork: firstParagraph(c.howIWork),
     languages: c.languages.map(l => l.name),
     modalities: c.modalities,
     formats: c.formats,
@@ -242,11 +243,17 @@ export function cardViewFromProfessional(p: ProfessionalView): ProfessionalCardV
     displayName: p.displayName,
     title: p.title,
     photoUrl: p.photoUrl,
-    firstWhoAmI: p.whoAmI[0] ?? '',
-    firstHowIWork: p.howIWork[0] ?? '',
+    firstWhoAmI: firstOf(p.whoAmI),
+    firstHowIWork: firstOf(p.howIWork),
     languages: p.languages,
     modalities: p.modalities,
     formats: p.formats,
     audiences: p.audiences,
   };
+}
+
+/** O primeiro parágrafo de um texto já lido (sem subtítulos nem listas). */
+function firstOf(blocks: RichBlock[]): RichInline[] {
+  const p = blocks.find(b => b.type === 'paragraph');
+  return p && p.type === 'paragraph' ? p.content : [];
 }
