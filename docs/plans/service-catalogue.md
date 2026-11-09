@@ -139,7 +139,7 @@ Steps 1 and 3 change the same API the current screens use, so they reach staging
 
 Public (`permitAll`, exempt in `ProfileCompletionFilter`):
 - `GET /api/catalogue/options` — approved audiences, languages.
-- `GET /api/catalogue/services?format=` — approved, listable services (no private-only).
+- `GET /api/catalogue/services?format=&listed=` — approved, listable services (no private-only). `listed=true` keeps only listed services (offered by someone with a published professional profile) — the home list.
 - `GET /api/catalogue/services/{slug}` — page data, with the professionals offering it (published profiles,
   derived formats / modalities / audiences); private-only services reachable here.
 - `GET /api/professionals`, `GET /api/professionals/{slug}` — published profiles with derived data and listable

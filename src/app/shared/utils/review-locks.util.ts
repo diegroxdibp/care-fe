@@ -14,7 +14,7 @@ export const PROFILE_SECTION_FIELDS: Record<string, (keyof ProfessionalProfile)[
 };
 
 export const SERVICE_SECTION_FIELDS: Record<string, (keyof ServiceContent)[]> = {
-  apresentacao: ['name', 'intro', 'howItWorks', 'quote', 'imageUrl', 'imageAlt'],
+  apresentacao: ['name', 'summary', 'intro', 'howItWorks', 'quote', 'imageUrl', 'imageAlt'],
   caracteristicas: [
     'allowsIndividual',
     'allowsGroup',

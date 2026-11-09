@@ -26,6 +26,8 @@ export interface SpecialtyView {
 export interface ServiceView {
   slug: string | null;
   name: string;
+  /** O resumo da lista da home. A página publicada não o mostra; a pré-visualização sim. */
+  summary: string | null;
   intro: RichBlock[];
   howItWorks: RichBlock[];
   quote: string | null;
@@ -79,6 +81,7 @@ export function serviceViewFrom(s: CareService, withPending = false): ServiceVie
   return {
     slug: s.slug,
     name: s.name,
+    summary: s.summary,
     intro: parseRichText(s.intro),
     howItWorks: parseRichText(s.howItWorks),
     quote: s.quote,
@@ -115,6 +118,7 @@ export function serviceViewFromContent(c: ServiceContent, options: CatalogueOpti
   return {
     slug: null,
     name: c.name.trim() || 'Nome do serviço',
+    summary: c.summary.trim() || null,
     intro: parseRichText(c.intro),
     howItWorks: parseRichText(c.howItWorks),
     quote: c.quote?.trim() || null,

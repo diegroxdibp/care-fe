@@ -2,7 +2,6 @@ import { environment } from './../environments/environment';
 import { NavbarBackground } from './shared/enums/navbar-background.enum';
 import { Pages } from './shared/enums/pages.enum';
 import { FaqTopic, FaqTopicItem } from './shared/models/faq.model';
-import { Service } from './shared/models/service.model';
 
 export const AppConstants = {
   apiEndpoints: {
@@ -51,73 +50,6 @@ export const AppConstants = {
     minDate: new Date(new Date().setFullYear(new Date().getFullYear() - 18)),
     maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 100)),
   },
-
-  services: [
-    {
-      name: 'Atendimento individual',
-      cardDescription:
-        'Atendimentos individuais com psicóloga, visando o autoconhecimento e o restabelecimento da saúde mental.',
-      serviceType: [
-        {
-          name: 'Análise Corporal Reichiana',
-          description:
-            'A análise corporal reichiana reintegra a terapia verbal à análise do corpo e tem como objetivo flexibilizar os bloqueios somáticos, considerando o ser humano como uma unidade psicossomática, na qual corpo e mente formam um sistema indissociável.',
-          knowMorePage: Pages.ANALISE_REICHANA,
-          sessionService: 'analise-corporal-reichiana',
-          meta: 'Presencial (Lisboa) e Remoto · Adultos',
-        },
-
-        {
-          name: 'Mindfulness',
-          description:
-            'A prática em Mindfulness fomenta a regulação atencional e emocional por meio de propostas com o body scan, a respiração consciente, a meditação em movimento e a atenção plena nas atividades cotidianas.',
-          knowMorePage: Pages.MINDFULLNESS,
-          sessionService: 'mindfulness',
-          meta: 'Presencial (Lisboa) e Remoto · Adultos',
-        },
-
-        {
-          name: 'Somatic Experiencing®',
-          description:
-            'A Somatic Experiencing® (SE) é uma prática centrada na regulação do sistema nervoso e na elaboração de experiências traumáticas através do corpo. Por meio de intervenções seguras e graduais, a SE possibilita a renegociação das respostas traumáticas, reduzindo sintomas de diversas naturezas e fortalecendo a capacidade natural de autorregulação do organismo.',
-          knowMorePage: Pages.SOMATIC_EXPERIENCE,
-          sessionService: 'somatic-experiencing',
-          meta: 'Presencial (Lisboa) e Remoto · Adultos',
-        },
-      ],
-      available: true,
-    } as Service,
-
-    {
-      name: 'Atendimento em grupo',
-      cardDescription:
-        'Atendimentos em grupo com psicóloga, visando o autoconhecimento e o restabelecimento da saúde mental.',
-      serviceType: [
-        {
-          name: 'Autorregulação para Profissionais',
-          description: 'Estamos chegando com um novo jeito de cuidar. Em breve, mais informações.',
-          meta: 'Remoto · Adultos',
-        },
-      ],
-      available: false,
-    } as Service,
-
-    {
-      name: 'Para profissionais',
-      cardDescription: 'Serviços orientados para profissionais.',
-      serviceType: [
-        {
-          name: 'Supervisão',
-          description:
-            'A supervisão na abordagem da Análise Corporal Reichiana ocorre individual e em grupos pequenos, com ênfase no atendimento individual de adultos. São encontros semanais, quinzenais ou mensais no formato presencial (em Lisboa) ou remoto.',
-          knowMorePage: Pages.SUPERVISION,
-          sessionService: 'supervisao-em-analise-reichiana',
-          meta: 'Individual ou grupal · Presencial (Lisboa) e Remoto',
-        },
-      ],
-      available: true,
-    } as Service,
-  ],
 
   faq: [
     {
@@ -191,15 +123,8 @@ export const AppConstants = {
         {
           question: 'Quais os serviços disponibilizados na CARE?',
           answer: {
-            intro: 'Atualmente a CARE disponibiliza os seguintes serviços:',
-            steps: [
-              'Análise Reichiana — abordagem psicanalítica com enfoque no corpo;',
-              'Mindfulness — prática de atenção plena;',
-              'Somatic Experiencing® — voltado à regulação do sistema nervoso autônomo e à renegociação de trauma;',
-              'Autorregulação para Profissionais — informações em breve',
-              'Supervisão na abordagem Reichiana — destinada a profissionais.',
-            ],
-            outro: 'Os serviços podem mudar e estarão sempre atualizados na página principal (Home).',
+            // Sem lista aqui: a da home vem da API e é sempre a atual.
+            intro: 'Os serviços abertos para agendamento estão na seção “Serviços” da página inicial, sempre atualizados. Cada um tem uma página com o que é, para quem é e quem o oferece.',
           },
         } as FaqTopicItem,
       ],

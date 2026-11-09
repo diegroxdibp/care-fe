@@ -75,56 +75,61 @@
   }
 }
 
-.service-group {
+// The list, its skeleton or its message — one flat list since the services
+// come from the API (no groups any more), with the old group's top rule.
+.services-body {
   margin-top: 30px;
+  border-top: 1px solid color-mix(in srgb, var(--color-white) 24%, transparent);
 
   @media (min-width: breakpoint.$breakpoint-lg) {
     margin-top: 44px;
   }
 }
 
-.group-head {
-  display: flex;
-  align-items: center;
+.skeleton-row {
   gap: 10px;
-  flex-wrap: wrap;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 24px 16px;
 
   @media (min-width: breakpoint.$breakpoint-lg) {
-    gap: 14px;
-    padding-bottom: 14px;
+    padding: 30px 24px;
   }
 }
 
-.group-name {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+.skeleton-bar {
+  display: block;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-white) 14%, transparent);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 
-  @media (min-width: breakpoint.$breakpoint-lg) {
-    font-size: 13px;
-    letter-spacing: 2px;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 
-.soon-chip {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--color-primary-blue);
-  background: var(--color-secondary-cyan);
-  border-radius: var(--radius-sm);
-  padding: 5px 10px;
+.skeleton-name {
+  width: min(280px, 70%);
+  height: 20px;
+}
 
-  @media (min-width: breakpoint.$breakpoint-lg) {
-    font-size: 11.5px;
-    letter-spacing: 1.4px;
-    padding: 5px 11px;
+.skeleton-meta {
+  width: min(360px, 90%);
+}
+
+@keyframes skeleton-pulse {
+  50% { opacity: 0.45; }
+}
+
+.services-state {
+  margin-bottom: 0;
+  padding-top: 24px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-white) 86%, transparent);
+
+  a {
+    color: var(--color-secondary-cyan);
+    text-decoration: underline;
   }
 }
 
@@ -274,6 +279,15 @@
   padding-left: 16px;
   text-align: left;
 
+  // A service without a summary yet shows the start of its presentation instead.
+  &.is-clamped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+
   @media (min-width: breakpoint.$breakpoint-lg) {
     max-width: 62ch;
     font-size: 16.5px;
@@ -346,14 +360,3 @@
   }
 }
 
-.soon-text {
-  margin: 14px 0 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-secondary-cyan);
-
-  @media (min-width: breakpoint.$breakpoint-lg) {
-    flex: none;
-    margin: 0;
-  }
-}

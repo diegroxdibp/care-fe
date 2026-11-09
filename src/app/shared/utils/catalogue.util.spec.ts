@@ -32,6 +32,7 @@ describe('catalogue.util', () => {
     c.specialties = [{ id: null, name: ' ', description: null, audienceIds: [], proposedAudiences: [] }];
     expect(missingServiceFields(c)).toEqual([
       'nome do serviço',
+      'resumo',
       'modalidade',
       'formato',
       'visibilidade',
@@ -45,6 +46,7 @@ describe('catalogue.util', () => {
     const c: ServiceContent = {
       ...emptyServiceContent(),
       name: 'Terapia de Casal',
+      summary: 'Terapia para o casal.',
       intro: 'Um espaço para o casal.',
       allowsIndividual: true,
       allowsRemote: true,

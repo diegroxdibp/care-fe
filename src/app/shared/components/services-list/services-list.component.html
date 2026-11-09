@@ -1,64 +1,79 @@
-<section class="services-list">
+<section class="services-list" [attr.aria-busy]="state() === 'loading'">
   <div class="services-inner">
 
     <div class="services-head" appScrollAnimate="fade-in-up">
       <span class="eyebrow">Serviços</span>
       <h2 class="title">Abordagens disponíveis</h2></div>
 
-    @for (service of AppConstants.services; track service.name) {
-      <div class="service-group" appScrollAnimate="fade-in-up">
-        <div class="group-head">
-          <h3 class="group-name">{{ service.name }}</h3>
-          @if (!service.available) {
-            <span class="soon-chip">Em breve</span>
-          }
-        </div>
-
-        <ul class="type-list">
-          @for (serviceType of service.serviceType; track serviceType.name; let typeIndex = $index) {
-            @let itemKey = service.name + '-' + typeIndex;
-            @let rowOpen = isOpen(itemKey);
-
-            <li class="type-row" [class.is-open]="rowOpen">
-              <button
-                type="button"
-                class="type-head"
-                (click)="toggleItem(itemKey)"
-                [attr.aria-expanded]="rowOpen"
-                [attr.aria-controls]="'type-panel-' + itemKey"
-              >
-                <span class="open-bar" [class.is-open]="rowOpen"></span>
-                <div class="type-text">
-                  <h4 class="type-name" [class.is-open]="rowOpen">{{ serviceType.name }}</h4>
-                  @if (serviceType.meta) {
-                    <p class="type-meta">{{ serviceType.meta }}</p>
-                  }
-                </div>
-                <span translate="no" class="material-symbols-outlined chevron" [class.is-open]="rowOpen">expand_more</span>
-              </button>
-
-              <div class="type-content" [id]="'type-panel-' + itemKey" [inert]="!rowOpen" [@expandCollapse]="rowOpen ? 'expanded' : 'collapsed'">
-                <p class="type-description">{{ serviceType.description }}</p>
-
-                @if (service.available) {
-                  <div class="type-actions">
-                    <button
-                      class="action-outline"
-                      (click)="navigateTo(serviceType.knowMorePage)"
-                    >Saiba mais</button>
-                    <button
-                      class="action-filled"
-                      (click)="navigateToScheduling(serviceType)"
-                    >Agendar</button>
-                  </div>
-                } @else {
-                  <p class="soon-text">Avisamos quando abrir turma</p>
-                }
-              </div>
+    @switch (state()) {
+      @case ('loading') {
+        <ul class="type-list services-body" aria-hidden="true">
+          @for (i of skeleton; track i) {
+            <li class="type-row skeleton-row">
+              <span class="skeleton-bar skeleton-name"></span>
+              <span class="skeleton-bar skeleton-meta"></span>
             </li>
           }
         </ul>
-      </div>
+      }
+
+      @case ('ready') {
+        @if (rows().length) {
+          <ul class="type-list services-body" appScrollAnimate="fade-in-up">
+            @for (row of rows(); track row.slug) {
+              @let rowOpen = isOpen(row.slug);
+
+              <li class="type-row" [class.is-open]="rowOpen">
+                <button
+                  type="button"
+                  class="type-head"
+                  (click)="toggleItem(row.slug)"
+                  [attr.aria-expanded]="rowOpen"
+                  [attr.aria-controls]="'type-panel-' + row.slug"
+                >
+                  <span class="open-bar" [class.is-open]="rowOpen"></span>
+                  <div class="type-text">
+                    <h3 class="type-name" [class.is-open]="rowOpen">{{ row.name }}</h3>
+                    @if (row.meta) {
+                      <p class="type-meta">{{ row.meta }}</p>
+                    }
+                  </div>
+                  <span translate="no" class="material-symbols-outlined chevron" [class.is-open]="rowOpen">expand_more</span>
+                </button>
+
+                <div class="type-content" [id]="'type-panel-' + row.slug" [inert]="!rowOpen" [@expandCollapse]="rowOpen ? 'expanded' : 'collapsed'">
+                  <p class="type-description" [class.is-clamped]="row.fromIntro">{{ row.text }}</p>
+
+                  <div class="type-actions">
+                    <button
+                      type="button"
+                      class="action-outline"
+                      (click)="openServicePage(row.slug)"
+                    >Saiba mais</button>
+                    <button
+                      type="button"
+                      class="action-filled"
+                      (click)="navigateToScheduling(row.slug)"
+                    >Agendar</button>
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="services-state services-body">
+            Ainda não há serviços abertos para agendamento.
+            <a [routerLink]="'/' + Pages.CONTACT">Fale com a equipe</a> para saber o que vem por aí.
+          </p>
+        }
+      }
+
+      @case ('error') {
+        <p class="services-state services-body" role="status">
+          Não foi possível carregar os serviços agora. Tente de novo daqui a pouco ou
+          <a [routerLink]="'/' + Pages.CONTACT">fale com a equipe</a>.
+        </p>
+      }
     }
 
   </div>

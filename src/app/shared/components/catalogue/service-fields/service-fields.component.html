@@ -1,4 +1,5 @@
-<fieldset class="cat-fieldset" [disabled]="isLocked('apresentacao')">
+<!-- Sem [disabled] no fieldset: o resumo pode ficar aberto com a Apresentação aprovada (ver summaryLocked). -->
+<fieldset class="cat-fieldset">
   <legend>Identificação</legend>
   <div class="cat-field">
     <label [for]="idPrefix() + '-name'">Nome do serviço *</label>
@@ -8,9 +9,28 @@
       [id]="idPrefix() + '-name'"
       type="text"
       maxlength="160"
+      [disabled]="isLocked('apresentacao')"
       [value]="value().name"
       (input)="patch({ name: text($event) })"
     />
+  </div>
+  <div class="cat-field">
+    <label [for]="idPrefix() + '-summary'">Resumo *</label>
+    <textarea
+      class="cat-input"
+      [class.cat-invalid]="attempted() && errors().summary"
+      [id]="idPrefix() + '-summary'"
+      [attr.aria-describedby]="idPrefix() + '-summary-hint'"
+      rows="3"
+      [attr.maxlength]="summaryMax"
+      [disabled]="summaryLocked()"
+      [value]="value().summary"
+      (input)="setSummary(text($event))"
+    ></textarea>
+    <p class="cat-hint" [id]="idPrefix() + '-summary-hint'">
+      Uma ou duas frases, sem formatação, que apresentam o serviço na lista da página inicial.
+      {{ value().summary.length }}/{{ summaryMax }}
+    </p>
   </div>
 </fieldset>
 

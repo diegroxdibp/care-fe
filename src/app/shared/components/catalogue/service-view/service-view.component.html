@@ -10,6 +10,11 @@
 
   <div class="cat-block">
     <h1>{{ service().name }}</h1>
+    @if (preview()) {
+      <dl class="cat-rows">
+        <div class="cat-row"><dt>Resumo na página inicial</dt><dd>{{ service().summary || 'Sem resumo.' }}</dd></div>
+      </dl>
+    }
     <app-rich-text [blocks]="service().intro" />
     @if (service().howItWorks.length) {
       <h2>Como funciona o acompanhamento</h2>

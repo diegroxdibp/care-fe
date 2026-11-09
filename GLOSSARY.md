@@ -81,6 +81,14 @@ _Avoid_: Type, kind, mode
 A service that may only be offered in private slots, so clients reach it only by invitation. It is left out of the service lists and professional profiles and is found only through its own link. A service can allow public slots, private slots, or both.
 _Avoid_: Hidden service, invite-only service
 
+**Listed service**:
+A service shown in Care's public list on the home page: approved, not private, and offered by at least one professional whose professional profile is published. An approved service nobody can book yet is not listed.
+_Avoid_: Published service, active service, available service
+
+**Summary**:
+A service's short description, a sentence or two, shown in the public list, written with the service and changed like the rest of its content. Separate from the service's longer presentation on its own page.
+_Avoid_: Description, card text, intro (that is the page's opening)
+
 **Modality**:
 Whether a session happens in person or remotely. A service says which modalities it allows; an offering picks from them.
 _Avoid_: Format, type

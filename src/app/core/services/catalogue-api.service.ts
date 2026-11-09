@@ -46,9 +46,15 @@ export class CatalogueApiService {
     return this.options$;
   }
 
-  /** Serviços aprovados que aparecem em listas (sem os privados). */
-  services(format?: FormatKey): Observable<CareService[]> {
-    const q = format ? `?format=${format}` : '';
+  /**
+   * Serviços aprovados que aparecem em listas (sem os privados). listed: só os
+   * listados da home — os que alguém com o perfil profissional publicado oferece.
+   */
+  services(format?: FormatKey, listed = false): Observable<CareService[]> {
+    const params = new URLSearchParams();
+    if (format) params.set('format', format);
+    if (listed) params.set('listed', 'true');
+    const q = params.toString() ? `?${params}` : '';
     return this.http.get<CareService[]>(`${this.base}/api/catalogue/services${q}`, this.opts);
   }
 

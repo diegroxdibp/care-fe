@@ -89,6 +89,9 @@ export function isPrivateOnly(s: { allowsPublic: boolean }): boolean {
   return !s.allowsPublic;
 }
 
+/** O máximo do resumo de um serviço (care-be ServiceEditor.SUMMARY_MAX). */
+export const SERVICE_SUMMARY_MAX = 400;
+
 /**
  * Campos obrigatórios em falta num serviço vindo de um formulário — o mesmo
  * que care-be ServiceEditor.missing, para mostrar antes de enviar.
@@ -96,6 +99,7 @@ export function isPrivateOnly(s: { allowsPublic: boolean }): boolean {
 export function missingServiceFields(c: ServiceContent): string[] {
   const m: string[] = [];
   if (!c.name.trim()) m.push('nome do serviço');
+  if (!c.summary.trim()) m.push('resumo');
   if (!c.allowsInPerson && !c.allowsRemote) m.push('modalidade');
   if (!c.allowsIndividual && !c.allowsGroup) m.push('formato');
   if (!c.allowsPublic && !c.allowsPrivate) m.push('visibilidade');

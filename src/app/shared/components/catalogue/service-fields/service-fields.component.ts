@@ -4,6 +4,7 @@ import { Audience, ServiceContent, SpecialtyContent } from '../../../models/cata
 import { AudiencePickerComponent } from '../audience-picker/audience-picker.component';
 import { ImageFieldComponent } from '../image-field/image-field.component';
 import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
+import { SERVICE_SUMMARY_MAX } from '../../../utils/catalogue.util';
 
 /**
  * Os campos de um serviço (handoff: "ServiceFields"): proposta nova, proposta
@@ -30,6 +31,25 @@ export class ServiceFieldsComponent {
     return this.locked().includes(section);
   }
 
+  readonly summaryMax = SERVICE_SUMMARY_MAX;
+
+  /** Se a pessoa já escreveu no resumo neste formulário. */
+  private readonly summaryEdited = signal(false);
+
+  /**
+   * O resumo fica com a Apresentação, mas uma proposta anterior a ele (sem
+   * resumo) tem de o poder escrever mesmo com a Apresentação aprovada — o
+   * backend aceita acrescentá-lo (RevisionGuard).
+   */
+  readonly summaryLocked = computed(
+    () => this.isLocked('apresentacao') && !this.summaryEdited() && !!this.value().summary.trim(),
+  );
+
+  setSummary(text: string): void {
+    this.summaryEdited.set(true);
+    this.patch({ summary: text });
+  }
+
   readonly openSpecialties = signal<Set<number>>(new Set());
 
   readonly forWhomText = computed(() => this.value().forWhom.join('\n'));
@@ -38,6 +58,7 @@ export class ServiceFieldsComponent {
     const c = this.value();
     return {
       name: !c.name.trim(),
+      summary: !c.summary.trim(),
       modality: !c.allowsInPerson && !c.allowsRemote,
       format: !c.allowsIndividual && !c.allowsGroup,
       visibility: !c.allowsPublic && !c.allowsPrivate,

@@ -47,6 +47,8 @@ export interface CareService {
   id: number;
   slug: string;
   name: string;
+  /** Uma ou duas frases para a lista da home. Null nos serviços anteriores ao campo, ainda sem resumo. */
+  summary: string | null;
   status: ReviewStatus;
   allowsIndividual: boolean;
   allowsGroup: boolean;
@@ -79,6 +81,8 @@ export interface SpecialtyContent {
 /** Um serviço como sai de um formulário (proposta, alteração, edição da equipa). */
 export interface ServiceContent {
   name: string;
+  /** Texto simples, até SERVICE_SUMMARY_MAX caracteres. */
+  summary: string;
   allowsIndividual: boolean;
   allowsGroup: boolean;
   allowsInPerson: boolean;
@@ -243,6 +247,7 @@ export interface AdminProfile {
 export function emptyServiceContent(): ServiceContent {
   return {
     name: '',
+    summary: '',
     allowsIndividual: false,
     allowsGroup: false,
     allowsInPerson: false,
@@ -317,6 +322,7 @@ export function proposalContentOf(s: CareService): ServiceContent {
 export function contentOf(s: CareService): ServiceContent {
   return {
     name: s.name,
+    summary: s.summary ?? '',
     allowsIndividual: s.allowsIndividual,
     allowsGroup: s.allowsGroup,
     allowsInPerson: s.allowsInPerson,
