@@ -60,6 +60,14 @@ export class HeaderComponent {
   readonly userEmail = computed(() => this.user()?.email ?? '');
   /** A área da equipa (/admin) só aparece no menu a quem é ADMIN. */
   readonly isAdmin = computed(() => !!this.user()?.roles?.includes(Roles.ADMIN));
+  /** O papel mais alto da conta, mostrado por baixo do nome. */
+  readonly roleLabel = computed(() => {
+    const roles = this.user()?.roles ?? [];
+    if (roles.includes(Roles.ADMIN)) return 'Admin';
+    if (roles.includes(Roles.THERAPIST)) return 'Terapeuta';
+    if (roles.includes(Roles.PROFESSIONAL)) return 'Profissional';
+    return 'Paciente';
+  });
 
   readonly currentUrl = toSignal(this.navigationService.currentUrl, { initialValue: '/' });
 

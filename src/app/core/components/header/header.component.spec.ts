@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { HeaderComponent } from './header.component';
+import { SessionService } from '../../../shared/services/session.service';
+import { Roles } from '../../../shared/enums/roles.enum';
 
 describe('HeaderComponent', () => {
   let component: HeaderComponent;
@@ -19,6 +21,20 @@ describe('HeaderComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('papel por baixo do nome', () => {
+    const cases: [string[], string][] = [
+      [[Roles.USER], 'Paciente'],
+      [[Roles.USER, Roles.PROFESSIONAL], 'Profissional'],
+      [[Roles.USER, Roles.PROFESSIONAL, Roles.THERAPIST], 'Terapeuta'],
+      [[Roles.USER, Roles.THERAPIST, Roles.ADMIN], 'Admin'],
+    ];
+
+    it.each(cases)('%j mostra %s', (roles, label) => {
+      TestBed.inject(SessionService).setUser({ name: 'Ana Silva', email: 'a@b.c', roles, profileCompleted: true });
+      expect(component.roleLabel()).toBe(label);
+    });
   });
 
   describe('fundo enquanto um diálogo está aberto', () => {
