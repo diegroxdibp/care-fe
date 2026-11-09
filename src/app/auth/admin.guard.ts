@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
+import { Observable } from 'rxjs';
 
 import { Roles } from '../shared/enums/roles.enum';
 import { SessionService } from '../shared/services/session.service';
@@ -15,7 +16,11 @@ export class AdminGuard {
   private readonly router = inject(Router);
   private readonly snackbarService = inject(SnackbarService);
 
-  canMatch(): boolean | UrlTree {
+  canMatch(): boolean | UrlTree | Observable<boolean | UrlTree> {
+    return this.sessionService.whenKnown(() => this.decide());
+  }
+
+  private decide(): boolean | UrlTree {
     if (this.sessionService.user()?.roles?.includes(Roles.ADMIN)) return true;
     this.snackbarService.openSnackBar({ message: 'Você não tem permissão para acessar esta área', action: true });
     return this.router.createUrlTree(['/dashboard']);

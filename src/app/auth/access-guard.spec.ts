@@ -51,6 +51,7 @@ describe('AccessGuard — volta ao link depois de entrar', () => {
       () => ({ extractedUrl: router.parseUrl(attemptedUrl) }) as ReturnType<Router['getCurrentNavigation']>,
     );
     session = TestBed.inject(SessionService);
+    session.markKnown();
     guard = TestBed.inject(AccessGuard);
   });
 

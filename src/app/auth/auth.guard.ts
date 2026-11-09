@@ -1,6 +1,7 @@
 import { SnackbarService } from './../shared/services/snackbar.service';
 import { inject, Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
+import { Observable } from 'rxjs';
 import { User } from './user.model';
 import { SessionService } from '../shared/services/session.service';
 import { isSchedulingPath, isValidReturnPath, storeReturnPath } from '../shared/utils/return-path.util';
@@ -12,11 +13,16 @@ export class AccessGuard {
   private router = inject(Router);
   private snackbarService = inject(SnackbarService);
 
-  canMatch(): boolean | UrlTree {
-    const user: User | null = this.sessionService.user();
+  canMatch(): boolean | UrlTree | Observable<boolean | UrlTree> {
     // Full attempted URL (path + query params) as the navigation actually
-    // resolved it — segments alone would drop the query string.
+    // resolved it — segments alone would drop the query string. Read before
+    // waiting for the session, while this is still the current navigation.
     const attemptedUrl = this.router.getCurrentNavigation()?.extractedUrl.toString() ?? null;
+    return this.sessionService.whenKnown(() => this.decide(attemptedUrl));
+  }
+
+  private decide(attemptedUrl: string | null): boolean | UrlTree {
+    const user: User | null = this.sessionService.user();
 
     if (!user) {
       // The scheduling flow gets the "account is step 1" treatment.

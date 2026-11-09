@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
+import { Observable } from 'rxjs';
 import { SessionService } from '../shared/services/session.service';
 import { SnackbarService } from '../shared/services/snackbar.service';
 import { Roles } from '../shared/enums/roles.enum';
@@ -19,7 +20,11 @@ export class AvailabilityAccessGuard {
   private router = inject(Router);
   private snackbarService = inject(SnackbarService);
 
-  canMatch(): boolean | UrlTree {
+  canMatch(): boolean | UrlTree | Observable<boolean | UrlTree> {
+    return this.sessionService.whenKnown(() => this.decide());
+  }
+
+  private decide(): boolean | UrlTree {
     if (!environment.production) return true;
 
     const user = this.sessionService.user();

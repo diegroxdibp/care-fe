@@ -6,8 +6,11 @@ import {
   map,
   Observable,
   of,
+  race,
+  shareReplay,
   switchMap,
   tap,
+  timer,
 } from 'rxjs';
 import { SignInPayload } from '../shared/models/sign-in-payload';
 import { SignInResponse } from '../shared/models/sign-in-response';
@@ -23,6 +26,9 @@ import { Router } from '@angular/router';
 import { AppConstants } from '../app-constants';
 import { User } from './user.model';
 
+/** Quanto a app espera pela sessão antes de abrir. /me costuma responder em menos de 0,5 s. */
+export const AUTH_INIT_WAIT_MS = 5000;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -34,8 +40,15 @@ export class AuthService {
   private _initialized = signal(false);
   readonly initialized = computed(() => this._initialized());
 
+  /**
+   * Quem está na sessão, ao abrir a app (app initializer). Espera por /me no
+   * máximo AUTH_INIT_WAIT_MS: com a API em baixo, o pedido só falhava ao fim
+   * de ~36 s e a página ficava em branco até lá (incidente de 2026-11-09).
+   * Passado esse tempo a app abre e o pedido continua: quando responde,
+   * define a sessão. Os guards esperam por ela (SessionService.whenKnown).
+   */
   init(): Observable<void> {
-    return this.http
+    const me$ = this.http
       .get<User>(AppConstants.apiEndpoints.me, { withCredentials: true })
       .pipe(
         tap((user: User) => this.sessionService.setUser(user)),
@@ -43,9 +56,16 @@ export class AuthService {
           this.sessionService.setUser(null);
           return of(null);
         }),
-        finalize(() => this._initialized.set(true)),
-        map(() => void 0)
+        finalize(() => {
+          this._initialized.set(true);
+          this.sessionService.markKnown();
+        }),
+        map(() => void 0),
+        shareReplay(1),
       );
+    // Corre até ao fim mesmo que a app abra antes (o race deixa de o ouvir).
+    me$.subscribe();
+    return race(me$, timer(AUTH_INIT_WAIT_MS).pipe(map(() => void 0)));
   }
   signUp(payload: SignUpPayload): Observable<SignUpResponse> {
     return this.http.post<SignUpResponse>(AppConstants.apiEndpoints.register, payload);
