@@ -172,7 +172,8 @@ export class RequestTrackingComponent implements OnInit {
   readonly steps = computed(() => {
     const r = this.review();
     if (!r) return [];
-    const labels = r.kind === 'APPLICATION'
+    // Com a entrevista dispensada, a etapa não aparece (GLOSSARY.md, Waived interview).
+    const labels = r.kind === 'APPLICATION' && !r.interviewWaiver
       ? ['Envio', 'Análise', 'Entrevista', 'Publicação']
       : ['Envio', 'Análise', 'Publicação'];
     const current: Record<ReviewStage, number> = {
@@ -206,7 +207,7 @@ export class RequestTrackingComponent implements OnInit {
       && r.items.find(i => i.key === 'pro')?.decision === 'APPROVED';
   });
 
-  readonly showInterview = computed(() => this.proApproved());
+  readonly showInterview = computed(() => this.proApproved() && !this.review()?.interviewWaiver);
 
   private readonly refusedNote = computed(() => {
     const r = this.review();

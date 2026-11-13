@@ -114,3 +114,56 @@ describe('ReviewPageComponent — devolver para alterações', () => {
     expect(requestChanges).not.toHaveBeenCalled();
   });
 });
+
+describe('ReviewPageComponent — concluir dispensando a entrevista', () => {
+  let component: ReviewPageComponent;
+  let conclude: jest.Mock;
+
+  beforeEach(() => {
+    conclude = jest.fn().mockReturnValue(of({ kind: 'APPLICATION', id: 5, stage: 'PUBLISHED', points: [], items: [] }));
+    TestBed.configureTestingModule({
+      imports: [ReviewPageComponent],
+      providers: [
+        { provide: ReviewApiService, useValue: { conclude } },
+        { provide: CatalogueApiService, useValue: { options: () => of(null) } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { team: true }, paramMap: convertToParamMap({}), queryParamMap: convertToParamMap({}) } },
+        },
+        { provide: SnackbarService, useValue: { openSnackBar: jest.fn() } },
+        { provide: SessionService, useValue: { user: signal(null) } },
+        { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(true) }) } },
+        { provide: NavigationService, useValue: { afterNavigationScroll: () => Promise.resolve() } },
+      ],
+    });
+    component = TestBed.createComponent(ReviewPageComponent).componentInstance;
+    component.team.set(true);
+  });
+
+  function load(proDecision: 'APPROVED' | 'REJECTED'): void {
+    component.review.set({
+      kind: 'APPLICATION', id: 5, stage: 'ANALYSIS', decision: null, proposals: [],
+      points: [point('pro:quem-sou', 'Quem sou', proDecision === 'APPROVED' ? 'APPROVED' : 'REJECTED')],
+      items: [{ key: 'pro', serviceId: null, name: 'Ana Souza', slug: 'ana-souza', decision: proDecision }],
+    } as unknown as Review);
+  }
+
+  it('a opção só aparece com o perfil aprovado', () => {
+    load('REJECTED');
+    expect(component.canWaiveInterview()).toBe(false);
+    load('APPROVED');
+    expect(component.canWaiveInterview()).toBe(true);
+  });
+
+  it('marcada, o botão publica já e o pedido segue com a dispensa', () => {
+    load('APPROVED');
+    expect(component.concludeLabel()).toBe('Concluir e convidar para entrevista');
+
+    component.waiveInterview.set(true);
+    expect(component.concludeLabel()).toBe('Concluir e publicar');
+    expect(component.concludeHint()).toContain('sem entrevista');
+
+    component.conclude();
+    expect(conclude).toHaveBeenCalledWith('APPLICATION', 5, true);
+  });
+});

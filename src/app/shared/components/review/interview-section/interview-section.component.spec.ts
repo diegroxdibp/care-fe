@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
@@ -91,5 +92,87 @@ describe('InterviewSectionComponent — o convite da equipe', () => {
   it('a equipe não vê o convite como se fosse a pessoa', () => {
     const text = (render(review(), true).nativeElement as HTMLElement).textContent ?? '';
     expect(text).not.toContain('Aceitar convite');
+  });
+});
+
+describe('InterviewSectionComponent — dispensar a entrevista (equipe)', () => {
+  let reviewApi: Record<string, jest.Mock>;
+  let dialogOpen: jest.Mock;
+
+  function render(r: Review, confirm = true) {
+    dialogOpen = jest.fn().mockReturnValue({ afterClosed: () => of(confirm) });
+    TestBed.configureTestingModule({
+      imports: [InterviewSectionComponent],
+      providers: [
+        { provide: ReviewApiService, useValue: reviewApi },
+        { provide: ApiService, useValue: {} },
+        { provide: SessionService, useValue: { user: signal({ timeZone: 'America/Sao_Paulo' }) } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+      ],
+    });
+    const fixture = TestBed.createComponent(InterviewSectionComponent);
+    fixture.componentRef.setInput('review', r);
+    fixture.componentRef.setInput('team', true);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  const booked = {
+    appointmentId: 900,
+    availabilityId: 77,
+    date: '2026-11-20',
+    startTime: '15:00:00',
+    endTime: '16:00:00',
+    timeZone: 'Europe/Lisbon',
+    host: 'Luane Bastos',
+    modality: 'REMOTE' as const,
+    done: false,
+  };
+
+  beforeEach(() => {
+    reviewApi = {
+      interviewSlots: jest.fn().mockReturnValue(of([])),
+      waiveInterview: jest.fn().mockReturnValue(of(review({ stage: 'PUBLISHED' }))),
+    };
+  });
+
+  it('à espera do agendamento, dispensa depois de confirmar e publica', () => {
+    const fixture = render(review({ interviewInvitation: null }));
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Dispensar entrevista · Publicar');
+    const changed = jest.fn();
+    fixture.componentInstance.changed.subscribe(changed);
+
+    fixture.componentInstance.waive();
+
+    expect(dialogOpen.mock.calls[0][1].data.message).not.toContain('cancelada');
+    expect(reviewApi['waiveInterview']).toHaveBeenCalledWith(12);
+    expect(changed).toHaveBeenCalled();
+  });
+
+  it('com a entrevista marcada, avisa que ela é cancelada', () => {
+    const fixture = render(review({ stage: 'INTERVIEW_BOOKED', interview: booked, interviewInvitation: null }));
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Dispensar entrevista · Publicar');
+
+    fixture.componentInstance.waive();
+
+    expect(dialogOpen.mock.calls[0][1].data.message).toContain('A entrevista marcada é cancelada.');
+    expect(reviewApi['waiveInterview']).toHaveBeenCalledWith(12);
+  });
+
+  it('sem confirmar, nada acontece', () => {
+    render(review({ interviewInvitation: null }), false).componentInstance.waive();
+    expect(reviewApi['waiveInterview']).not.toHaveBeenCalled();
+  });
+
+  it('dispensada, mostra quem dispensou e não procura horários', () => {
+    const text = (render(review({
+      stage: 'PUBLISHED',
+      interviewInvitation: null,
+      interviewWaiver: { at: '2026-11-13T10:00:00Z', by: 'Equipa' },
+    })).nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Entrevista dispensada');
+    expect(text).toContain('Por Equipa em 13 de novembro de 2026');
+    expect(text).not.toContain('Aguardando agendamento');
+    expect(reviewApi['interviewSlots']).not.toHaveBeenCalled();
   });
 });

@@ -113,6 +113,8 @@ export class ReviewPageComponent implements OnInit {
   readonly notFound = signal(false);
   readonly busy = signal(false);
   readonly team = signal(false);
+  /** Concluir dispensando a entrevista (GLOSSARY.md, Waived interview): publica já. */
+  readonly waiveInterview = signal(false);
 
   readonly STAGE = STAGE;
   readonly POINT_STATUS = POINT_STATUS;
@@ -351,15 +353,19 @@ export class ReviewPageComponent implements OnInit {
       ? 'Concluir análise'
       : !this.anyApproved()
         ? 'Concluir e recusar pedido'
-        : this.proApproved()
+        : this.proApproved() && !this.waiveInterview()
           ? 'Concluir e convidar para entrevista'
           : 'Concluir e publicar',
   );
+  /** A opção de dispensar a entrevista só aparece com o perfil aprovado. */
+  readonly canWaiveInterview = computed(() => this.proApproved());
   readonly concludeDanger = computed(() => this.canConclude() && !this.anyApproved());
   readonly concludeHint = computed(() =>
     this.canConclude()
       ? this.proApproved()
-        ? 'A pessoa profissional é convidada a agendar a entrevista. A publicação acontece depois da entrevista.'
+        ? this.waiveInterview()
+          ? 'O perfil e os serviços aprovados são publicados agora, sem entrevista. Isso não pode ser desfeito.'
+          : 'A pessoa profissional é convidada a agendar a entrevista. A publicação acontece depois da entrevista.'
         : ''
       : this.allDecided()
         ? 'Um item recusado precisa de pelo menos uma parte negada.'
@@ -416,7 +422,7 @@ export class ReviewPageComponent implements OnInit {
           INTERVIEW_TO_BOOK: `Análise concluída em ${when} (${this.itemsText()}). A pessoa profissional foi convidada a agendar a entrevista.`,
           INTERVIEW_BOOKED: `Análise concluída em ${when} (${this.itemsText()}). Entrevista agendada; veja abaixo.`,
           PUBLISHED: app
-            ? `Entrevista realizada. O perfil e os serviços aprovados foram publicados (${this.itemsText()}).`
+            ? `${r.interviewWaiver ? 'Entrevista dispensada' : 'Entrevista realizada'}. O perfil e os serviços aprovados foram publicados (${this.itemsText()}).`
             : `Aprovado e publicado em ${when}.`,
         }
       : {
@@ -434,7 +440,9 @@ export class ReviewPageComponent implements OnInit {
 
   readonly showInterview = computed(() => {
     const r = this.review();
-    return !!r && r.kind === 'APPLICATION' && this.proApproved() && r.decision === 'CONCLUDED';
+    // Dispensada, a pessoa não vê etapa de entrevista nenhuma; a equipa vê que foi dispensada.
+    return !!r && r.kind === 'APPLICATION' && this.proApproved() && r.decision === 'CONCLUDED'
+      && (this.team() || !r.interviewWaiver);
   });
 
   // ─ Configuração da publicação e públicos (equipa) ─────────────────────────
@@ -591,7 +599,10 @@ export class ReviewPageComponent implements OnInit {
       })
       .afterClosed()
       .subscribe(ok => {
-        if (ok) this.act(this.withUnsaved(r, () => this.api.conclude(r.kind, r.id)));
+        if (!ok) return;
+        const waive = this.proApproved() && this.waiveInterview();
+        this.act(this.withUnsaved(r, () => this.api.conclude(r.kind, r.id, waive)));
+        this.waiveInterview.set(false);
       });
   }
 

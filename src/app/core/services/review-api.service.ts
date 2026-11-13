@@ -95,8 +95,11 @@ export class ReviewApiService {
     );
   }
 
-  conclude(kind: ReviewKind, id: number): Observable<Review> {
-    return this.http.post<Review>(`${this.base}/api/admin/reviews/${this.path(kind, id)}/conclude`, {}, this.opts);
+  /** waiveInterview: numa candidatura com o perfil aprovado, publica já, sem entrevista. */
+  conclude(kind: ReviewKind, id: number, waiveInterview = false): Observable<Review> {
+    return this.http.post<Review>(
+      `${this.base}/api/admin/reviews/${this.path(kind, id)}/conclude`, { waiveInterview }, this.opts,
+    );
   }
 
   requestChanges(kind: ReviewKind, id: number): Observable<Review> {
@@ -112,6 +115,13 @@ export class ReviewApiService {
   interviewDone(applicationId: number): Observable<Review> {
     return this.http.post<Review>(
       `${this.base}/api/admin/reviews/application/${applicationId}/interview/done`, {}, this.opts,
+    );
+  }
+
+  /** Dispensa a entrevista por marcar ou já marcada (cancela-a) e publica. */
+  waiveInterview(applicationId: number): Observable<Review> {
+    return this.http.post<Review>(
+      `${this.base}/api/admin/reviews/application/${applicationId}/interview/waive`, {}, this.opts,
     );
   }
 

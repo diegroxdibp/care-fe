@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
@@ -9,6 +10,7 @@ import { SessionService } from '../../../services/session.service';
 import { PickerSlot, timeInZone, upcomingSlots } from '../../../utils/picker-slots.util';
 import { detectBrowserTimezone, sessionZone, zonedWallTimeToInstant } from '../../../utils/timezones.util';
 import { AvailabilityPickerComponent, PickerChoice } from '../availability-picker/availability-picker.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../confirm-dialog/confirm-dialog.component';
 
 const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCAL: 'Presencial' };
 
@@ -16,7 +18,8 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
  * A entrevista de uma candidatura com o perfil aprovado. A pessoa escolhe um
  * dos horários do serviço "Entrevista" (ou muda-o, até ser realizada); a
  * equipa vê se já foi marcada, quantos horários livres há, e dá-a como
- * realizada (publica) ou cancela-a.
+ * realizada (publica), cancela-a ou dispensa-a (publica sem ela - GLOSSARY.md,
+ * Waived interview).
  */
 @Component({
   selector: 'app-interview-section',
@@ -32,7 +35,12 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
         <p class="rv-lead">{{ intro() }}</p>
       </div>
 
-      @if (interview(); as iv) {
+      @if (waiver(); as w) {
+        <div class="rv-box rv-tone-green">
+          <span class="rv-status-line"><span class="rv-dot"></span>Entrevista dispensada</span>
+          <span class="rv-box-text">{{ waiverText() }}</span>
+        </div>
+      } @else if (interview(); as iv) {
         <div class="rv-box" [class]="iv.done ? 'rv-tone-green' : 'rv-tone-indigo'" [class.rv-box--done]="iv.done && !team()">
           <span class="rv-status-line"><span class="rv-dot"></span>{{ iv.done ? 'Entrevista realizada' : 'Entrevista agendada' }}</span>
           <span class="rv-box-when">{{ when() }}</span>
@@ -41,6 +49,9 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
             <div class="rv-actions">
               <button type="button" class="rv-btn rv-btn--small" [disabled]="busy()" (click)="done()">
                 Entrevista realizada · Publicar
+              </button>
+              <button type="button" class="rv-btn-outline rv-btn--small" [disabled]="busy()" (click)="waive()">
+                Dispensar entrevista · Publicar
               </button>
               <button type="button" class="rv-btn-outline rv-btn--small" [disabled]="busy()" (click)="cancel()">
                 Cancelar agendamento
@@ -57,6 +68,11 @@ const MOD_WORD: Record<string, string> = { REMOTE: 'Remoto (videochamada)', LOCA
         <div class="rv-box rv-tone-indigo">
           <span class="rv-status-line"><span class="rv-dot"></span>Aguardando agendamento</span>
           <span class="rv-box-text">{{ waitingText() }}</span>
+          <div class="rv-actions">
+            <button type="button" class="rv-btn-outline rv-btn--small" [disabled]="busy()" (click)="waive()">
+              Dispensar entrevista · Publicar
+            </button>
+          </div>
         </div>
       }
 
@@ -105,6 +121,7 @@ export class InterviewSectionComponent {
   private readonly api = inject(ReviewApiService);
   private readonly invitations = inject(ApiService);
   private readonly session = inject(SessionService);
+  private readonly dialog = inject(MatDialog);
 
   readonly review = input.required<Review>();
   readonly team = input(false);
@@ -119,6 +136,19 @@ export class InterviewSectionComponent {
 
   readonly zone = computed(() => this.session.user()?.timeZone || detectBrowserTimezone());
   readonly interview = computed(() => this.review().interview);
+  readonly waiver = computed(() => this.review().interviewWaiver ?? null);
+  /** "Por Equipa em 13 de novembro de 2026." */
+  readonly waiverText = computed(() => {
+    const w = this.waiver();
+    if (!w) return '';
+    const day = new Date(w.at).toLocaleDateString('pt-PT', {
+      timeZone: this.zone(),
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    return `${w.by ? 'Por ' + w.by + ' em ' : 'Em '}${day}. O perfil e os serviços aprovados foram publicados sem entrevista.`;
+  });
   /** O convite da equipe por responder - só para a própria pessoa, antes de marcar. */
   readonly invitation = computed(() => (this.team() || this.interview()) ? null : this.review().interviewInvitation ?? null);
 
@@ -147,7 +177,7 @@ export class InterviewSectionComponent {
   );
   readonly intro = computed(() =>
     this.team()
-      ? 'Com o perfil aprovado, a pessoa profissional escolhe um dos horários de entrevista disponibilizados pela equipe. Depois da entrevista, marque como realizada para publicar o perfil e os serviços aprovados.'
+      ? 'Com o perfil aprovado, a pessoa profissional escolhe um dos horários de entrevista disponibilizados pela equipe. Depois da entrevista, marque como realizada para publicar o perfil e os serviços aprovados. Se a equipe já conhece a pessoa, dá para dispensar a entrevista e publicar já.'
       : 'A entrevista serve para conhecer sua prática e esclarecer, dos dois lados, o que significa trabalhar na clínica ampliada. Escolha o dia e o horário mais convenientes para você. Depois da entrevista, o perfil e os serviços aprovados são publicados.',
   );
 
@@ -216,7 +246,7 @@ export class InterviewSectionComponent {
     // Os horários só fazem falta a quem escolhe, ou à equipa enquanto espera.
     effect(() => {
       const r = this.review();
-      const needs = this.team() ? !r.interview : !r.interview?.done;
+      const needs = !r.interviewWaiver && (this.team() ? !r.interview : !r.interview?.done);
       if (needs && this.slots() === null) {
         this.api.interviewSlots(r.id).subscribe({
           next: list => this.slots.set(upcomingSlots(list)),
@@ -298,6 +328,30 @@ export class InterviewSectionComponent {
 
   done(): void {
     this.run(this.api.interviewDone(this.review().id));
+  }
+
+  /**
+   * Dispensa a entrevista e publica, depois de confirmar: não dá para
+   * desfazer. Marcada, a sessão é cancelada; a pessoa só recebe as
+   * boas-vindas, que explicam.
+   */
+  waive(): void {
+    const booked = !!this.interview();
+    const data: ConfirmDialogData = {
+      title: 'Dispensar entrevista e publicar?',
+      message: (booked ? 'A entrevista marcada é cancelada. ' : '')
+        + 'O perfil e os serviços aprovados são publicados agora, sem entrevista, e a pessoa recebe o email de '
+        + 'boas-vindas. Isso não pode ser desfeito.',
+      confirmLabel: 'Dispensar e publicar',
+      cancelLabel: 'Voltar',
+      confirmTone: 'primary',
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { width: '440px', panelClass: 'care-dialog', data })
+      .afterClosed()
+      .subscribe(ok => {
+        if (ok) this.run(this.api.waiveInterview(this.review().id));
+      });
   }
 
   cancel(): void {

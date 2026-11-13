@@ -330,6 +330,17 @@
                 Comentários e mudanças de status ficam em rascunho e vão todos juntos ao devolver ou concluir.
               </span>
             }
+            @if (canWaiveInterview()) {
+              <label class="cat-check">
+                <input
+                  type="checkbox"
+                  [checked]="waiveInterview()"
+                  [disabled]="busy()"
+                  (change)="waiveInterview.set($any($event.target).checked)"
+                />
+                Dispensar entrevista
+              </label>
+            }
             <div class="rv-actions">
               <button
                 type="button"

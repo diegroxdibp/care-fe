@@ -130,6 +130,14 @@ export interface Review {
   change: ChangeReview | null;
   /** Só para a própria pessoa, à espera da entrevista: o convite da equipe por responder. */
   interviewInvitation?: InterviewInvitation | null;
+  /** Só numa candidatura publicada sem entrevista (GLOSSARY.md, Waived interview). */
+  interviewWaiver?: InterviewWaiver | null;
+}
+
+/** A entrevista dispensada: quando e, só para a equipe, por quem. */
+export interface InterviewWaiver {
+  at: string;
+  by: string | null;
 }
 
 /** Um convite para a entrevista (GLOSSARY.md, Interview invitation); a hora é a da vaga (timeZone). */

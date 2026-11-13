@@ -124,8 +124,12 @@ A person's request to become a professional on Care, sent from their account wit
 _Avoid_: Candidatura (in code), professional sign-up
 
 **Interview**:
-A free, one-hour, individual conversation between an applicant and the Care team, booked by the applicant once their professional profile is approved and held before their profile is published.
+A free, one-hour, individual conversation between an applicant and the Care team, booked by the applicant once their professional profile is approved and held before their profile is published, unless it is waived.
 _Avoid_: Entrevista (in code), meeting, call
+
+**Waived interview**:
+The Care team's decision that an applicant whose professional profile is approved doesn't need an interview, usually because the team already knows them. Their profile is published right away, and the waiver stays on record.
+_Avoid_: Skipped interview, dispensed interview, no-interview approval
 
 **Personal profile**:
 What a person's account says about them (name, photo, contact details, time zone), seen in their own settings and by the Care team.
